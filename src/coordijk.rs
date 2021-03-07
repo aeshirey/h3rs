@@ -264,6 +264,37 @@ impl CoordIJK {
         self.k = 0;
         self._ijkNormalize();
     }
+
+    /**
+     * Given cube coords as doubles, round to valid integer coordinates. Algorithm
+     * from https://www.redblobgames.com/grids/hexagons/#rounding
+     * @param i   Floating-point I coord
+     * @param j   Floating-point J coord
+     * @param k   Floating-point K coord
+     * @param ijk IJK coord struct, modified in place
+     */
+    fn cubeRound(&mut self, i: f64, j: f64, k: f64) {
+        let mut ri = i.round() as i32;
+        let mut rj = j.round() as i32;
+        let mut rk = k.round() as i32;
+
+        let iDiff = (ri - i).abs();
+        let jDiff = (rj - j).abs();
+        let kDiff = (rk - k).abs();
+
+        // Round, maintaining valid cube coords
+        if (iDiff > jDiff && iDiff > kDiff) {
+            ri = -rj - rk;
+        } else if (jDiff > kDiff) {
+            rj = -ri - rk;
+        } else {
+            rk = -ri - rj;
+        }
+
+        self.i = ri;
+        self.j = rj;
+        self.k = rk;
+    }
 }
 
 impl ops::Add for CoordIJK {

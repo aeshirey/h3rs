@@ -485,8 +485,7 @@ int localIjkToH3(H3Index origin, const CoordIJK* ijk, H3Index* out) {
  * @param out ij coordinates of the index will be placed here on success
  * @return 0 on success, or another value on failure.
  */
-int experimentalH3ToLocalIj(H3Index origin, H3Index h3,
-                                       CoordIJ* out) {
+int experimentalH3ToLocalIj(H3Index origin, H3Index h3, CoordIJ* out) {
     // This function is currently experimental. Once ready to be part of the
     // non-experimental API, this function (with the experimental prefix) will
     // be marked as deprecated and to be removed in the next major version. It
@@ -530,77 +529,9 @@ int experimentalLocalIjToH3(H3Index origin, const CoordIJ* ij, H3Index* out) {
     return localIjkToH3(origin, &ijk, out);
 }
 
-/**
- * Produces the grid distance between the two indexes.
- *
- * This function may fail to find the distance between two indexes, for
- * example if they are very far apart. It may also fail when finding
- * distances for indexes on opposite sides of a pentagon.
- *
- * @param origin Index to find the distance from.
- * @param index Index to find the distance to.
- * @return The distance, or a negative number if the library could not
- * compute the distance.
- */
-int h3Distance(H3Index origin, H3Index h3) {
-    CoordIJK originIjk, h3Ijk;
-    if (h3ToLocalIjk(origin, origin, &originIjk)) {
-        // Currently there are no tests that would cause getting the coordinates
-        // for an index the same as the origin to fail.
-        return -1;  // LCOV_EXCL_LINE
-    }
-    if (h3ToLocalIjk(origin, h3, &h3Ijk)) {
-        return -1;
-    }
 
-    return ijkDistance(&originIjk, &h3Ijk);
-}
 
-/**
- * Number of indexes in a line from the start index to the end index,
- * to be used for allocating memory. Returns a negative number if the
- * line cannot be computed.
- *
- * @param start Start index of the line
- * @param end End index of the line
- * @return Size of the line, or a negative number if the line cannot
- * be computed.
- */
-int h3LineSize(H3Index start, H3Index end) {
-    int distance = h3Distance(start, end);
-    return distance >= 0 ? distance + 1 : distance;
-}
 
-/**
- * Given cube coords as doubles, round to valid integer coordinates. Algorithm
- * from https://www.redblobgames.com/grids/hexagons/#rounding
- * @param i   Floating-point I coord
- * @param j   Floating-point J coord
- * @param k   Floating-point K coord
- * @param ijk IJK coord struct, modified in place
- */
-static void cubeRound(double i, double j, double k, CoordIJK* ijk) {
-    int ri = round(i);
-    int rj = round(j);
-    int rk = round(k);
-
-    double iDiff = fabs((double)ri - i);
-    double jDiff = fabs((double)rj - j);
-    double kDiff = fabs((double)rk - k);
-
-    // Round, maintaining valid cube coords
-    if (iDiff > jDiff && iDiff > kDiff) {
-        ri = -rj - rk;
-    } else if (jDiff > kDiff) {
-        rj = -ri - rk;
-    } else {
-        rk = -ri - rj;
-    }
-
-    ijk->i = ri;
-    ijk->j = rj;
-    ijk->k = rk;
-}
 
 /**
  * Given two H3 indexes, return the line of indexes between them (inclusive).
@@ -643,12 +574,9 @@ int h3Line(H3Index start, H3Index end, H3Index* out) {
     ijkToCube(&startIjk);
     ijkToCube(&endIjk);
 
-    double iStep =
-        distance ? (double)(endIjk.i - startIjk.i) / (double)distance : 0;
-    double jStep =
-        distance ? (double)(endIjk.j - startIjk.j) / (double)distance : 0;
-    double kStep =
-        distance ? (double)(endIjk.k - startIjk.k) / (double)distance : 0;
+    double iStep = distance ? (double)(endIjk.i - startIjk.i) / (double)distance : 0;
+    double jStep = distance ? (double)(endIjk.j - startIjk.j) / (double)distance : 0;
+    double kStep = distance ? (double)(endIjk.k - startIjk.k) / (double)distance : 0;
 
     CoordIJK currentIjk = {startIjk.i, startIjk.j, startIjk.k};
     for (int n = 0; n <= distance; n++) {

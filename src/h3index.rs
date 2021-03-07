@@ -1,4 +1,4 @@
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Eq)]
 struct H3Index(u64);
 
 // constants and macros for bitwise manipulation of H3Index
@@ -69,7 +69,7 @@ impl H3Index {
 
     /// Invalid index used to indicate an error from geoToH3 and related functions
     /// or missing data in arrays of h3 indices. Analogous to NaN in floating point.
-    const H3_NULL: i32 = 0;
+    const H3_NULL: Self = Self(0);
 
     /**
      * H3 index with mode 0, res 0, base cell 0, and 7 for all index digits.
@@ -370,27 +370,27 @@ impl H3Index {
     fn h3ToChildren(&self /*h*/, childRes: i32) -> Vec<H3Index> /* children  ?? */ {
         todo!()
         /*
-        int parentRes = h.H3_GET_RESOLUTION();
-        if (!_isValidChildRes(parentRes, childRes)) {
-            return;
-        } else if (parentRes == childRes) {
-            *children = h;
-            return;
+          int parentRes = h.H3_GET_RESOLUTION();
+          if (!_isValidChildRes(parentRes, childRes)) {
+          return;
+          } else if (parentRes == childRes) {
+        *children = h;
+        return;
         }
         int bufferSize = maxH3ToChildrenSize(h, childRes);
         int bufferChildStep = (bufferSize / 7);
         int isAPentagon = h3IsPentagon(h);
         for (int i = 0; i < 7; i++) {
-            if (isAPentagon && i == K_AXES_DIGIT) {
-                H3Index* nextChild = children + bufferChildStep;
-                while (children < nextChild) {
-                    *children = H3_NULL;
-                    children++;
-                }
-            } else {
-                h3ToChildren(makeDirectChild(h, i), childRes, children);
-                children += bufferChildStep;
-            }
+        if (isAPentagon && i == K_AXES_DIGIT) {
+        H3Index* nextChild = children + bufferChildStep;
+        while (children < nextChild) {
+        *children = H3_NULL;
+        children++;
+        }
+        } else {
+        h3ToChildren(makeDirectChild(h, i), childRes, children);
+        children += bufferChildStep;
+        }
         }
         */
     }
@@ -448,157 +448,157 @@ impl H3Index {
         todo!()
 
         /*
-        H3Index* remainingHexes = H3_MEMORY(malloc)(numHexes * sizeof(H3Index));
-        if (!remainingHexes) {
-            return COMPACT_ALLOC_FAILED;
-        }
-        memcpy(remainingHexes, h3Set, numHexes * sizeof(H3Index));
-        H3Index* hashSetArray = H3_MEMORY(calloc)(numHexes, sizeof(H3Index));
-        if (!hashSetArray) {
-            H3_MEMORY(free)(remainingHexes);
-            return COMPACT_ALLOC_FAILED;
-        }
-        H3Index* compactedSetOffset = compactedSet;
-        int numRemainingHexes = numHexes;
-        while (numRemainingHexes) {
-            res = remainingHexes[0].H3_GET_RESOLUTION();
-            int parentRes = res - 1;
-            // Put the parents of the hexagons into the temp array
-            // via a hashing mechanism, and use the reserved bits
-            // to track how many times a parent is duplicated
-            for (int i = 0; i < numRemainingHexes; i++) {
-                H3Index currIndex = remainingHexes[i];
-                if (currIndex != 0) {
+                       H3Index* remainingHexes = H3_MEMORY(malloc)(numHexes * sizeof(H3Index));
+                       if (!remainingHexes) {
+                       return COMPACT_ALLOC_FAILED;
+                       }
+                       memcpy(remainingHexes, h3Set, numHexes * sizeof(H3Index));
+                       H3Index* hashSetArray = H3_MEMORY(calloc)(numHexes, sizeof(H3Index));
+                       if (!hashSetArray) {
+                       H3_MEMORY(free)(remainingHexes);
+                       return COMPACT_ALLOC_FAILED;
+                       }
+                       H3Index* compactedSetOffset = compactedSet;
+                       int numRemainingHexes = numHexes;
+                       while (numRemainingHexes) {
+                       res = remainingHexes[0].H3_GET_RESOLUTION();
+                       int parentRes = res - 1;
+                    // Put the parents of the hexagons into the temp array
+                    // via a hashing mechanism, and use the reserved bits
+                    // to track how many times a parent is duplicated
+                    for (int i = 0; i < numRemainingHexes; i++) {
+                    H3Index currIndex = remainingHexes[i];
+                    if (currIndex != 0) {
                     H3Index parent = h3ToParent(currIndex, parentRes);
                     // Modulus hash the parent into the temp array
                     int loc = (int)(parent % numRemainingHexes);
                     int loopCount = 0;
                     while (hashSetArray[loc] != 0) {
-                        if (loopCount > numRemainingHexes) {  // LCOV_EXCL_BR_LINE
-                            // LCOV_EXCL_START
-                            // This case should not be possible because at most one
-                            // index is placed into hashSetArray per
-                            // numRemainingHexes.
-                            H3_MEMORY(free)(remainingHexes);
-                            H3_MEMORY(free)(hashSetArray);
-                            return COMPACT_LOOP_EXCEEDED;
-                            // LCOV_EXCL_STOP
-                        }
-                        H3Index tempIndex =
-                            hashSetArray[loc] & H3_RESERVED_MASK_NEGATIVE;
-                        if (tempIndex == parent) {
-                            int count = hashSetArray[loc].H3_GET_RESERVED_BITS() + 1;
-                            int limitCount = 7;
-                            if (h3IsPentagon(
-                                    tempIndex & H3_RESERVED_MASK_NEGATIVE)) {
-                                limitCount--;
-                            }
-                            // One is added to count for this check to match one
-                            // being added to count later in this function when
-                            // checking for all children being present.
-                            if (count + 1 > limitCount) {
-                                // Only possible on duplicate input
-                                H3_MEMORY(free)(remainingHexes);
-                                H3_MEMORY(free)(hashSetArray);
-                                return COMPACT_DUPLICATE;
-                            }
-                            H3_SET_RESERVED_BITS(parent, count);
-                            hashSetArray[loc] = H3_NULL;
-                        } else {
-                            loc = (loc + 1) % numRemainingHexes;
-                        }
-                        loopCount++;
+                    if (loopCount > numRemainingHexes) {  // LCOV_EXCL_BR_LINE
+                    // LCOV_EXCL_START
+                    // This case should not be possible because at most one
+                    // index is placed into hashSetArray per
+                    // numRemainingHexes.
+                    H3_MEMORY(free)(remainingHexes);
+                    H3_MEMORY(free)(hashSetArray);
+                    return COMPACT_LOOP_EXCEEDED;
+                    // LCOV_EXCL_STOP
+                    }
+                    H3Index tempIndex =
+                    hashSetArray[loc] & H3_RESERVED_MASK_NEGATIVE;
+                    if (tempIndex == parent) {
+                    int count = hashSetArray[loc].H3_GET_RESERVED_BITS() + 1;
+                    int limitCount = 7;
+                    if (h3IsPentagon(
+                    tempIndex & H3_RESERVED_MASK_NEGATIVE)) {
+                    limitCount--;
+                    }
+                    // One is added to count for this check to match one
+                    // being added to count later in this function when
+                    // checking for all children being present.
+                    if (count + 1 > limitCount) {
+                    // Only possible on duplicate input
+                    H3_MEMORY(free)(remainingHexes);
+                    H3_MEMORY(free)(hashSetArray);
+                    return COMPACT_DUPLICATE;
+                    }
+                    H3_SET_RESERVED_BITS(parent, count);
+                    hashSetArray[loc] = H3_NULL;
+                    } else {
+                    loc = (loc + 1) % numRemainingHexes;
+                    }
+                    loopCount++;
                     }
                     hashSetArray[loc] = parent;
-                }
-            }
-            // Determine which parent hexagons have a complete set
-            // of children and put them in the compactableHexes array
-            int compactableCount = 0;
-            int maxCompactableCount =
-                numRemainingHexes / 6;  // Somehow all pentagons; conservative
-            if (maxCompactableCount == 0) {
-                memcpy(compactedSetOffset, remainingHexes,
-                       numRemainingHexes * sizeof(remainingHexes[0]));
-                break;
-            }
-            H3Index* compactableHexes =
-                H3_MEMORY(calloc)(maxCompactableCount, sizeof(H3Index));
-            if (!compactableHexes) {
-                H3_MEMORY(free)(remainingHexes);
-                H3_MEMORY(free)(hashSetArray);
-                return COMPACT_ALLOC_FAILED;
-            }
-            for (int i = 0; i < numRemainingHexes; i++) {
-                if (hashSetArray[i] == 0) continue;
-                int count = hashSetArray[i].H3_GET_RESERVED_BITS() + 1;
-                // Include the deleted direction for pentagons as implicitly "there"
-                if (h3IsPentagon(hashSetArray[i] &
-                                 H3_RESERVED_MASK_NEGATIVE)) {
-                    // We need this later on, no need to recalculate
-                    H3_SET_RESERVED_BITS(hashSetArray[i], count);
-                    // Increment count after setting the reserved bits,
-                    // since count is already incremented above, so it
-                    // will be the expected value for a complete hexagon.
-                    count++;
-                }
-                if (count == 7) {
-                    // Bingo! Full set!
-                    compactableHexes[compactableCount] =
-                        hashSetArray[i] & H3_RESERVED_MASK_NEGATIVE;
-                    compactableCount++;
-                }
-            }
-            // Uncompactable hexes are immediately copied into the
-            // output compactedSetOffset
-            int uncompactableCount = 0;
-            for (int i = 0; i < numRemainingHexes; i++) {
-                H3Index currIndex = remainingHexes[i];
-                if (currIndex != H3_NULL) {
-                    H3Index parent = h3ToParent(currIndex, parentRes);
-                    // Modulus hash the parent into the temp array
-                    // to determine if this index was included in
-                    // the compactableHexes array
-                    int loc = (int)(parent % numRemainingHexes);
-                    int loopCount = 0;
-                    bool isUncompactable = true;
-                    do {
-                        if (loopCount > numRemainingHexes) {  // LCOV_EXCL_BR_LINE
-                            // LCOV_EXCL_START
-                            // This case should not be possible because at most one
-                            // index is placed into hashSetArray per input hexagon.
-                            H3_MEMORY(free)(compactableHexes);
-                            H3_MEMORY(free)(remainingHexes);
-                            H3_MEMORY(free)(hashSetArray);
-                            return COMPACT_LOOP_EXCEEDED;
-                            // LCOV_EXCL_STOP
-                        }
-                        H3Index tempIndex =
-                            hashSetArray[loc] & H3_RESERVED_MASK_NEGATIVE;
-                        if (tempIndex == parent) {
-                            int count = hashSetArray[loc].H3_GET_RESERVED_BITS() + 1;
-                            if (count == 7) {
-                                isUncompactable = false;
-                            }
-                            break;
-                        } else {
-                            loc = (loc + 1) % numRemainingHexes;
-                        }
-                        loopCount++;
-                    } while (hashSetArray[loc] != parent);
-                    if (isUncompactable) {
-                        compactedSetOffset[uncompactableCount] = remainingHexes[i];
-                        uncompactableCount++;
                     }
+                    }
+                    // Determine which parent hexagons have a complete set
+                    // of children and put them in the compactableHexes array
+                    int compactableCount = 0;
+                    int maxCompactableCount =
+                    numRemainingHexes / 6;  // Somehow all pentagons; conservative
+                    if (maxCompactableCount == 0) {
+                    memcpy(compactedSetOffset, remainingHexes,
+                           numRemainingHexes * sizeof(remainingHexes[0]));
+                break;
+        }
+        H3Index* compactableHexes =
+        H3_MEMORY(calloc)(maxCompactableCount, sizeof(H3Index));
+        if (!compactableHexes) {
+            H3_MEMORY(free)(remainingHexes);
+            H3_MEMORY(free)(hashSetArray);
+            return COMPACT_ALLOC_FAILED;
+        }
+        for (int i = 0; i < numRemainingHexes; i++) {
+            if (hashSetArray[i] == 0) continue;
+            int count = hashSetArray[i].H3_GET_RESERVED_BITS() + 1;
+            // Include the deleted direction for pentagons as implicitly "there"
+            if (h3IsPentagon(hashSetArray[i] &
+                             H3_RESERVED_MASK_NEGATIVE)) {
+                // We need this later on, no need to recalculate
+                H3_SET_RESERVED_BITS(hashSetArray[i], count);
+                // Increment count after setting the reserved bits,
+                // since count is already incremented above, so it
+                // will be the expected value for a complete hexagon.
+                count++;
+            }
+            if (count == 7) {
+                // Bingo! Full set!
+                compactableHexes[compactableCount] =
+                    hashSetArray[i] & H3_RESERVED_MASK_NEGATIVE;
+                compactableCount++;
+            }
+        }
+        // Uncompactable hexes are immediately copied into the
+        // output compactedSetOffset
+        int uncompactableCount = 0;
+        for (int i = 0; i < numRemainingHexes; i++) {
+            H3Index currIndex = remainingHexes[i];
+            if (currIndex != H3_NULL) {
+                H3Index parent = h3ToParent(currIndex, parentRes);
+                // Modulus hash the parent into the temp array
+                // to determine if this index was included in
+                // the compactableHexes array
+                int loc = (int)(parent % numRemainingHexes);
+                int loopCount = 0;
+                bool isUncompactable = true;
+                do {
+                    if (loopCount > numRemainingHexes) {  // LCOV_EXCL_BR_LINE
+                        // LCOV_EXCL_START
+                        // This case should not be possible because at most one
+                        // index is placed into hashSetArray per input hexagon.
+                        H3_MEMORY(free)(compactableHexes);
+                        H3_MEMORY(free)(remainingHexes);
+                        H3_MEMORY(free)(hashSetArray);
+                        return COMPACT_LOOP_EXCEEDED;
+                        // LCOV_EXCL_STOP
+                    }
+                    H3Index tempIndex =
+                        hashSetArray[loc] & H3_RESERVED_MASK_NEGATIVE;
+                    if (tempIndex == parent) {
+                        int count = hashSetArray[loc].H3_GET_RESERVED_BITS() + 1;
+                        if (count == 7) {
+                            isUncompactable = false;
+                        }
+                        break;
+                    } else {
+                        loc = (loc + 1) % numRemainingHexes;
+                    }
+                    loopCount++;
+                } while (hashSetArray[loc] != parent);
+                if (isUncompactable) {
+                    compactedSetOffset[uncompactableCount] = remainingHexes[i];
+                    uncompactableCount++;
                 }
             }
-            // Set up for the next loop
-            memset(hashSetArray, 0, numHexes * sizeof(H3Index));
-            compactedSetOffset += uncompactableCount;
-            memcpy(remainingHexes, compactableHexes,
-                   compactableCount * sizeof(H3Index));
-            numRemainingHexes = compactableCount;
-            H3_MEMORY(free)(compactableHexes);
+        }
+        // Set up for the next loop
+        memset(hashSetArray, 0, numHexes * sizeof(H3Index));
+        compactedSetOffset += uncompactableCount;
+        memcpy(remainingHexes, compactableHexes,
+               compactableCount * sizeof(H3Index));
+        numRemainingHexes = compactableCount;
+        H3_MEMORY(free)(compactableHexes);
         }
         H3_MEMORY(free)(remainingHexes);
         H3_MEMORY(free)(hashSetArray);
@@ -1191,4 +1191,315 @@ impl H3Index {
         let h3Boundary: GeoBoundary = self.h3ToGeoBoundary();
         h3Center.pointDistKm(h3Boundary.verts)
     }
+
+    /* h3UniEdge */
+    /**
+     * Returns whether or not the provided H3Indexes are neighbors.
+     * @param origin The origin H3 index.
+     * @param destination The destination H3 index.
+     * @return 1 if the indexes are neighbors, 0 otherwise;
+     */
+    fn h3IndexesAreNeighbors(&self, destination: &Self) -> bool {
+        // Make sure they're hexagon indexes
+        if (self.H3_GET_MODE() != H3_HEXAGON_MODE || destination.H3_GET_MODE() != H3_HEXAGON_MODE) {
+            return false;
+        }
+
+        // Hexagons cannot be neighbors with themselves
+        if (self == destination) {
+            return false;
+        }
+
+        // Only hexagons in the same resolution can be neighbors
+        if (self.H3_GET_RESOLUTION() != destination.H3_GET_RESOLUTION()) {
+            return false;
+        }
+
+        // H3 Indexes that share the same parent are very likely to be neighbors
+        // Child 0 is neighbor with all of its parent's 'offspring', the other
+        // children are neighbors with 3 of the 7 children. So a simple comparison
+        // of origin and destination parents and then a lookup table of the children
+        // is a super-cheap way to possibly determine they are neighbors.
+        let parentRes = self.H3_GET_RESOLUTION() - 1;
+        if (parentRes > 0 && (self.h3ToParent(parentRes) == destination.h3ToParent(parentRes))) {
+            let originResDigit: Direction = self.H3_GET_INDEX_DIGIT(parentRes + 1);
+            let destinationResDigit: Direction = destination.H3_GET_INDEX_DIGIT(parentRes + 1);
+            if (originResDigit == CENTER_DIGIT || destinationResDigit == CENTER_DIGIT) {
+                return true;
+            }
+
+            // These sets are the relevant neighbors in the clockwise
+            // and counter-clockwise
+            const neighborSetClockwise: [Direction; 7] = [
+                CENTER_DIGIT,
+                JK_AXES_DIGIT,
+                IJ_AXES_DIGIT,
+                J_AXES_DIGIT,
+                IK_AXES_DIGIT,
+                K_AXES_DIGIT,
+                I_AXES_DIGIT,
+            ];
+            const neighborSetCounterclockwise: [Direction; 7] = [
+                CENTER_DIGIT,
+                IK_AXES_DIGIT,
+                JK_AXES_DIGIT,
+                K_AXES_DIGIT,
+                IJ_AXES_DIGIT,
+                I_AXES_DIGIT,
+                J_AXES_DIGIT,
+            ];
+            if (neighborSetClockwise[originResDigit] == destinationResDigit
+                || neighborSetCounterclockwise[originResDigit] == destinationResDigit)
+            {
+                return true;
+            }
+        }
+
+        // Otherwise, we have to determine the neighbor relationship the "hard" way.
+        let neighborRing: [H3Index; 7] = [H3Index::default(); 7];
+        kRing(self, 1, neighborRing);
+        for i in 0..7 {
+            if (neighborRing[i] == destination) {
+                return true;
+            }
+        }
+
+        // Made it here, they definitely aren't neighbors
+        false
+    }
+
+    /**
+     * Returns a unidirectional edge H3 index based on the provided origin and
+     * destination
+     * @param origin The origin H3 hexagon index
+     * @param destination The destination H3 hexagon index
+     * @return The unidirectional edge H3Index, or H3_NULL on failure.
+     */
+    fn getH3UnidirectionalEdge(&self, destination: &Self) -> Self {
+        // Determine the IJK direction from the origin to the destination
+        let direction: Direction = self.directionForNeighbor(destination);
+
+        // The direction will be invalid if the cells are not neighbors
+        if (direction == INVALID_DIGIT) {
+            return Self::H3_NULL;
+        }
+
+        // Create the edge index for the neighbor direction
+        let mut output = self.clone();
+        output.H3_SET_MODE(H3_UNIEDGE_MODE);
+        output.H3_SET_RESERVED_BITS(direction);
+
+        output
+    }
+
+    /**
+     * Returns the origin hexagon from the unidirectional edge H3Index
+     * @param edge The edge H3 index
+     * @return The origin H3 hexagon index, or H3_NULL on failure
+     */
+    fn getOriginH3IndexFromUnidirectionalEdge(&self) -> Self {
+        if (self.H3_GET_MODE() != H3_UNIEDGE_MODE) {
+            return Self::H3_NULL;
+        }
+        let mut origin = self.clone();
+        origin.H3_SET_MODE(H3_HEXAGON_MODE);
+        origin.H3_SET_RESERVED_BITS(0);
+        origin
+    }
+
+    /**
+     * Returns the destination hexagon from the unidirectional edge H3Index
+     * @param edge The edge H3 index
+     * @return The destination H3 hexagon index, or H3_NULL on failure
+     */
+    fn getDestinationH3IndexFromUnidirectionalEdge(&self) -> Self {
+        if (H3_GET_MODE(edge) != H3_UNIEDGE_MODE) {
+            return Self::H3_NULL;
+        }
+
+        let direction: Direction = self.H3_GET_RESERVED_BITS();
+        let mut rotations = 0;
+        let destination = h3NeighborRotations(
+            self.getOriginH3IndexFromUnidirectionalEdge(),
+            direction,
+            &mut rotations,
+        );
+
+        destination
+    }
+
+    /**
+     * Determines if the provided H3Index is a valid unidirectional edge index
+     * @param edge The unidirectional edge H3Index
+     * @return 1 if it is a unidirectional edge H3Index, otherwise 0.
+     */
+    fn h3UnidirectionalEdgeIsValid(&self) -> bool {
+        if (self.H3_GET_MODE() != H3_UNIEDGE_MODE) {
+            return false;
+        }
+
+        let neighborDirection: Direction = self.H3_GET_RESERVED_BITS();
+        if (neighborDirection <= CENTER_DIGIT || neighborDirection >= NUM_DIGITS) {
+            return false;
+        }
+
+        let origin = self.getOriginH3IndexFromUnidirectionalEdge();
+        if (h3IsPentagon(origin) && neighborDirection == K_AXES_DIGIT) {
+            return false;
+        }
+
+        origin.h3IsValid()
+    }
+
+    /**
+     * Returns the origin, destination pair of hexagon IDs for the given edge ID
+     * @param edge The unidirectional edge H3Index
+     * @param originDestination Pointer to memory to store origin and destination
+     * IDs
+     */
+    fn getH3IndexesFromUnidirectionalEdge(&self) -> (Self, Self) {
+        (
+            self.getOriginH3IndexFromUnidirectionalEdge(),
+            self.getDestinationH3IndexFromUnidirectionalEdge(),
+        )
+    }
+
+    /**
+     * Provides all of the unidirectional edges from the current H3Index.
+     * @param origin The origin hexagon H3Index to find edges for.
+     * @param edges The memory to store all of the edges inside.
+     */
+    fn getH3UnidirectionalEdgesFromHexagon(&self) {
+        // Determine if the origin is a pentagon and special treatment needed.
+        let isPentagon = self.h3IsPentagon();
+
+        let mut edges = [H3Index; 6] = [Self::H3_Null; 6];
+
+        // This is actually quite simple. Just modify the bits of the origin
+        // slightly for each direction, except the 'k' direction in pentagons,
+        // which is zeroed.
+        for i in 0..6 {
+            if (isPentagon && i == 0) {
+                edges[i] = H3_NULL;
+            } else {
+                edges[i] = origin;
+                edges[i].H3_SET_MODE(H3_UNIEDGE_MODE);
+                edges[i].H3_SET_RESERVED_BITS(i + 1);
+            }
+        }
+
+        edges
+    }
+
+    /**
+     * Provides the coordinates defining the unidirectional edge.
+     * @param edge The unidirectional edge H3Index
+     * @param gb The geoboundary object to store the edge coordinates.
+     */
+    fn getH3UnidirectionalEdgeBoundary(&self) -> GeoBoundary {
+        // Get the origin and neighbor direction from the edge
+        let direction: Direction = self.H3_GET_RESERVED_BITS();
+        let origin = self.getOriginH3IndexFromUnidirectionalEdge();
+
+        // Get the start vertex for the edge
+        let startVertex = origin.vertexNumForDirection(direction);
+        if (startVertex == INVALID_VERTEX_NUM) {
+            // This is not actually an edge (i.e. no valid direction), so return no vertices.
+            return GeoBoundary::default();
+        }
+
+        // Get the geo boundary for the appropriate vertexes of the origin. Note
+        // that while there are always 2 topological vertexes per edge, the
+        // resulting edge boundary may have an additional distortion vertex if it
+        // crosses an edge of the icosahedron.
+        let fijk: FaceIJK = origin._h3ToFaceIjk();
+        let res = origin.H3_GET_RESOLUTION();
+        let isPentagon = origin.h3IsPentagon();
+
+        if (isPentagon) {
+            fijk._faceIjkPentToGeoBoundary(res, startVertex, 2)
+        } else {
+            fijk._faceIjkToGeoBoundary(res, startVertex, 2)
+        }
+    }
+    /* /h3UniEdge */
+
+    /* localij */
+    /**
+     * Produces the grid distance between the two indexes.
+     *
+     * This function may fail to find the distance between two indexes, for
+     * example if they are very far apart. It may also fail when finding
+     * distances for indexes on opposite sides of a pentagon.
+     *
+     * @param origin Index to find the distance from.
+     * @param index Index to find the distance to.
+     * @return The distance, or a negative number if the library could not
+     * compute the distance.
+     */
+    fn h3Distance(&self, h3: &Self) -> i32 {
+        todo!();
+        //CoordIJK originIjk, h3Ijk;
+        if (h3ToLocalIjk(self, self, &originIjk)) {
+            // Currently there are no tests that would cause getting the coordinates
+            // for an index the same as the origin to fail.
+            return -1; // LCOV_EXCL_LINE
+        }
+        if (h3ToLocalIjk(self, h3, &h3Ijk)) {
+            return -1;
+        }
+
+        originIjk.ijkDistance(&h3Ijk)
+    }
+
+    /**
+     * Number of indexes in a line from the start index to the end index,
+     * to be used for allocating memory. Returns a negative number if the
+     * line cannot be computed.
+     *
+     * @param start Start index of the line
+     * @param end End index of the line
+     * @return Size of the line, or a negative number if the line cannot
+     * be computed.
+     */
+    fn h3LineSize(&self, end: &Self) -> i32 {
+        let distance = self.h3Distance(end);
+        if distance >= 0 {
+            distance + 1
+        } else {
+            // line can't be computed
+            distance
+        }
+    }
+
+    /* localij */
+
+    /* vertex */
+
+    /**
+     * Whether the input is a valid H3 vertex
+     * @param  vertex H3 index possibly describing a vertex
+     * @return        Whether the input is valid
+     */
+    fn isValidVertex(&self) -> bool {
+        if (self.H3_GET_MODE() != H3_VERTEX_MODE) {
+            return false;
+        }
+
+        let vertexNum = self.H3_GET_RESERVED_BITS();
+        let mut owner: H3Index = vertex;
+        owner.H3_SET_MODE(H3_HEXAGON_MODE);
+        owner.H3_SET_RESERVED_BITS(0);
+
+        if (!owner.h3IsValid()) {
+            return false;
+        }
+
+        // The easiest way to ensure that the owner + vertex number is valid,
+        // and that the vertex is canonical, is to recreate and compare.
+        let canonical: H3Index = owner.cellToVertex(vertexNum);
+
+        vertex == canonical
+    }
+    /* /vertex */
 }

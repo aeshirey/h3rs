@@ -308,28 +308,3 @@ void H3_EXPORT(vertexToPoint)(H3Index vertex, GeoCoord* coord) {
     *coord = gb.verts[0];
 }
 
-/**
- * Whether the input is a valid H3 vertex
- * @param  vertex H3 index possibly describing a vertex
- * @return        Whether the input is valid
- */
-int H3_EXPORT(isValidVertex)(H3Index vertex) {
-    if (H3_GET_MODE(vertex) != H3_VERTEX_MODE) {
-        return 0;
-    }
-
-    int vertexNum = H3_GET_RESERVED_BITS(vertex);
-    H3Index owner = vertex;
-    H3_SET_MODE(owner, H3_HEXAGON_MODE);
-    H3_SET_RESERVED_BITS(owner, 0);
-
-    if (!H3_EXPORT(h3IsValid)(owner)) {
-        return 0;
-    }
-
-    // The easiest way to ensure that the owner + vertex number is valid,
-    // and that the vertex is canonical, is to recreate and compare.
-    H3Index canonical = H3_EXPORT(cellToVertex)(owner, vertexNum);
-
-    return vertex == canonical ? 1 : 0;
-}
