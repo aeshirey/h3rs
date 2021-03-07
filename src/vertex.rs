@@ -7,12 +7,11 @@ pub struct PentagonDirectionFaces {
     //int faces[NUM_PENT_VERTS];
 }
 
-/// Invalid vertex number 
-const INVALID_VERTEX_NUM : i32 = -1;
+/// Invalid vertex number
+const INVALID_VERTEX_NUM: i32 = -1;
 
 /// Max number of faces a base cell's descendants may appear on */
-const MAX_BASE_CELL_FACES : i32 =5;
+const MAX_BASE_CELL_FACES: i32 = 5;
 
 //int vertexNumForDirection(const H3Index origin, const Direction direction);
 //Direction directionForVertexNum(const H3Index origin, const int vertexNum);
-

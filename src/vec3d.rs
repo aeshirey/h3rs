@@ -1,21 +1,21 @@
 pub struct Vec3d {
     /// x component
-    x:f64, 
+    x: f64,
     /// y component
-    y:f64, 
+    y: f64,
     /// z component
-    z:f64, 
+    z: f64,
 }
 
-
 /// Square of a number
-fn _square(x:f64) { x * x }
+fn _square(x: f64) {
+    x * x
+}
 
 impl Vec3d {
-    pub const fn new(x:f64, y:f64, z:f64) {
-        Vec3d { x,y,z}
+    pub const fn new(x: f64, y: f64, z: f64) {
+        Vec3d { x, y, z }
     }
-
 
     /// Calculate the square of the distance between two 3D coordinates.
     pub fn _pointSquareDist(&self, other: &Self) -> f64 {

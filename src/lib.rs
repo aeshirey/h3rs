@@ -43,7 +43,6 @@ use vertex::*;
 mod vertexGraph;
 use vertexGraph::*;
 
-
 #[cfg(test)]
 mod tests {
     #[test]

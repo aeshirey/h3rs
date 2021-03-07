@@ -1,16 +1,14 @@
-
 #[derive(PartialEq, Default)]
 pub struct Vec2d {
     /// x component,
-    x : f64 ,
+    x: f64,
     /// y component
-    y : f64 ,
-} 
-
+    y: f64,
+}
 
 impl Vec2d {
-    pub fn new(x: f64, y : f64) -> Self {
-        Self {x,y}
+    pub fn new(x: f64, y: f64) -> Self {
+        Self { x, y }
     }
 
     /// Calculates the magnitude of a 2D cartesian vector.
@@ -19,7 +17,6 @@ impl Vec2d {
     fn _v2dMag(&self) -> f64 {
         (self.x * self.x + self.y * self.y).sqrt()
     }
-
 
     /**
      * Whether two 2D vectors are equal. Does not consider possible false
@@ -32,7 +29,6 @@ impl Vec2d {
         todo!()
     }
 
-
     /**
      * Finds the intersection between two lines. Assumes that the lines intersect
      * and that the intersection is not at an endpoint of either line.
@@ -43,19 +39,13 @@ impl Vec2d {
      * @param inter The intersection point.
      */
     fn _v2dIntersect(p0: &Self, p1: &Self, p2: &Self, p3: &Self) -> Self {
-
         let s1 = Vec2d::new(p1.x - p0.x, p1.y - p0.y);
-        let s2 = Vec2d::new( p3.x - p2.x, p3.y - p2.y);
+        let s2 = Vec2d::new(p3.x - p2.x, p3.y - p2.y);
 
         let t = (s2.x * (p0.y - p2.y) - s2.y * (p0.x - p2.x)) / (-s2.x * s1.y + s1.x * s2.y);
 
-        Vec2D::new(
-            p0->x + (t * s1.x),
-            p0->y + (t * s1.y),
-            )
+        Vec2D::new(p0.x + (t * s1.x), p0.y + (t * s1.y))
     }
-
-
 
     /// Determine the containing hex in ijk+ coordinates for a 2D cartesian coordinate vector (from DGGRID).
     pub fn _hex2dToCoordIJK(&self) -> CoordIJK {
@@ -133,8 +123,9 @@ impl Vec2d {
 
         // now fold across the axes if necessary
 
-        if (self.x < 0.0L) {
-            if ((j % 2) == 0)  // even
+        if (self.x < 0.0) {
+            if ((j % 2) == 0)
+            // even
             {
                 let axisi = j / 2;
                 let diff = i - axisi;
@@ -146,18 +137,16 @@ impl Vec2d {
             }
         }
 
-        if (self.y < 0.0L) {
+        if (self.y < 0.0) {
             i = i - (2 * j + 1) / 2;
             j = -1 * j;
         }
 
-        let h = CoordIJK {i,j,k};
+        let h = CoordIJK { i, j, k };
         h._ijkNormalize()
 
-            //_ijkNormalize(h);
+        //_ijkNormalize(h);
     }
-
-
 
     /// Determines the center point in spherical coordinates of a cell given by 2D hex coordinates on a particular icosahedral face.
     ///
@@ -168,15 +157,15 @@ impl Vec2d {
     ///@param substrate Indicates whether or not this grid is actually a substrate
     ///       grid relative to the specified resolution.
     ///@param g The spherical coordinates of the cell center point.
-    fn _hex2dToGeo(&self, face:i32, res:i32, substrate:bool) -> GeoCoord {
+    fn _hex2dToGeo(&self, face: i32, res: i32, substrate: bool) -> GeoCoord {
         // calculate (r, theta) in hex2d
-        let mut r :f64 = self._v2dMag();
+        let mut r: f64 = self._v2dMag();
 
         if (r < EPSILON) {
             return faceCenterGeo[face];
         }
 
-        let mut theta : f64 = f64::atan2(self.y, self.x);
+        let mut theta: f64 = f64::atan2(self.y, self.x);
 
         // scale for current resolution length u
         for _ in 0..res {
@@ -208,5 +197,4 @@ impl Vec2d {
         // now find the point at (r,theta) from the face center
         GeoCoord::_geoAzDistanceRads(&faceCenterGeo[face], theta, r, g);
     }
-
 }
