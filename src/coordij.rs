@@ -3,8 +3,11 @@
 ///
 /// Each axis is spaced 120 degrees apart.
 pub struct CoordIJ {
-    i:i32,  /// i component
-    j:i32,  /// j component
+    /// i component
+    i:i32, 
+
+    /// j component
+    j:i32, 
 }
 
 

@@ -1,5 +1,5 @@
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Default)]
 pub struct Vec2d {
     /// x component,
     x : f64 ,
@@ -52,13 +52,13 @@ impl Vec2d {
         Vec2D::new(
             p0->x + (t * s1.x),
             p0->y + (t * s1.y),
-        )
+            )
     }
 
 
 
     /// Determine the containing hex in ijk+ coordinates for a 2D cartesian coordinate vector (from DGGRID).
-    pub fn _hex2dToCoordIJK(&self, CoordIJK* h) -> CoordIJK {
+    pub fn _hex2dToCoordIJK(&self) -> CoordIJK {
         //double a1, a2;
         //double x1, x2;
         //int m1, m2;
@@ -154,7 +154,59 @@ impl Vec2d {
         let h = CoordIJK {i,j,k};
         h._ijkNormalize()
 
-        //_ijkNormalize(h);
+            //_ijkNormalize(h);
+    }
+
+
+
+    /// Determines the center point in spherical coordinates of a cell given by 2D hex coordinates on a particular icosahedral face.
+    ///
+    ///@param v The 2D hex coordinates of the cell.
+    ///@param face The icosahedral face upon which the 2D hex coordinate system is
+    ///            centered.
+    ///@param res The H3 resolution of the cell.
+    ///@param substrate Indicates whether or not this grid is actually a substrate
+    ///       grid relative to the specified resolution.
+    ///@param g The spherical coordinates of the cell center point.
+    fn _hex2dToGeo(&self, face:i32, res:i32, substrate:bool) -> GeoCoord {
+        // calculate (r, theta) in hex2d
+        let mut r :f64 = self._v2dMag();
+
+        if (r < EPSILON) {
+            return faceCenterGeo[face];
+        }
+
+        let mut theta : f64 = f64::atan2(self.y, self.x);
+
+        // scale for current resolution length u
+        for _ in 0..res {
+            r /= M_SQRT7;
+        }
+
+        // scale accordingly if this is a substrate grid
+        if (substrate) {
+            r /= 3.0;
+            if (isResClassIII(res)) {
+                r /= M_SQRT7;
+            }
+        }
+
+        r *= RES0_U_GNOMONIC;
+
+        // perform inverse gnomonic scaling of r
+        r = r.atan();
+
+        // adjust theta for Class III
+        // if a substrate grid, then it's already been adjusted for Class III
+        if (!substrate && isResClassIII(res)) {
+            theta = _posAngleRads(theta + M_AP7_ROT_RADS);
+        }
+
+        // find theta as an azimuth
+        theta = _posAngleRads(faceAxesAzRadsCII[face][0] - theta);
+
+        // now find the point at (r,theta) from the face center
+        GeoCoord::_geoAzDistanceRads(&faceCenterGeo[face], theta, r, g);
     }
 
 }

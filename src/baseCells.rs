@@ -1,24 +1,45 @@
-/** @file baseCells.c
- * @brief   Base cell related lookup tables and access functions.
- */
+/// Base cell related lookup tables and access functions.
 
-#include "baseCells.h"
-#include "h3Index.h"
-
-/** @struct BaseCellRotation
- *  @brief base cell at a given ijk and required rotations into its system
- */
-struct BaseCellRotation {
-    baseCell : i32  // base cell number
-    ccwRot60 : i32  // number of ccw 60 degree rotations relative to current
+/// information on a single base cell
+pub struct BaseCellData {
+    /// "home" face and normalized ijk coordinates on that face
+    homeFijk : FaceIJK, 
+    /// is this base cell a pentagon?
+    isPentagon: bool,       
+    /// if a pentagon, what are its two clockwise offset faces?
+    cwOffsetPent : [i32;2], 
 }
 
-/** @brief Neighboring base cell ID in each IJK direction.
- *
- * For each base cell, for each direction, the neighboring base
- * cell ID is given. 127 indicates there is no neighbor in that direction.
- */
-const baseCellNeighbors : &[] = [
+impl BaseCellData {
+    pub const fn new(face:i32, coord:[i32;3], isPentagon:bool, cwOffsetPent:[i32;2]) -> Self {
+        Self {
+            homeFijk: FaceIJK::new(face, coord),
+            isPentagon,
+            cwOffsentPent,
+        }
+    }
+}
+
+
+/// base cell at a given ijk and required rotations into its system
+struct BaseCellRotation {
+    /// base cell number
+    baseCell : i32,
+    /// number of ccw 60 degree rotations relative to current
+    ccwRot60 : i32,
+}
+
+impl BaseCellRotation {
+    pub const fn new(baseCell: i32, ccwRot60:i32)  -> Self {
+        Self { baseCell, ccwRot60 }
+    }
+}
+
+/// Neighboring base cell ID in each IJK direction.
+///
+///For each base cell, for each direction, the neighboring base
+///cell ID is given. 127 indicates there is no neighbor in that direction.
+const baseCellNeighbors : [ [i32; 7]; 122] = [
     [0, 1, 5, 2, 4, 3, 8],                          // base cell 0
     [1, 7, 6, 9, 0, 3, 2],                          // base cell 1
     [2, 6, 10, 11, 0, 1, 5],                        // base cell 2
@@ -149,7 +170,7 @@ const baseCellNeighbors : &[] = [
  * CCW rotations to the coordinate system of the neighbor is given.
  * -1 indicates there is no neighbor in that direction.
  */
-const baseCellNeighbor60CCWRots : &[] = [
+const baseCellNeighbor60CCWRots : [ [i32; 7]; 122] = [
     [0, 5, 0, 0, 1, 5, 1],   // base cell 0
     [0, 0, 1, 0, 1, 0, 1],   // base cell 1
     [0, 0, 0, 0, 0, 5, 0],   // base cell 2
@@ -286,387 +307,389 @@ const baseCellNeighbor60CCWRots : &[] = [
  * This table can be accessed using the functions `_faceIjkToBaseCell` and
  * `_faceIjkToBaseCellCCWrot60`
  */
-static const BaseCellRotation faceIjkBaseCells[NUM_ICOSA_FACES][3][3][3] = {
-    {// face 0
-     {
+//static const BaseCellRotation faceIjkBaseCells[NUM_ICOSA_FACES][3][3][3] = {
+const faceIjkBaseCells : [[[[BaseCellRotation;3];3];3 ]; NUM_ICOSA_FACES] = [
+[// face 0
+     [
          // i 0
-         {{16, 0}, {18, 0}, {24, 0}},  // j 0
-         {{33, 0}, {30, 0}, {32, 3}},  // j 1
-         {{49, 1}, {48, 3}, {50, 3}}   // j 2
-     },
-     {
+         [BaseCellRotation::new(16, 0), BaseCellRotation::new(18, 0), BaseCellRotation::new(24, 0)],  // j 0
+         [BaseCellRotation::new(33, 0), BaseCellRotation::new(30, 0), BaseCellRotation::new(32, 3)],  // j 1
+         [BaseCellRotation::new(49, 1), BaseCellRotation::new(48, 3), BaseCellRotation::new(50, 3)]   // j 2
+     ],
+     [
          // i 1
-         {{8, 0}, {5, 5}, {10, 5}},    // j 0
-         {{22, 0}, {16, 0}, {18, 0}},  // j 1
-         {{41, 1}, {33, 0}, {30, 0}}   // j 2
-     },
-     {
+         [BaseCellRotation::new(8, 0), BaseCellRotation::new(5, 5), BaseCellRotation::new(10, 5)],    // j 0
+         [BaseCellRotation::new(22, 0), BaseCellRotation::new(16, 0), BaseCellRotation::new(18, 0)],  // j 1
+         [BaseCellRotation::new(41, 1), BaseCellRotation::new(33, 0), BaseCellRotation::new(30, 0)]   // j 2
+     ],
+     [
          // i 2
-         {{4, 0}, {0, 5}, {2, 5}},    // j 0
-         {{15, 1}, {8, 0}, {5, 5}},   // j 1
-         {{31, 1}, {22, 0}, {16, 0}}  // j 2
-     }},
-    {// face 1
-     {
+         [BaseCellRotation::new(4, 0), BaseCellRotation::new(0, 5), BaseCellRotation::new(2, 5)],    // j 0
+         [BaseCellRotation::new(15, 1), BaseCellRotation::new(8, 0), BaseCellRotation::new(5, 5)],   // j 1
+         [BaseCellRotation::new(31, 1), BaseCellRotation::new(22, 0), BaseCellRotation::new(16, 0)]  // j 2
+     ]],
+    [// face 1
+     [
          // i 0
-         {{2, 0}, {6, 0}, {14, 0}},    // j 0
-         {{10, 0}, {11, 0}, {17, 3}},  // j 1
-         {{24, 1}, {23, 3}, {25, 3}}   // j 2
-     },
-     {
+         [BaseCellRotation::new(2, 0), BaseCellRotation::new(6, 0), BaseCellRotation::new(14, 0)],    // j 0
+         [BaseCellRotation::new(10, 0), BaseCellRotation::new(11, 0), BaseCellRotation::new(17, 3)],  // j 1
+         [BaseCellRotation::new(24, 1), BaseCellRotation::new(23, 3), BaseCellRotation::new(25, 3)]   // j 2
+     ],
+     [
          // i 1
-         {{0, 0}, {1, 5}, {9, 5}},    // j 0
-         {{5, 0}, {2, 0}, {6, 0}},    // j 1
-         {{18, 1}, {10, 0}, {11, 0}}  // j 2
-     },
-     {
+         [BaseCellRotation::new(0, 0), BaseCellRotation::new(1, 5), BaseCellRotation::new(9, 5)],    // j 0
+         [BaseCellRotation::new(5, 0), BaseCellRotation::new(2, 0), BaseCellRotation::new(6, 0)],    // j 1
+         [BaseCellRotation::new(18, 1), BaseCellRotation::new(10, 0), BaseCellRotation::new(11, 0)]  // j 2
+     ],
+     [
          // i 2
-         {{4, 1}, {3, 5}, {7, 5}},  // j 0
-         {{8, 1}, {0, 0}, {1, 5}},  // j 1
-         {{16, 1}, {5, 0}, {2, 0}}  // j 2
-     }},
-    {// face 2
-     {
+         [BaseCellRotation::new(4, 1), BaseCellRotation::new(3, 5), BaseCellRotation::new(7, 5)],  // j 0
+         [BaseCellRotation::new(8, 1), BaseCellRotation::new(0, 0), BaseCellRotation::new(1, 5)],  // j 1
+         [BaseCellRotation::new(16, 1), BaseCellRotation::new(5, 0), BaseCellRotation::new(2, 0)]  // j 2
+     ]],
+    [// face 2
+     [
          // i 0
-         {{7, 0}, {21, 0}, {38, 0}},  // j 0
-         {{9, 0}, {19, 0}, {34, 3}},  // j 1
-         {{14, 1}, {20, 3}, {36, 3}}  // j 2
-     },
-     {
+         [BaseCellRotation::new(7, 0), BaseCellRotation::new(21, 0), BaseCellRotation::new(38, 0)],  // j 0
+         [BaseCellRotation::new(9, 0), BaseCellRotation::new(19, 0), BaseCellRotation::new(34, 3)],  // j 1
+         [BaseCellRotation::new(14, 1), BaseCellRotation::new(20, 3), BaseCellRotation::new(36, 3)]  // j 2
+     ],
+     [
          // i 1
-         {{3, 0}, {13, 5}, {29, 5}},  // j 0
-         {{1, 0}, {7, 0}, {21, 0}},   // j 1
-         {{6, 1}, {9, 0}, {19, 0}}    // j 2
-     },
-     {
+         [BaseCellRotation::new(3, 0), BaseCellRotation::new(13, 5), BaseCellRotation::new(29, 5)],  // j 0
+         [BaseCellRotation::new(1, 0), BaseCellRotation::new(7, 0), BaseCellRotation::new(21, 0)],   // j 1
+         [BaseCellRotation::new(6, 1), BaseCellRotation::new(9, 0), BaseCellRotation::new(19, 0)]    // j 2
+     ],
+     [
          // i 2
-         {{4, 2}, {12, 5}, {26, 5}},  // j 0
-         {{0, 1}, {3, 0}, {13, 5}},   // j 1
-         {{2, 1}, {1, 0}, {7, 0}}     // j 2
-     }},
-    {// face 3
-     {
+         [BaseCellRotation::new(4, 2), BaseCellRotation::new(12, 5), BaseCellRotation::new(26, 5)],  // j 0
+         [BaseCellRotation::new(0, 1), BaseCellRotation::new(3, 0), BaseCellRotation::new(13, 5)],   // j 1
+         [BaseCellRotation::new(2, 1), BaseCellRotation::new(1, 0), BaseCellRotation::new(7, 0)]     // j 2
+     ]],
+    [// face 3
+     [
          // i 0
-         {{26, 0}, {42, 0}, {58, 0}},  // j 0
-         {{29, 0}, {43, 0}, {62, 3}},  // j 1
-         {{38, 1}, {47, 3}, {64, 3}}   // j 2
-     },
-     {
+         [BaseCellRotation::new(26, 0), BaseCellRotation::new(42, 0), BaseCellRotation::new(58, 0)],  // j 0
+         [BaseCellRotation::new(29, 0), BaseCellRotation::new(43, 0), BaseCellRotation::new(62, 3)],  // j 1
+         [BaseCellRotation::new(38, 1), BaseCellRotation::new(47, 3), BaseCellRotation::new(64, 3)]   // j 2
+     ],
+     [
          // i 1
-         {{12, 0}, {28, 5}, {44, 5}},  // j 0
-         {{13, 0}, {26, 0}, {42, 0}},  // j 1
-         {{21, 1}, {29, 0}, {43, 0}}   // j 2
-     },
-     {
+         [BaseCellRotation::new(12, 0), BaseCellRotation::new(28, 5), BaseCellRotation::new(44, 5)],  // j 0
+         [BaseCellRotation::new(13, 0), BaseCellRotation::new(26, 0), BaseCellRotation::new(42, 0)],  // j 1
+         [BaseCellRotation::new(21, 1), BaseCellRotation::new(29, 0), BaseCellRotation::new(43, 0)]   // j 2
+     ],
+     [
          // i 2
-         {{4, 3}, {15, 5}, {31, 5}},  // j 0
-         {{3, 1}, {12, 0}, {28, 5}},  // j 1
-         {{7, 1}, {13, 0}, {26, 0}}   // j 2
-     }},
-    {// face 4
-     {
+         [BaseCellRotation::new(4, 3), BaseCellRotation::new(15, 5), BaseCellRotation::new(31, 5)],  // j 0
+         [BaseCellRotation::new(3, 1), BaseCellRotation::new(12, 0), BaseCellRotation::new(28, 5)],  // j 1
+         [BaseCellRotation::new(7, 1), BaseCellRotation::new(13, 0), BaseCellRotation::new(26, 0)]   // j 2
+     ]],
+    [// face 4
+     [
          // i 0
-         {{31, 0}, {41, 0}, {49, 0}},  // j 0
-         {{44, 0}, {53, 0}, {61, 3}},  // j 1
-         {{58, 1}, {65, 3}, {75, 3}}   // j 2
-     },
-     {
+         [BaseCellRotation::new(31, 0), BaseCellRotation::new(41, 0), BaseCellRotation::new(49, 0)],  // j 0
+         [BaseCellRotation::new(44, 0), BaseCellRotation::new(53, 0), BaseCellRotation::new(61, 3)],  // j 1
+         [BaseCellRotation::new(58, 1), BaseCellRotation::new(65, 3), BaseCellRotation::new(75, 3)]   // j 2
+     ],
+     [
          // i 1
-         {{15, 0}, {22, 5}, {33, 5}},  // j 0
-         {{28, 0}, {31, 0}, {41, 0}},  // j 1
-         {{42, 1}, {44, 0}, {53, 0}}   // j 2
-     },
-     {
+         [BaseCellRotation::new(15, 0), BaseCellRotation::new(22, 5), BaseCellRotation::new(33, 5)],  // j 0
+         [BaseCellRotation::new(28, 0), BaseCellRotation::new(31, 0), BaseCellRotation::new(41, 0)],  // j 1
+         [BaseCellRotation::new(42, 1), BaseCellRotation::new(44, 0), BaseCellRotation::new(53, 0)]   // j 2
+     ],
+     [
          // i 2
-         {{4, 4}, {8, 5}, {16, 5}},    // j 0
-         {{12, 1}, {15, 0}, {22, 5}},  // j 1
-         {{26, 1}, {28, 0}, {31, 0}}   // j 2
-     }},
-    {// face 5
-     {
+         [BaseCellRotation::new(4, 4), BaseCellRotation::new(8, 5), BaseCellRotation::new(16, 5)],    // j 0
+         [BaseCellRotation::new(12, 1), BaseCellRotation::new(15, 0), BaseCellRotation::new(22, 5)],  // j 1
+         [BaseCellRotation::new(26, 1), BaseCellRotation::new(28, 0), BaseCellRotation::new(31, 0)]   // j 2
+     ]],
+    [// face 5
+     [
          // i 0
-         {{50, 0}, {48, 0}, {49, 3}},  // j 0
-         {{32, 0}, {30, 3}, {33, 3}},  // j 1
-         {{24, 3}, {18, 3}, {16, 3}}   // j 2
-     },
-     {
+         [BaseCellRotation::new(50, 0), BaseCellRotation::new(48, 0), BaseCellRotation::new(49, 3)],  // j 0
+         [BaseCellRotation::new(32, 0), BaseCellRotation::new(30, 3), BaseCellRotation::new(33, 3)],  // j 1
+         [BaseCellRotation::new(24, 3), BaseCellRotation::new(18, 3), BaseCellRotation::new(16, 3)]   // j 2
+     ],
+     [
          // i 1
-         {{70, 0}, {67, 0}, {66, 3}},  // j 0
-         {{52, 3}, {50, 0}, {48, 0}},  // j 1
-         {{37, 3}, {32, 0}, {30, 3}}   // j 2
-     },
-     {
+         [BaseCellRotation::new(70, 0), BaseCellRotation::new(67, 0), BaseCellRotation::new(66, 3)],  // j 0
+         [BaseCellRotation::new(52, 3), BaseCellRotation::new(50, 0), BaseCellRotation::new(48, 0)],  // j 1
+         [BaseCellRotation::new(37, 3), BaseCellRotation::new(32, 0), BaseCellRotation::new(30, 3)]   // j 2
+     ],
+     [
          // i 2
-         {{83, 0}, {87, 3}, {85, 3}},  // j 0
-         {{74, 3}, {70, 0}, {67, 0}},  // j 1
-         {{57, 1}, {52, 3}, {50, 0}}   // j 2
-     }},
-    {// face 6
-     {
+         [BaseCellRotation::new(83, 0), BaseCellRotation::new(87, 3), BaseCellRotation::new(85, 3)],  // j 0
+         [BaseCellRotation::new(74, 3), BaseCellRotation::new(70, 0), BaseCellRotation::new(67, 0)],  // j 1
+         [BaseCellRotation::new(57, 1), BaseCellRotation::new(52, 3), BaseCellRotation::new(50, 0)]   // j 2
+     ]],
+    [// face 6
+     [
          // i 0
-         {{25, 0}, {23, 0}, {24, 3}},  // j 0
-         {{17, 0}, {11, 3}, {10, 3}},  // j 1
-         {{14, 3}, {6, 3}, {2, 3}}     // j 2
-     },
-     {
+         [BaseCellRotation::new(25, 0), BaseCellRotation::new(23, 0), BaseCellRotation::new(24, 3)],  // j 0
+         [BaseCellRotation::new(17, 0), BaseCellRotation::new(11, 3), BaseCellRotation::new(10, 3)],  // j 1
+         [BaseCellRotation::new(14, 3), BaseCellRotation::new(6, 3), BaseCellRotation::new(2, 3)]     // j 2
+     ],
+     [
          // i 1
-         {{45, 0}, {39, 0}, {37, 3}},  // j 0
-         {{35, 3}, {25, 0}, {23, 0}},  // j 1
-         {{27, 3}, {17, 0}, {11, 3}}   // j 2
-     },
-     {
+         [BaseCellRotation::new(45, 0), BaseCellRotation::new(39, 0), BaseCellRotation::new(37, 3)],  // j 0
+         [BaseCellRotation::new(35, 3), BaseCellRotation::new(25, 0), BaseCellRotation::new(23, 0)],  // j 1
+         [BaseCellRotation::new(27, 3), BaseCellRotation::new(17, 0), BaseCellRotation::new(11, 3)]   // j 2
+     ],
+     [
          // i 2
-         {{63, 0}, {59, 3}, {57, 3}},  // j 0
-         {{56, 3}, {45, 0}, {39, 0}},  // j 1
-         {{46, 3}, {35, 3}, {25, 0}}   // j 2
-     }},
-    {// face 7
-     {
+         [BaseCellRotation::new(63, 0), BaseCellRotation::new(59, 3), BaseCellRotation::new(57, 3)],  // j 0
+         [BaseCellRotation::new(56, 3), BaseCellRotation::new(45, 0), BaseCellRotation::new(39, 0)],  // j 1
+         [BaseCellRotation::new(46, 3), BaseCellRotation::new(35, 3), BaseCellRotation::new(25, 0)]   // j 2
+     ]],
+    [// face 7
+     [
          // i 0
-         {{36, 0}, {20, 0}, {14, 3}},  // j 0
-         {{34, 0}, {19, 3}, {9, 3}},   // j 1
-         {{38, 3}, {21, 3}, {7, 3}}    // j 2
-     },
-     {
+         [BaseCellRotation::new(36, 0), BaseCellRotation::new(20, 0), BaseCellRotation::new(14, 3)],  // j 0
+         [BaseCellRotation::new(34, 0), BaseCellRotation::new(19, 3), BaseCellRotation::new(9, 3)],   // j 1
+         [BaseCellRotation::new(38, 3), BaseCellRotation::new(21, 3), BaseCellRotation::new(7, 3)]    // j 2
+     ],
+     [
          // i 1
-         {{55, 0}, {40, 0}, {27, 3}},  // j 0
-         {{54, 3}, {36, 0}, {20, 0}},  // j 1
-         {{51, 3}, {34, 0}, {19, 3}}   // j 2
-     },
-     {
+         [BaseCellRotation::new(55, 0), BaseCellRotation::new(40, 0), BaseCellRotation::new(27, 3)],  // j 0
+         [BaseCellRotation::new(54, 3), BaseCellRotation::new(36, 0), BaseCellRotation::new(20, 0)],  // j 1
+         [BaseCellRotation::new(51, 3), BaseCellRotation::new(34, 0), BaseCellRotation::new(19, 3)]   // j 2
+     ],
+     [
          // i 2
-         {{72, 0}, {60, 3}, {46, 3}},  // j 0
-         {{73, 3}, {55, 0}, {40, 0}},  // j 1
-         {{71, 3}, {54, 3}, {36, 0}}   // j 2
-     }},
-    {// face 8
-     {
+         [BaseCellRotation::new(72, 0), BaseCellRotation::new(60, 3), BaseCellRotation::new(46, 3)],  // j 0
+         [BaseCellRotation::new(73, 3), BaseCellRotation::new(55, 0), BaseCellRotation::new(40, 0)],  // j 1
+         [BaseCellRotation::new(71, 3), BaseCellRotation::new(54, 3), BaseCellRotation::new(36, 0)]   // j 2
+     ]],
+    [// face 8
+     [
          // i 0
-         {{64, 0}, {47, 0}, {38, 3}},  // j 0
-         {{62, 0}, {43, 3}, {29, 3}},  // j 1
-         {{58, 3}, {42, 3}, {26, 3}}   // j 2
-     },
-     {
+         [BaseCellRotation::new(64, 0), BaseCellRotation::new(47, 0), BaseCellRotation::new(38, 3)],  // j 0
+         [BaseCellRotation::new(62, 0), BaseCellRotation::new(43, 3), BaseCellRotation::new(29, 3)],  // j 1
+         [BaseCellRotation::new(58, 3), BaseCellRotation::new(42, 3), BaseCellRotation::new(26, 3)]   // j 2
+     ],
+     [
          // i 1
-         {{84, 0}, {69, 0}, {51, 3}},  // j 0
-         {{82, 3}, {64, 0}, {47, 0}},  // j 1
-         {{76, 3}, {62, 0}, {43, 3}}   // j 2
-     },
-     {
+         [BaseCellRotation::new(84, 0), BaseCellRotation::new(69, 0), BaseCellRotation::new(51, 3)],  // j 0
+         [BaseCellRotation::new(82, 3), BaseCellRotation::new(64, 0), BaseCellRotation::new(47, 0)],  // j 1
+         [BaseCellRotation::new(76, 3), BaseCellRotation::new(62, 0), BaseCellRotation::new(43, 3)]   // j 2
+     ],
+     [
          // i 2
-         {{97, 0}, {89, 3}, {71, 3}},  // j 0
-         {{98, 3}, {84, 0}, {69, 0}},  // j 1
-         {{96, 3}, {82, 3}, {64, 0}}   // j 2
-     }},
-    {// face 9
-     {
+         [BaseCellRotation::new(97, 0), BaseCellRotation::new(89, 3), BaseCellRotation::new(71, 3)],  // j 0
+         [BaseCellRotation::new(98, 3), BaseCellRotation::new(84, 0), BaseCellRotation::new(69, 0)],  // j 1
+         [BaseCellRotation::new(96, 3), BaseCellRotation::new(82, 3), BaseCellRotation::new(64, 0)]   // j 2
+     ]],
+    [// face 9
+     [
          // i 0
-         {{75, 0}, {65, 0}, {58, 3}},  // j 0
-         {{61, 0}, {53, 3}, {44, 3}},  // j 1
-         {{49, 3}, {41, 3}, {31, 3}}   // j 2
-     },
-     {
+         [BaseCellRotation::new(75, 0), BaseCellRotation::new(65, 0), BaseCellRotation::new(58, 3)],  // j 0
+         [BaseCellRotation::new(61, 0), BaseCellRotation::new(53, 3), BaseCellRotation::new(44, 3)],  // j 1
+         [BaseCellRotation::new(49, 3), BaseCellRotation::new(41, 3), BaseCellRotation::new(31, 3)]   // j 2
+     ],
+     [
          // i 1
-         {{94, 0}, {86, 0}, {76, 3}},  // j 0
-         {{81, 3}, {75, 0}, {65, 0}},  // j 1
-         {{66, 3}, {61, 0}, {53, 3}}   // j 2
-     },
-     {
+         [BaseCellRotation::new(94, 0), BaseCellRotation::new(86, 0), BaseCellRotation::new(76, 3)],  // j 0
+         [BaseCellRotation::new(81, 3), BaseCellRotation::new(75, 0), BaseCellRotation::new(65, 0)],  // j 1
+         [BaseCellRotation::new(66, 3), BaseCellRotation::new(61, 0), BaseCellRotation::new(53, 3)]   // j 2
+     ],
+     [
          // i 2
-         {{107, 0}, {104, 3}, {96, 3}},  // j 0
-         {{101, 3}, {94, 0}, {86, 0}},   // j 1
-         {{85, 3}, {81, 3}, {75, 0}}     // j 2
-     }},
-    {// face 10
-     {
+         [BaseCellRotation::new(107, 0), BaseCellRotation::new(104, 3), BaseCellRotation::new(96, 3)],  // j 0
+         [BaseCellRotation::new(101, 3), BaseCellRotation::new(94, 0), BaseCellRotation::new(86, 0)],   // j 1
+         [BaseCellRotation::new(85, 3), BaseCellRotation::new(81, 3), BaseCellRotation::new(75, 0)]     // j 2
+     ]],
+    [// face 10
+     [
          // i 0
-         {{57, 0}, {59, 0}, {63, 3}},  // j 0
-         {{74, 0}, {78, 3}, {79, 3}},  // j 1
-         {{83, 3}, {92, 3}, {95, 3}}   // j 2
-     },
-     {
+         [BaseCellRotation::new(57, 0), BaseCellRotation::new(59, 0), BaseCellRotation::new(63, 3)],  // j 0
+         [BaseCellRotation::new(74, 0), BaseCellRotation::new(78, 3), BaseCellRotation::new(79, 3)],  // j 1
+         [BaseCellRotation::new(83, 3), BaseCellRotation::new(92, 3), BaseCellRotation::new(95, 3)]   // j 2
+     ],
+     [
          // i 1
-         {{37, 0}, {39, 3}, {45, 3}},  // j 0
-         {{52, 0}, {57, 0}, {59, 0}},  // j 1
-         {{70, 3}, {74, 0}, {78, 3}}   // j 2
-     },
-     {
+         [BaseCellRotation::new(37, 0), BaseCellRotation::new(39, 3), BaseCellRotation::new(45, 3)],  // j 0
+         [BaseCellRotation::new(52, 0), BaseCellRotation::new(57, 0), BaseCellRotation::new(59, 0)],  // j 1
+         [BaseCellRotation::new(70, 3), BaseCellRotation::new(74, 0), BaseCellRotation::new(78, 3)]   // j 2
+     ],
+     [
          // i 2
-         {{24, 0}, {23, 3}, {25, 3}},  // j 0
-         {{32, 3}, {37, 0}, {39, 3}},  // j 1
-         {{50, 3}, {52, 0}, {57, 0}}   // j 2
-     }},
-    {// face 11
-     {
+         [BaseCellRotation::new(24, 0), BaseCellRotation::new(23, 3), BaseCellRotation::new(25, 3)],  // j 0
+         [BaseCellRotation::new(32, 3), BaseCellRotation::new(37, 0), BaseCellRotation::new(39, 3)],  // j 1
+         [BaseCellRotation::new(50, 3), BaseCellRotation::new(52, 0), BaseCellRotation::new(57, 0)]   // j 2
+     ]],
+    [// face 11
+     [
          // i 0
-         {{46, 0}, {60, 0}, {72, 3}},  // j 0
-         {{56, 0}, {68, 3}, {80, 3}},  // j 1
-         {{63, 3}, {77, 3}, {90, 3}}   // j 2
-     },
-     {
+         [BaseCellRotation::new(46, 0), BaseCellRotation::new(60, 0), BaseCellRotation::new(72, 3)],  // j 0
+         [BaseCellRotation::new(56, 0), BaseCellRotation::new(68, 3), BaseCellRotation::new(80, 3)],  // j 1
+         [BaseCellRotation::new(63, 3), BaseCellRotation::new(77, 3), BaseCellRotation::new(90, 3)]   // j 2
+     ],
+     [
          // i 1
-         {{27, 0}, {40, 3}, {55, 3}},  // j 0
-         {{35, 0}, {46, 0}, {60, 0}},  // j 1
-         {{45, 3}, {56, 0}, {68, 3}}   // j 2
-     },
-     {
+         [BaseCellRotation::new(27, 0), BaseCellRotation::new(40, 3), BaseCellRotation::new(55, 3)],  // j 0
+         [BaseCellRotation::new(35, 0), BaseCellRotation::new(46, 0), BaseCellRotation::new(60, 0)],  // j 1
+         [BaseCellRotation::new(45, 3), BaseCellRotation::new(56, 0), BaseCellRotation::new(68, 3)]   // j 2
+     ],
+     [
          // i 2
-         {{14, 0}, {20, 3}, {36, 3}},  // j 0
-         {{17, 3}, {27, 0}, {40, 3}},  // j 1
-         {{25, 3}, {35, 0}, {46, 0}}   // j 2
-     }},
-    {// face 12
-     {
+         [BaseCellRotation::new(14, 0), BaseCellRotation::new(20, 3), BaseCellRotation::new(36, 3)],  // j 0
+         [BaseCellRotation::new(17, 3), BaseCellRotation::new(27, 0), BaseCellRotation::new(40, 3)],  // j 1
+         [BaseCellRotation::new(25, 3), BaseCellRotation::new(35, 0), BaseCellRotation::new(46, 0)]   // j 2
+     ]],
+    [// face 12
+     [
          // i 0
-         {{71, 0}, {89, 0}, {97, 3}},   // j 0
-         {{73, 0}, {91, 3}, {103, 3}},  // j 1
-         {{72, 3}, {88, 3}, {105, 3}}   // j 2
-     },
-     {
+         [BaseCellRotation::new(71, 0), BaseCellRotation::new(89, 0), BaseCellRotation::new(97, 3)],   // j 0
+         [BaseCellRotation::new(73, 0), BaseCellRotation::new(91, 3), BaseCellRotation::new(103, 3)],  // j 1
+         [BaseCellRotation::new(72, 3), BaseCellRotation::new(88, 3), BaseCellRotation::new(105, 3)]   // j 2
+     ],
+     [
          // i 1
-         {{51, 0}, {69, 3}, {84, 3}},  // j 0
-         {{54, 0}, {71, 0}, {89, 0}},  // j 1
-         {{55, 3}, {73, 0}, {91, 3}}   // j 2
-     },
-     {
+         [BaseCellRotation::new(51, 0), BaseCellRotation::new(69, 3), BaseCellRotation::new(84, 3)],  // j 0
+         [BaseCellRotation::new(54, 0), BaseCellRotation::new(71, 0), BaseCellRotation::new(89, 0)],  // j 1
+         [BaseCellRotation::new(55, 3), BaseCellRotation::new(73, 0), BaseCellRotation::new(91, 3)]   // j 2
+     ],
+     [
          // i 2
-         {{38, 0}, {47, 3}, {64, 3}},  // j 0
-         {{34, 3}, {51, 0}, {69, 3}},  // j 1
-         {{36, 3}, {54, 0}, {71, 0}}   // j 2
-     }},
-    {// face 13
-     {
+         [BaseCellRotation::new(38, 0), BaseCellRotation::new(47, 3), BaseCellRotation::new(64, 3)],  // j 0
+         [BaseCellRotation::new(34, 3), BaseCellRotation::new(51, 0), BaseCellRotation::new(69, 3)],  // j 1
+         [BaseCellRotation::new(36, 3), BaseCellRotation::new(54, 0), BaseCellRotation::new(71, 0)]   // j 2
+     ]],
+    [// face 13
+     [
          // i 0
-         {{96, 0}, {104, 0}, {107, 3}},  // j 0
-         {{98, 0}, {110, 3}, {115, 3}},  // j 1
-         {{97, 3}, {111, 3}, {119, 3}}   // j 2
-     },
-     {
+         [BaseCellRotation::new(96, 0), BaseCellRotation::new(104, 0), BaseCellRotation::new(107, 3)],  // j 0
+         [BaseCellRotation::new(98, 0), BaseCellRotation::new(110, 3), BaseCellRotation::new(115, 3)],  // j 1
+         [BaseCellRotation::new(97, 3), BaseCellRotation::new(111, 3), BaseCellRotation::new(119, 3)]   // j 2
+     ],
+     [
          // i 1
-         {{76, 0}, {86, 3}, {94, 3}},   // j 0
-         {{82, 0}, {96, 0}, {104, 0}},  // j 1
-         {{84, 3}, {98, 0}, {110, 3}}   // j 2
-     },
-     {
+         [BaseCellRotation::new(76, 0), BaseCellRotation::new(86, 3), BaseCellRotation::new(94, 3)],   // j 0
+         [BaseCellRotation::new(82, 0), BaseCellRotation::new(96, 0), BaseCellRotation::new(104, 0)],  // j 1
+         [BaseCellRotation::new(84, 3), BaseCellRotation::new(98, 0), BaseCellRotation::new(110, 3)]   // j 2
+     ],
+     [
          // i 2
-         {{58, 0}, {65, 3}, {75, 3}},  // j 0
-         {{62, 3}, {76, 0}, {86, 3}},  // j 1
-         {{64, 3}, {82, 0}, {96, 0}}   // j 2
-     }},
-    {// face 14
-     {
+         [BaseCellRotation::new(58, 0), BaseCellRotation::new(65, 3), BaseCellRotation::new(75, 3)],  // j 0
+         [BaseCellRotation::new(62, 3), BaseCellRotation::new(76, 0), BaseCellRotation::new(86, 3)],  // j 1
+         [BaseCellRotation::new(64, 3), BaseCellRotation::new(82, 0), BaseCellRotation::new(96, 0)]   // j 2
+     ]],
+    [// face 14
+     [
          // i 0
-         {{85, 0}, {87, 0}, {83, 3}},     // j 0
-         {{101, 0}, {102, 3}, {100, 3}},  // j 1
-         {{107, 3}, {112, 3}, {114, 3}}   // j 2
-     },
-     {
+         [BaseCellRotation::new(85, 0), BaseCellRotation::new(87, 0), BaseCellRotation::new(83, 3)],     // j 0
+         [BaseCellRotation::new(101, 0), BaseCellRotation::new(102, 3), BaseCellRotation::new(100, 3)],  // j 1
+         [BaseCellRotation::new(107, 3), BaseCellRotation::new(112, 3), BaseCellRotation::new(114, 3)]   // j 2
+     ],
+     [
          // i 1
-         {{66, 0}, {67, 3}, {70, 3}},   // j 0
-         {{81, 0}, {85, 0}, {87, 0}},   // j 1
-         {{94, 3}, {101, 0}, {102, 3}}  // j 2
-     },
-     {
+         [BaseCellRotation::new(66, 0), BaseCellRotation::new(67, 3), BaseCellRotation::new(70, 3)],   // j 0
+         [BaseCellRotation::new(81, 0), BaseCellRotation::new(85, 0), BaseCellRotation::new(87, 0)],   // j 1
+         [BaseCellRotation::new(94, 3), BaseCellRotation::new(101, 0), BaseCellRotation::new(102, 3)]  // j 2
+     ],
+     [
          // i 2
-         {{49, 0}, {48, 3}, {50, 3}},  // j 0
-         {{61, 3}, {66, 0}, {67, 3}},  // j 1
-         {{75, 3}, {81, 0}, {85, 0}}   // j 2
-     }},
-    {// face 15
-     {
+         [BaseCellRotation::new(49, 0), BaseCellRotation::new(48, 3), BaseCellRotation::new(50, 3)],  // j 0
+         [BaseCellRotation::new(61, 3), BaseCellRotation::new(66, 0), BaseCellRotation::new(67, 3)],  // j 1
+         [BaseCellRotation::new(75, 3), BaseCellRotation::new(81, 0), BaseCellRotation::new(85, 0)]   // j 2
+     ]],
+    [// face 15
+     [
          // i 0
-         {{95, 0}, {92, 0}, {83, 0}},  // j 0
-         {{79, 0}, {78, 0}, {74, 3}},  // j 1
-         {{63, 1}, {59, 3}, {57, 3}}   // j 2
-     },
-     {
+         [BaseCellRotation::new(95, 0), BaseCellRotation::new(92, 0), BaseCellRotation::new(83, 0)],  // j 0
+         [BaseCellRotation::new(79, 0), BaseCellRotation::new(78, 0), BaseCellRotation::new(74, 3)],  // j 1
+         [BaseCellRotation::new(63, 1), BaseCellRotation::new(59, 3), BaseCellRotation::new(57, 3)]   // j 2
+     ],
+     [
          // i 1
-         {{109, 0}, {108, 0}, {100, 5}},  // j 0
-         {{93, 1}, {95, 0}, {92, 0}},     // j 1
-         {{77, 1}, {79, 0}, {78, 0}}      // j 2
-     },
-     {
+         [BaseCellRotation::new(109, 0), BaseCellRotation::new(108, 0), BaseCellRotation::new(100, 5)],  // j 0
+         [BaseCellRotation::new(93, 1), BaseCellRotation::new(95, 0), BaseCellRotation::new(92, 0)],     // j 1
+         [BaseCellRotation::new(77, 1), BaseCellRotation::new(79, 0), BaseCellRotation::new(78, 0)]      // j 2
+     ],
+     [
          // i 2
-         {{117, 4}, {118, 5}, {114, 5}},  // j 0
-         {{106, 1}, {109, 0}, {108, 0}},  // j 1
-         {{90, 1}, {93, 1}, {95, 0}}      // j 2
-     }},
-    {// face 16
-     {
+         [BaseCellRotation::new(117, 4), BaseCellRotation::new(118, 5), BaseCellRotation::new(114, 5)],  // j 0
+         [BaseCellRotation::new(106, 1), BaseCellRotation::new(109, 0), BaseCellRotation::new(108, 0)],  // j 1
+         [BaseCellRotation::new(90, 1), BaseCellRotation::new(93, 1), BaseCellRotation::new(95, 0)]      // j 2
+     ]],
+    [// face 16
+     [
          // i 0
-         {{90, 0}, {77, 0}, {63, 0}},  // j 0
-         {{80, 0}, {68, 0}, {56, 3}},  // j 1
-         {{72, 1}, {60, 3}, {46, 3}}   // j 2
-     },
-     {
+         [BaseCellRotation::new(90, 0), BaseCellRotation::new(77, 0), BaseCellRotation::new(63, 0)],  // j 0
+         [BaseCellRotation::new(80, 0), BaseCellRotation::new(68, 0), BaseCellRotation::new(56, 3)],  // j 1
+         [BaseCellRotation::new(72, 1), BaseCellRotation::new(60, 3), BaseCellRotation::new(46, 3)]   // j 2
+     ],
+     [
          // i 1
-         {{106, 0}, {93, 0}, {79, 5}},  // j 0
-         {{99, 1}, {90, 0}, {77, 0}},   // j 1
-         {{88, 1}, {80, 0}, {68, 0}}    // j 2
-     },
-     {
+         [BaseCellRotation::new(106, 0), BaseCellRotation::new(93, 0), BaseCellRotation::new(79, 5)],  // j 0
+         [BaseCellRotation::new(99, 1), BaseCellRotation::new(90, 0), BaseCellRotation::new(77, 0)],   // j 1
+         [BaseCellRotation::new(88, 1), BaseCellRotation::new(80, 0), BaseCellRotation::new(68, 0)]    // j 2
+     ],
+     [
          // i 2
-         {{117, 3}, {109, 5}, {95, 5}},  // j 0
-         {{113, 1}, {106, 0}, {93, 0}},  // j 1
-         {{105, 1}, {99, 1}, {90, 0}}    // j 2
-     }},
-    {// face 17
-     {
+         [BaseCellRotation::new(117, 3), BaseCellRotation::new(109, 5), BaseCellRotation::new(95, 5)],  // j 0
+         [BaseCellRotation::new(113, 1), BaseCellRotation::new(106, 0), BaseCellRotation::new(93, 0)],  // j 1
+         [BaseCellRotation::new(105, 1), BaseCellRotation::new(99, 1), BaseCellRotation::new(90, 0)]    // j 2
+     ]],
+    [// face 17
+     [
          // i 0
-         {{105, 0}, {88, 0}, {72, 0}},  // j 0
-         {{103, 0}, {91, 0}, {73, 3}},  // j 1
-         {{97, 1}, {89, 3}, {71, 3}}    // j 2
-     },
-     {
+         [BaseCellRotation::new(105, 0), BaseCellRotation::new(88, 0), BaseCellRotation::new(72, 0)],  // j 0
+         [BaseCellRotation::new(103, 0), BaseCellRotation::new(91, 0), BaseCellRotation::new(73, 3)],  // j 1
+         [BaseCellRotation::new(97, 1), BaseCellRotation::new(89, 3), BaseCellRotation::new(71, 3)]    // j 2
+     ],
+     [
          // i 1
-         {{113, 0}, {99, 0}, {80, 5}},   // j 0
-         {{116, 1}, {105, 0}, {88, 0}},  // j 1
-         {{111, 1}, {103, 0}, {91, 0}}   // j 2
-     },
-     {
+         [BaseCellRotation::new(113, 0), BaseCellRotation::new(99, 0), BaseCellRotation::new(80, 5)],   // j 0
+         [BaseCellRotation::new(116, 1), BaseCellRotation::new(105, 0), BaseCellRotation::new(88, 0)],  // j 1
+         [BaseCellRotation::new(111, 1), BaseCellRotation::new(103, 0), BaseCellRotation::new(91, 0)]   // j 2
+     ],
+     [
          // i 2
-         {{117, 2}, {106, 5}, {90, 5}},  // j 0
-         {{121, 1}, {113, 0}, {99, 0}},  // j 1
-         {{119, 1}, {116, 1}, {105, 0}}  // j 2
-     }},
-    {// face 18
-     {
+         [BaseCellRotation::new(117, 2), BaseCellRotation::new(106, 5), BaseCellRotation::new(90, 5)],  // j 0
+         [BaseCellRotation::new(121, 1), BaseCellRotation::new(113, 0), BaseCellRotation::new(99, 0)],  // j 1
+         [BaseCellRotation::new(119, 1), BaseCellRotation::new(116, 1), BaseCellRotation::new(105, 0)]  // j 2
+     ]],
+    [// face 18
+     [
          // i 0
-         {{119, 0}, {111, 0}, {97, 0}},  // j 0
-         {{115, 0}, {110, 0}, {98, 3}},  // j 1
-         {{107, 1}, {104, 3}, {96, 3}}   // j 2
-     },
-     {
+         [BaseCellRotation::new(119, 0), BaseCellRotation::new(111, 0), BaseCellRotation::new(97, 0)],  // j 0
+         [BaseCellRotation::new(115, 0), BaseCellRotation::new(110, 0), BaseCellRotation::new(98, 3)],  // j 1
+         [BaseCellRotation::new(107, 1), BaseCellRotation::new(104, 3), BaseCellRotation::new(96, 3)]   // j 2
+     ],
+     [
          // i 1
-         {{121, 0}, {116, 0}, {103, 5}},  // j 0
-         {{120, 1}, {119, 0}, {111, 0}},  // j 1
-         {{112, 1}, {115, 0}, {110, 0}}   // j 2
-     },
-     {
+         [BaseCellRotation::new(121, 0), BaseCellRotation::new(116, 0), BaseCellRotation::new(103, 5)],  // j 0
+         [BaseCellRotation::new(120, 1), BaseCellRotation::new(119, 0), BaseCellRotation::new(111, 0)],  // j 1
+         [BaseCellRotation::new(112, 1), BaseCellRotation::new(115, 0), BaseCellRotation::new(110, 0)]   // j 2
+     ],
+     [
          // i 2
-         {{117, 1}, {113, 5}, {105, 5}},  // j 0
-         {{118, 1}, {121, 0}, {116, 0}},  // j 1
-         {{114, 1}, {120, 1}, {119, 0}}   // j 2
-     }},
-    {// face 19
-     {
+         [BaseCellRotation::new(117, 1), BaseCellRotation::new(113, 5), BaseCellRotation::new(105, 5)],  // j 0
+         [BaseCellRotation::new(118, 1), BaseCellRotation::new(121, 0), BaseCellRotation::new(116, 0)],  // j 1
+         [BaseCellRotation::new(114, 1), BaseCellRotation::new(120, 1), BaseCellRotation::new(119, 0)]   // j 2
+     ]],
+    [// face 19
+     [
          // i 0
-         {{114, 0}, {112, 0}, {107, 0}},  // j 0
-         {{100, 0}, {102, 0}, {101, 3}},  // j 1
-         {{83, 1}, {87, 3}, {85, 3}}      // j 2
-     },
-     {
+         [BaseCellRotation::new(114, 0), BaseCellRotation::new(112, 0), BaseCellRotation::new(107, 0)],  // j 0
+         [BaseCellRotation::new(100, 0), BaseCellRotation::new(102, 0), BaseCellRotation::new(101, 3)],  // j 1
+         [BaseCellRotation::new(83, 1), BaseCellRotation::new(87, 3), BaseCellRotation::new(85, 3)]      // j 2
+     ],
+     [
          // i 1
-         {{118, 0}, {120, 0}, {115, 5}},  // j 0
-         {{108, 1}, {114, 0}, {112, 0}},  // j 1
-         {{92, 1}, {100, 0}, {102, 0}}    // j 2
-     },
-     {
+         [BaseCellRotation::new(118, 0), BaseCellRotation::new(120, 0), BaseCellRotation::new(115, 5)],  // j 0
+         [BaseCellRotation::new(108, 1), BaseCellRotation::new(114, 0), BaseCellRotation::new(112, 0)],  // j 1
+         [BaseCellRotation::new(92, 1), BaseCellRotation::new(100, 0), BaseCellRotation::new(102, 0)]    // j 2
+     ],
+     [
          // i 2
-         {{117, 0}, {121, 5}, {119, 5}},  // j 0
-         {{109, 1}, {118, 0}, {120, 0}},  // j 1
-         {{95, 1}, {108, 1}, {114, 0}}    // j 2
-     }}};
+         [BaseCellRotation::new(117, 0), BaseCellRotation::new(121, 5), BaseCellRotation::new(119, 5)],  // j 0
+         [BaseCellRotation::new(109, 1), BaseCellRotation::new(118, 0), BaseCellRotation::new(120, 0)],  // j 1
+         [BaseCellRotation::new(95, 1), BaseCellRotation::new(108, 1), BaseCellRotation::new(114, 0)]    // j 2
+     ]]
+];
 
 /** @brief Resolution 0 base cell data table.
  *
@@ -675,133 +698,133 @@ static const BaseCellRotation faceIjkBaseCells[NUM_ICOSA_FACES][3][3][3] = {
  * is a pentagon, the two cw offset rotation adjacent faces are given (-1
  * indicates that no cw offset rotation faces exist for this base cell).
  */
-const BaseCellData baseCellData[NUM_BASE_CELLS] = {
-    {{1, {1, 0, 0}}, 0, {0, 0}},     // base cell 0
-    {{2, {1, 1, 0}}, 0, {0, 0}},     // base cell 1
-    {{1, {0, 0, 0}}, 0, {0, 0}},     // base cell 2
-    {{2, {1, 0, 0}}, 0, {0, 0}},     // base cell 3
-    {{0, {2, 0, 0}}, 1, {-1, -1}},   // base cell 4
-    {{1, {1, 1, 0}}, 0, {0, 0}},     // base cell 5
-    {{1, {0, 0, 1}}, 0, {0, 0}},     // base cell 6
-    {{2, {0, 0, 0}}, 0, {0, 0}},     // base cell 7
-    {{0, {1, 0, 0}}, 0, {0, 0}},     // base cell 8
-    {{2, {0, 1, 0}}, 0, {0, 0}},     // base cell 9
-    {{1, {0, 1, 0}}, 0, {0, 0}},     // base cell 10
-    {{1, {0, 1, 1}}, 0, {0, 0}},     // base cell 11
-    {{3, {1, 0, 0}}, 0, {0, 0}},     // base cell 12
-    {{3, {1, 1, 0}}, 0, {0, 0}},     // base cell 13
-    {{11, {2, 0, 0}}, 1, {2, 6}},    // base cell 14
-    {{4, {1, 0, 0}}, 0, {0, 0}},     // base cell 15
-    {{0, {0, 0, 0}}, 0, {0, 0}},     // base cell 16
-    {{6, {0, 1, 0}}, 0, {0, 0}},     // base cell 17
-    {{0, {0, 0, 1}}, 0, {0, 0}},     // base cell 18
-    {{2, {0, 1, 1}}, 0, {0, 0}},     // base cell 19
-    {{7, {0, 0, 1}}, 0, {0, 0}},     // base cell 20
-    {{2, {0, 0, 1}}, 0, {0, 0}},     // base cell 21
-    {{0, {1, 1, 0}}, 0, {0, 0}},     // base cell 22
-    {{6, {0, 0, 1}}, 0, {0, 0}},     // base cell 23
-    {{10, {2, 0, 0}}, 1, {1, 5}},    // base cell 24
-    {{6, {0, 0, 0}}, 0, {0, 0}},     // base cell 25
-    {{3, {0, 0, 0}}, 0, {0, 0}},     // base cell 26
-    {{11, {1, 0, 0}}, 0, {0, 0}},    // base cell 27
-    {{4, {1, 1, 0}}, 0, {0, 0}},     // base cell 28
-    {{3, {0, 1, 0}}, 0, {0, 0}},     // base cell 29
-    {{0, {0, 1, 1}}, 0, {0, 0}},     // base cell 30
-    {{4, {0, 0, 0}}, 0, {0, 0}},     // base cell 31
-    {{5, {0, 1, 0}}, 0, {0, 0}},     // base cell 32
-    {{0, {0, 1, 0}}, 0, {0, 0}},     // base cell 33
-    {{7, {0, 1, 0}}, 0, {0, 0}},     // base cell 34
-    {{11, {1, 1, 0}}, 0, {0, 0}},    // base cell 35
-    {{7, {0, 0, 0}}, 0, {0, 0}},     // base cell 36
-    {{10, {1, 0, 0}}, 0, {0, 0}},    // base cell 37
-    {{12, {2, 0, 0}}, 1, {3, 7}},    // base cell 38
-    {{6, {1, 0, 1}}, 0, {0, 0}},     // base cell 39
-    {{7, {1, 0, 1}}, 0, {0, 0}},     // base cell 40
-    {{4, {0, 0, 1}}, 0, {0, 0}},     // base cell 41
-    {{3, {0, 0, 1}}, 0, {0, 0}},     // base cell 42
-    {{3, {0, 1, 1}}, 0, {0, 0}},     // base cell 43
-    {{4, {0, 1, 0}}, 0, {0, 0}},     // base cell 44
-    {{6, {1, 0, 0}}, 0, {0, 0}},     // base cell 45
-    {{11, {0, 0, 0}}, 0, {0, 0}},    // base cell 46
-    {{8, {0, 0, 1}}, 0, {0, 0}},     // base cell 47
-    {{5, {0, 0, 1}}, 0, {0, 0}},     // base cell 48
-    {{14, {2, 0, 0}}, 1, {0, 9}},    // base cell 49
-    {{5, {0, 0, 0}}, 0, {0, 0}},     // base cell 50
-    {{12, {1, 0, 0}}, 0, {0, 0}},    // base cell 51
-    {{10, {1, 1, 0}}, 0, {0, 0}},    // base cell 52
-    {{4, {0, 1, 1}}, 0, {0, 0}},     // base cell 53
-    {{12, {1, 1, 0}}, 0, {0, 0}},    // base cell 54
-    {{7, {1, 0, 0}}, 0, {0, 0}},     // base cell 55
-    {{11, {0, 1, 0}}, 0, {0, 0}},    // base cell 56
-    {{10, {0, 0, 0}}, 0, {0, 0}},    // base cell 57
-    {{13, {2, 0, 0}}, 1, {4, 8}},    // base cell 58
-    {{10, {0, 0, 1}}, 0, {0, 0}},    // base cell 59
-    {{11, {0, 0, 1}}, 0, {0, 0}},    // base cell 60
-    {{9, {0, 1, 0}}, 0, {0, 0}},     // base cell 61
-    {{8, {0, 1, 0}}, 0, {0, 0}},     // base cell 62
-    {{6, {2, 0, 0}}, 1, {11, 15}},   // base cell 63
-    {{8, {0, 0, 0}}, 0, {0, 0}},     // base cell 64
-    {{9, {0, 0, 1}}, 0, {0, 0}},     // base cell 65
-    {{14, {1, 0, 0}}, 0, {0, 0}},    // base cell 66
-    {{5, {1, 0, 1}}, 0, {0, 0}},     // base cell 67
-    {{16, {0, 1, 1}}, 0, {0, 0}},    // base cell 68
-    {{8, {1, 0, 1}}, 0, {0, 0}},     // base cell 69
-    {{5, {1, 0, 0}}, 0, {0, 0}},     // base cell 70
-    {{12, {0, 0, 0}}, 0, {0, 0}},    // base cell 71
-    {{7, {2, 0, 0}}, 1, {12, 16}},   // base cell 72
-    {{12, {0, 1, 0}}, 0, {0, 0}},    // base cell 73
-    {{10, {0, 1, 0}}, 0, {0, 0}},    // base cell 74
-    {{9, {0, 0, 0}}, 0, {0, 0}},     // base cell 75
-    {{13, {1, 0, 0}}, 0, {0, 0}},    // base cell 76
-    {{16, {0, 0, 1}}, 0, {0, 0}},    // base cell 77
-    {{15, {0, 1, 1}}, 0, {0, 0}},    // base cell 78
-    {{15, {0, 1, 0}}, 0, {0, 0}},    // base cell 79
-    {{16, {0, 1, 0}}, 0, {0, 0}},    // base cell 80
-    {{14, {1, 1, 0}}, 0, {0, 0}},    // base cell 81
-    {{13, {1, 1, 0}}, 0, {0, 0}},    // base cell 82
-    {{5, {2, 0, 0}}, 1, {10, 19}},   // base cell 83
-    {{8, {1, 0, 0}}, 0, {0, 0}},     // base cell 84
-    {{14, {0, 0, 0}}, 0, {0, 0}},    // base cell 85
-    {{9, {1, 0, 1}}, 0, {0, 0}},     // base cell 86
-    {{14, {0, 0, 1}}, 0, {0, 0}},    // base cell 87
-    {{17, {0, 0, 1}}, 0, {0, 0}},    // base cell 88
-    {{12, {0, 0, 1}}, 0, {0, 0}},    // base cell 89
-    {{16, {0, 0, 0}}, 0, {0, 0}},    // base cell 90
-    {{17, {0, 1, 1}}, 0, {0, 0}},    // base cell 91
-    {{15, {0, 0, 1}}, 0, {0, 0}},    // base cell 92
-    {{16, {1, 0, 1}}, 0, {0, 0}},    // base cell 93
-    {{9, {1, 0, 0}}, 0, {0, 0}},     // base cell 94
-    {{15, {0, 0, 0}}, 0, {0, 0}},    // base cell 95
-    {{13, {0, 0, 0}}, 0, {0, 0}},    // base cell 96
-    {{8, {2, 0, 0}}, 1, {13, 17}},   // base cell 97
-    {{13, {0, 1, 0}}, 0, {0, 0}},    // base cell 98
-    {{17, {1, 0, 1}}, 0, {0, 0}},    // base cell 99
-    {{19, {0, 1, 0}}, 0, {0, 0}},    // base cell 100
-    {{14, {0, 1, 0}}, 0, {0, 0}},    // base cell 101
-    {{19, {0, 1, 1}}, 0, {0, 0}},    // base cell 102
-    {{17, {0, 1, 0}}, 0, {0, 0}},    // base cell 103
-    {{13, {0, 0, 1}}, 0, {0, 0}},    // base cell 104
-    {{17, {0, 0, 0}}, 0, {0, 0}},    // base cell 105
-    {{16, {1, 0, 0}}, 0, {0, 0}},    // base cell 106
-    {{9, {2, 0, 0}}, 1, {14, 18}},   // base cell 107
-    {{15, {1, 0, 1}}, 0, {0, 0}},    // base cell 108
-    {{15, {1, 0, 0}}, 0, {0, 0}},    // base cell 109
-    {{18, {0, 1, 1}}, 0, {0, 0}},    // base cell 110
-    {{18, {0, 0, 1}}, 0, {0, 0}},    // base cell 111
-    {{19, {0, 0, 1}}, 0, {0, 0}},    // base cell 112
-    {{17, {1, 0, 0}}, 0, {0, 0}},    // base cell 113
-    {{19, {0, 0, 0}}, 0, {0, 0}},    // base cell 114
-    {{18, {0, 1, 0}}, 0, {0, 0}},    // base cell 115
-    {{18, {1, 0, 1}}, 0, {0, 0}},    // base cell 116
-    {{19, {2, 0, 0}}, 1, {-1, -1}},  // base cell 117
-    {{19, {1, 0, 0}}, 0, {0, 0}},    // base cell 118
-    {{18, {0, 0, 0}}, 0, {0, 0}},    // base cell 119
-    {{19, {1, 0, 1}}, 0, {0, 0}},    // base cell 120
-    {{18, {1, 0, 0}}, 0, {0, 0}}     // base cell 121
-};
+const baseCellData : [BaseCellData; NUM_BASE_CELLS] = [
+    BaseCellData::new(1, [1, 0, 0], 0, [0, 0]),     // base cell 0
+    BaseCellData::new(2, [1, 1, 0], 0, [0, 0]),     // base cell 1
+    BaseCellData::new(1, [0, 0, 0], 0, [0, 0]),     // base cell 2
+    BaseCellData::new(2, [1, 0, 0], 0, [0, 0]),     // base cell 3
+    BaseCellData::new(0, [2, 0, 0], 1, [-1, -1]),   // base cell 4
+    BaseCellData::new(1, [1, 1, 0], 0, [0, 0]),     // base cell 5
+    BaseCellData::new(1, [0, 0, 1], 0, [0, 0]),     // base cell 6
+    BaseCellData::new(2, [0, 0, 0], 0, [0, 0]),     // base cell 7
+    BaseCellData::new(0, [1, 0, 0], 0, [0, 0]),     // base cell 8
+    BaseCellData::new(2, [0, 1, 0], 0, [0, 0]),     // base cell 9
+    BaseCellData::new(1, [0, 1, 0], 0, [0, 0]),     // base cell 10
+    BaseCellData::new(1, [0, 1, 1], 0, [0, 0]),     // base cell 11
+    BaseCellData::new(3, [1, 0, 0], 0, [0, 0]),     // base cell 12
+    BaseCellData::new(3, [1, 1, 0], 0, [0, 0]),     // base cell 13
+    BaseCellData::new(11, [2, 0, 0], 1, [2, 6]),    // base cell 14
+    BaseCellData::new(4, [1, 0, 0], 0, [0, 0]),     // base cell 15
+    BaseCellData::new(0, [0, 0, 0], 0, [0, 0]),     // base cell 16
+    BaseCellData::new(6, [0, 1, 0], 0, [0, 0]),     // base cell 17
+    BaseCellData::new(0, [0, 0, 1], 0, [0, 0]),     // base cell 18
+    BaseCellData::new(2, [0, 1, 1], 0, [0, 0]),     // base cell 19
+    BaseCellData::new(7, [0, 0, 1], 0, [0, 0]),     // base cell 20
+    BaseCellData::new(2, [0, 0, 1], 0, [0, 0]),     // base cell 21
+    BaseCellData::new(0, [1, 1, 0], 0, [0, 0]),     // base cell 22
+    BaseCellData::new(6, [0, 0, 1], 0, [0, 0]),     // base cell 23
+    BaseCellData::new(10, [2, 0, 0], 1, [1, 5]),    // base cell 24
+    BaseCellData::new(6, [0, 0, 0], 0, [0, 0]),     // base cell 25
+    BaseCellData::new(3, [0, 0, 0], 0, [0, 0]),     // base cell 26
+    BaseCellData::new(11, [1, 0, 0], 0, [0, 0]),    // base cell 27
+    BaseCellData::new(4, [1, 1, 0], 0, [0, 0]),     // base cell 28
+    BaseCellData::new(3, [0, 1, 0], 0, [0, 0]),     // base cell 29
+    BaseCellData::new(0, [0, 1, 1], 0, [0, 0]),     // base cell 30
+    BaseCellData::new(4, [0, 0, 0], 0, [0, 0]),     // base cell 31
+    BaseCellData::new(5, [0, 1, 0], 0, [0, 0]),     // base cell 32
+    BaseCellData::new(0, [0, 1, 0], 0, [0, 0]),     // base cell 33
+    BaseCellData::new(7, [0, 1, 0], 0, [0, 0]),     // base cell 34
+    BaseCellData::new(11, [1, 1, 0], 0, [0, 0]),    // base cell 35
+    BaseCellData::new(7, [0, 0, 0], 0, [0, 0]),     // base cell 36
+    BaseCellData::new(10, [1, 0, 0], 0, [0, 0]),    // base cell 37
+    BaseCellData::new(12, [2, 0, 0], 1, [3, 7]),    // base cell 38
+    BaseCellData::new(6, [1, 0, 1], 0, [0, 0]),     // base cell 39
+    BaseCellData::new(7, [1, 0, 1], 0, [0, 0]),     // base cell 40
+    BaseCellData::new(4, [0, 0, 1], 0, [0, 0]),     // base cell 41
+    BaseCellData::new(3, [0, 0, 1], 0, [0, 0]),     // base cell 42
+    BaseCellData::new(3, [0, 1, 1], 0, [0, 0]),     // base cell 43
+    BaseCellData::new(4, [0, 1, 0], 0, [0, 0]),     // base cell 44
+    BaseCellData::new(6, [1, 0, 0], 0, [0, 0]),     // base cell 45
+    BaseCellData::new(11, [0, 0, 0], 0, [0, 0]),    // base cell 46
+    BaseCellData::new(8, [0, 0, 1], 0, [0, 0]),     // base cell 47
+    BaseCellData::new(5, [0, 0, 1], 0, [0, 0]),     // base cell 48
+    BaseCellData::new(14, [2, 0, 0], 1, [0, 9]),    // base cell 49
+    BaseCellData::new(5, [0, 0, 0], 0, [0, 0]),     // base cell 50
+    BaseCellData::new(12, [1, 0, 0], 0, [0, 0]),    // base cell 51
+    BaseCellData::new(10, [1, 1, 0], 0, [0, 0]),    // base cell 52
+    BaseCellData::new(4, [0, 1, 1], 0, [0, 0]),     // base cell 53
+    BaseCellData::new(12, [1, 1, 0], 0, [0, 0]),    // base cell 54
+    BaseCellData::new(7, [1, 0, 0], 0, [0, 0]),     // base cell 55
+    BaseCellData::new(11, [0, 1, 0], 0, [0, 0]),    // base cell 56
+    BaseCellData::new(10, [0, 0, 0], 0, [0, 0]),    // base cell 57
+    BaseCellData::new(13, [2, 0, 0], 1, [4, 8]),    // base cell 58
+    BaseCellData::new(10, [0, 0, 1], 0, [0, 0]),    // base cell 59
+    BaseCellData::new(11, [0, 0, 1], 0, [0, 0]),    // base cell 60
+    BaseCellData::new(9, [0, 1, 0], 0, [0, 0]),     // base cell 61
+    BaseCellData::new(8, [0, 1, 0], 0, [0, 0]),     // base cell 62
+    BaseCellData::new(6, [2, 0, 0], 1, [11, 15]),   // base cell 63
+    BaseCellData::new(8, [0, 0, 0], 0, [0, 0]),     // base cell 64
+    BaseCellData::new(9, [0, 0, 1], 0, [0, 0]),     // base cell 65
+    BaseCellData::new(14, [1, 0, 0], 0, [0, 0]),    // base cell 66
+    BaseCellData::new(5, [1, 0, 1], 0, [0, 0]),     // base cell 67
+    BaseCellData::new(16, [0, 1, 1], 0, [0, 0]),    // base cell 68
+    BaseCellData::new(8, [1, 0, 1], 0, [0, 0]),     // base cell 69
+    BaseCellData::new(5, [1, 0, 0], 0, [0, 0]),     // base cell 70
+    BaseCellData::new(12, [0, 0, 0], 0, [0, 0]),    // base cell 71
+    BaseCellData::new(7, [2, 0, 0], 1, [12, 16]),   // base cell 72
+    BaseCellData::new(12, [0, 1, 0], 0, [0, 0]),    // base cell 73
+    BaseCellData::new(10, [0, 1, 0], 0, [0, 0]),    // base cell 74
+    BaseCellData::new(9, [0, 0, 0], 0, [0, 0]),     // base cell 75
+    BaseCellData::new(13, [1, 0, 0], 0, [0, 0]),    // base cell 76
+    BaseCellData::new(16, [0, 0, 1], 0, [0, 0]),    // base cell 77
+    BaseCellData::new(15, [0, 1, 1], 0, [0, 0]),    // base cell 78
+    BaseCellData::new(15, [0, 1, 0], 0, [0, 0]),    // base cell 79
+    BaseCellData::new(16, [0, 1, 0], 0, [0, 0]),    // base cell 80
+    BaseCellData::new(14, [1, 1, 0], 0, [0, 0]),    // base cell 81
+    BaseCellData::new(13, [1, 1, 0], 0, [0, 0]),    // base cell 82
+    BaseCellData::new(5, [2, 0, 0], 1, [10, 19]),   // base cell 83
+    BaseCellData::new(8, [1, 0, 0], 0, [0, 0]),     // base cell 84
+    BaseCellData::new(14, [0, 0, 0], 0, [0, 0]),    // base cell 85
+    BaseCellData::new(9, [1, 0, 1], 0, [0, 0]),     // base cell 86
+    BaseCellData::new(14, [0, 0, 1], 0, [0, 0]),    // base cell 87
+    BaseCellData::new(17, [0, 0, 1], 0, [0, 0]),    // base cell 88
+    BaseCellData::new(12, [0, 0, 1], 0, [0, 0]),    // base cell 89
+    BaseCellData::new(16, [0, 0, 0], 0, [0, 0]),    // base cell 90
+    BaseCellData::new(17, [0, 1, 1], 0, [0, 0]),    // base cell 91
+    BaseCellData::new(15, [0, 0, 1], 0, [0, 0]),    // base cell 92
+    BaseCellData::new(16, [1, 0, 1], 0, [0, 0]),    // base cell 93
+    BaseCellData::new(9, [1, 0, 0], 0, [0, 0]),     // base cell 94
+    BaseCellData::new(15, [0, 0, 0], 0, [0, 0]),    // base cell 95
+    BaseCellData::new(13, [0, 0, 0], 0, [0, 0]),    // base cell 96
+    BaseCellData::new(8, [2, 0, 0], 1, [13, 17]),   // base cell 97
+    BaseCellData::new(13, [0, 1, 0], 0, [0, 0]),    // base cell 98
+    BaseCellData::new(17, [1, 0, 1], 0, [0, 0]),    // base cell 99
+    BaseCellData::new(19, [0, 1, 0], 0, [0, 0]),    // base cell 100
+    BaseCellData::new(14, [0, 1, 0], 0, [0, 0]),    // base cell 101
+    BaseCellData::new(19, [0, 1, 1], 0, [0, 0]),    // base cell 102
+    BaseCellData::new(17, [0, 1, 0], 0, [0, 0]),    // base cell 103
+    BaseCellData::new(13, [0, 0, 1], 0, [0, 0]),    // base cell 104
+    BaseCellData::new(17, [0, 0, 0], 0, [0, 0]),    // base cell 105
+    BaseCellData::new(16, [1, 0, 0], 0, [0, 0]),    // base cell 106
+    BaseCellData::new(9, [2, 0, 0], 1, [14, 18]),   // base cell 107
+    BaseCellData::new(15, [1, 0, 1], 0, [0, 0]),    // base cell 108
+    BaseCellData::new(15, [1, 0, 0], 0, [0, 0]),    // base cell 109
+    BaseCellData::new(18, [0, 1, 1], 0, [0, 0]),    // base cell 110
+    BaseCellData::new(18, [0, 0, 1], 0, [0, 0]),    // base cell 111
+    BaseCellData::new(19, [0, 0, 1], 0, [0, 0]),    // base cell 112
+    BaseCellData::new(17, [1, 0, 0], 0, [0, 0]),    // base cell 113
+    BaseCellData::new(19, [0, 0, 0], 0, [0, 0]),    // base cell 114
+    BaseCellData::new(18, [0, 1, 0], 0, [0, 0]),    // base cell 115
+    BaseCellData::new(18, [1, 0, 1], 0, [0, 0]),    // base cell 116
+    BaseCellData::new(19, [2, 0, 0], 1, [-1, -1]),  // base cell 117
+    BaseCellData::new(19, [1, 0, 0], 0, [0, 0]),    // base cell 118
+    BaseCellData::new(18, [0, 0, 0], 0, [0, 0]),    // base cell 119
+    BaseCellData::new(19, [1, 0, 1], 0, [0, 0]),    // base cell 120
+    BaseCellData::new(18, [1, 0, 0], 0, [0, 0])     // base cell 121
+];
 
-/** @brief Return whether or not the indicated base cell is a pentagon. */
-fn _isBaseCellPentagon(baseCell: i32) -> i32 {
+/// Return whether or not the indicated base cell is a pentagon.
+fn _isBaseCellPentagon(baseCell: i32) -> bool {
     if (baseCell < 0 || baseCell >= NUM_BASE_CELLS) {  // LCOV_EXCL_BR_LINE
         // Base cells less than zero can not be represented in an index
         return false;
@@ -816,37 +839,6 @@ fn _isBaseCellPolarPentagon(baseCell: i32) -> bool {
     baseCell == 4 || baseCell == 117
 }
 
-/** @brief Find base cell given FaceIJK.
- *
- * Given the face number and a resolution 0 ijk+ coordinate in that face's
- * face-centered ijk coordinate system, return the base cell located at that
- * coordinate.
- *
- * Valid ijk+ lookup coordinates are from (0, 0, 0) to (2, 2, 2).
- */
-fn _faceIjkToBaseCell(const FaceIJK* h) -> i32 {
-    return faceIjkBaseCells[h.face][h.coord.i][h.coord.j][h.coord.k]
-        .baseCell;
-}
-
-/** @brief Find base cell given FaceIJK.
- *
- * Given the face number and a resolution 0 ijk+ coordinate in that face's
- * face-centered ijk coordinate system, return the number of 60' ccw rotations
- * to rotate into the coordinate system of the base cell at that coordinates.
- *
- * Valid ijk+ lookup coordinates are from (0, 0, 0) to (2, 2, 2).
- */
-int _faceIjkToBaseCellCCWrot60(const FaceIJK* h) {
-    return faceIjkBaseCells[h->face][h->coord.i][h->coord.j][h->coord.k]
-        .ccwRot60;
-}
-
-/** @brief Find the FaceIJK given a base cell.
- */
-void _baseCellToFaceIjk(int baseCell, FaceIJK* h) {
-    *h = baseCellData[baseCell].homeFijk;
-}
 
 /**
  * @brief Given a base cell and the face it appears on, return
@@ -855,52 +847,55 @@ void _baseCellToFaceIjk(int baseCell, FaceIJK* h) {
  * @returns The number of rotations, or INVALID_ROTATIONS if the base
  *          cell is not found on the given face
  */
-int _baseCellToCCWrot60(int baseCell, int face) {
-    if (face < 0 || face > NUM_ICOSA_FACES) return INVALID_ROTATIONS;
-    for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < 3; j++) {
-            for (int k = 0; k < 3; k++) {
+fn _baseCellToCCWrot60(baseCell:i32, face:i32) -> i32 {
+    if (face < 0 || face > NUM_ICOSA_FACES) {
+        return INVALID_ROTATIONS;
+    }
+
+    for i in 0..3 {
+        for j in 0..3 {
+            for k in 0..3 {
                 if (faceIjkBaseCells[face][i][j][k].baseCell == baseCell) {
                     return faceIjkBaseCells[face][i][j][k].ccwRot60;
                 }
             }
         }
     }
-    return INVALID_ROTATIONS;
+
+    INVALID_ROTATIONS
 }
 
-/** @brief Return whether or not the tested face is a cw offset face.
- */
-bool _baseCellIsCwOffset(int baseCell, int testFace) {
-    return baseCellData[baseCell].cwOffsetPent[0] == testFace ||
-           baseCellData[baseCell].cwOffsetPent[1] == testFace;
+/// Return whether or not the tested face is a cw offset face.
+fn _baseCellIsCwOffset(baseCell:i32, testFace:i32)->bool {
+    baseCellData[baseCell].cwOffsetPent[0] == testFace ||
+           baseCellData[baseCell].cwOffsetPent[1] == testFace
 }
 
-/** @brief Return the neighboring base cell in the given direction.
- */
-int _getBaseCellNeighbor(int baseCell, Direction dir) {
-    return baseCellNeighbors[baseCell][dir];
+/// Return the neighboring base cell in the given direction.
+fn _getBaseCellNeighbor(baseCell:i32, dir: Direction)->i32 {
+    baseCellNeighbors[baseCell][dir]
 }
 
-/** @brief Return the direction from the origin base cell to the neighbor.
- * Returns INVALID_DIGIT if the base cells are not neighbors.
- */
-Direction _getBaseCellDirection(int originBaseCell, int neighboringBaseCell) {
+/// Return the direction from the origin base cell to the neighbor.
+/// Returns INVALID_DIGIT if the base cells are not neighbors.
+fn _getBaseCellDirection(originBaseCell:i32, neighboringBaseCell:i32) -> Direction {
+    todo!()
+        /*
     for (Direction dir = CENTER_DIGIT; dir < NUM_DIGITS; dir++) {
         int testBaseCell = _getBaseCellNeighbor(originBaseCell, dir);
         if (testBaseCell == neighboringBaseCell) {
             return dir;
         }
     }
-    return INVALID_DIGIT;
+    */
+
+    //Direction::INVALID_DIGIT
 }
 
-/**
- * res0IndexCount returns the number of resolution 0 indexes
- *
- * @return int count of resolution 0 indexes
- */
-int H3_EXPORT(res0IndexCount)() { return NUM_BASE_CELLS; }
+/// res0IndexCount returns the number of resolution 0 indexes
+///
+///@return int count of resolution 0 indexes
+fn res0IndexCount() -> i32 { NUM_BASE_CELLS }
 
 /**
  * getRes0Indexes generates all base cells storing them into the provided
@@ -908,11 +903,17 @@ int H3_EXPORT(res0IndexCount)() { return NUM_BASE_CELLS; }
  *
  * @param out H3Index* the memory to store the resulting base cells in
  */
-void H3_EXPORT(getRes0Indexes)(H3Index* out) {
-    for (int bc = 0; bc < NUM_BASE_CELLS; bc++) {
+fn getRes0Indexes() -> [H3Index; NUM_BASE_CELLS] {
+    let mut out : [H3Index; NUM_BASE_CELLS];
+    for bc in 0..NUM_BASE_CELLS {
+        todo!()
+            /*
         H3Index baseCell = H3_INIT;
         H3_SET_MODE(baseCell, H3_HEXAGON_MODE);
         H3_SET_BASE_CELL(baseCell, bc);
         out[bc] = baseCell;
+        */
     }
+
+    out
 }

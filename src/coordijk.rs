@@ -1,16 +1,23 @@
 use std::{ops,cmp};
 
 #[derive(Copy, Clone)]
- /// IJK hexagon coordinates
+/// IJK hexagon coordinates
 ///Each axis is spaced 120 degrees apart.
 pub struct CoordIJK{
-    i:i32,  /// i component
-    j:i32,  /// j component
-    k:i32,  /// k component
+    /// i component
+    i:i32,
+    /// j component
+    j:i32, 
+    /// k component
+    k:i32, 
 } 
 
 
 impl CoordIJK {
+    pub const fn new(i:i32, j:i32, k:i32) -> Self {
+        Self{i,j,k}
+    }
+
     /// Sets an IJK coordinate to the specified component values.
     pub fn _setIJK(&mut self, i:i32, j:i32, k:i32) {
         self.i = i;
@@ -95,17 +102,19 @@ impl CoordIJK {
         let mut c = self.clone();
         c._ijkNormalize();
 
-        todo!()
+        todo!();
 
-            Direction digit = INVALID_DIGIT;
+        /*
+        let digit = Direction ::INVALID_DIGIT;
         for (Direction i = CENTER_DIGIT; i < NUM_DIGITS; i++) {
-            if (_ijkMatches(&c, &UNIT_VECS[i])) {
+            if (c._ijkMatches(&UNIT_VECS[i])) {
                 digit = i;
                 break;
             }
         }
 
-        return digit;
+        digit
+        */
     }
 
     /// Find the normalized ijk coordinates of the indexing parent of a cell in a counter-clockwise aperture 7 grid. Works in place.
@@ -116,15 +125,17 @@ impl CoordIJK {
 
         // TODO: confirm that Rust's rounding matches CPP's lroundl
         todo!()
+            /*
             self.i = (int)lroundl((3 * i - j) / 7.0);
         self.j = (int)lroundl((i + 2 * j) / 7.0);
         self.k = 0;
         self._ijkNormalize();
+        */
     }
 
 
     /// Find the center point in 2D cartesian coordinates of a hex.
-    pub fn _ijkToHex2d(const CoordIJK* h, Vec2d* v) -> Vec2d {
+    pub fn _ijkToHex2d(&self) -> Vec2d {
         let i = self.i - self.k;
         let j = self.j - self.k;
 
@@ -138,7 +149,7 @@ impl CoordIJK {
 
 
     /// Find the normalized ijk coordinates of the hex in the specified digit direction from the specified ijk coordinates. Works in place.
-    pub fn _neighbor(&mut self, Direction digit) {
+    pub fn _neighbor(&mut self, digit:Direction ) {
         //if (digit > CENTER_DIGIT && digit < NUM_DIGITS) {
         //_ijkAdd(ijk, &UNIT_VECS[digit], ijk);
         let ijk = self + digit.unit_vecs();
@@ -181,7 +192,7 @@ impl CoordIJK {
     }
 
     /// Find the normalized ijk coordinates of the hex centered on the indicated hex at the next finer aperture 3 clockwise resolution. Works in place.
-    pub fn _downAp3r(CoordIJK* ijk) {
+    pub fn _downAp3r(&mut self) {
         // res r unit vectors in res r+1
         let iVec = CoordIJK {i:2, j:1, k:0} * self.i;
         let jVec = CoordIJK {i:0, j:2, k:1} * self.j;
@@ -199,10 +210,12 @@ impl CoordIJK {
         let j = self.j - self.k;
 
         todo!()
+            /*
         self.i = (int)lroundl((2 * i + j) / 7.0);
         self.j = (int)lroundl((3 * j - i) / 7.0);
         self.k = 0;
         self._ijkNormalize();
+        */
     }
 
 

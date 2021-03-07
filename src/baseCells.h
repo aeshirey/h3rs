@@ -24,17 +24,6 @@
 #include "coordijk.h"
 #include "faceijk.h"
 
-/** @struct BaseCellData
- * @brief information on a single base cell
- */
-typedef struct {
-    FaceIJK
-        homeFijk;  ///< "home" face and normalized ijk coordinates on that face
-    int isPentagon;       ///< is this base cell a pentagon?
-    int cwOffsetPent[2];  ///< if a pentagon, what are its two clockwise offset
-                          /// faces?
-} BaseCellData;
-
 #define INVALID_BASE_CELL 127
 extern const int baseCellNeighbors[NUM_BASE_CELLS][7];
 extern const int baseCellNeighbor60CCWRots[NUM_BASE_CELLS][7];
