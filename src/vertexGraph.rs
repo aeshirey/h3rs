@@ -8,7 +8,32 @@ struct VertexNode {
 /// A data structure to store a graph of vertices
 struct VertexGraph {
     //VertexNode** buckets;
+    buckets: Option<Vec<VertexNode>>,
     numBuckets: i32,
     size: i32,
     res: i32,
+}
+
+
+impl VertexGraph {
+    /**
+     * Initialize a new VertexGraph
+     * @param graph       Graph to initialize
+     * @param  numBuckets Number of buckets to include in the graph
+     * @param  res        Resolution of the hexagons whose vertices we're storing
+     */
+    fn initVertexGraph(numBuckets: i32, res: i32) -> Self {
+        let buckets = if (numBuckets > 0) {
+            Vec::with_capacity(numBuckets)
+        } else {
+            None
+        };
+
+        Self {
+            numBuckets,
+            res,
+            size: 0,
+            buckets
+        }
+    }
 }

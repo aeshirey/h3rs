@@ -28,23 +28,6 @@
 #include "alloc.h"
 #include "geoCoord.h"
 
-/**
- * Initialize a new VertexGraph
- * @param graph       Graph to initialize
- * @param  numBuckets Number of buckets to include in the graph
- * @param  res        Resolution of the hexagons whose vertices we're storing
- */
-void initVertexGraph(VertexGraph* graph, int numBuckets, int res) {
-    if (numBuckets > 0) {
-        graph->buckets = H3_MEMORY(calloc)(numBuckets, sizeof(VertexNode*));
-        assert(graph->buckets != NULL);
-    } else {
-        graph->buckets = NULL;
-    }
-    graph->numBuckets = numBuckets;
-    graph->size = 0;
-    graph->res = res;
-}
 
 /**
  * Destroy a VertexGraph's sub-objects, freeing their memory. The caller is

@@ -27,18 +27,6 @@
 #include "h3api.h"
 #include "linkedGeo.h"
 
-// Macros for use with polygonAlgos.h
-/** Macro: Init iteration vars for Geofence */
-#define INIT_ITERATION_GEOFENCE int loopIndex = -1
-
-/** Macro: Increment Geofence loop iteration, or break if done. */
-#define ITERATE_GEOFENCE(geofence, vertexA, vertexB) \
-    if (++loopIndex >= geofence->numVerts) break;    \
-    vertexA = geofence->verts[loopIndex];            \
-    vertexB = geofence->verts[(loopIndex + 1) % geofence->numVerts]
-
-/** Macro: Whether a Geofence is empty */
-#define IS_EMPTY_GEOFENCE(geofence) geofence->numVerts == 0
 
 // Defined directly in polygon.c:
 void bboxesFromGeoPolygon(const GeoPolygon* polygon, BBox* bboxes);

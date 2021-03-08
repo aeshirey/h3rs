@@ -93,14 +93,6 @@ typedef struct {
     GeoCoord *verts;
 } Geofence;
 
-/** @struct GeoPolygon
- *  @brief Simplified core of GeoJSON Polygon coordinates definition
- */
-typedef struct {
-    Geofence geofence;  ///< exterior boundary of the polygon
-    int numHoles;       ///< number of elements in the array pointed to by holes
-    Geofence *holes;    ///< interior boundaries (holes) in the polygon
-} GeoPolygon;
 
 /** @struct GeoMultiPolygon
  *  @brief Simplified core of GeoJSON MultiPolygon coordinates definition

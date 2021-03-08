@@ -77,20 +77,13 @@ static const Direction NEXT_RING_DIRECTION = I_AXES_DIGIT;
  * Current digit -> direction -> new digit.
  */
 static const Direction NEW_DIGIT_II[7][7] = {
-    {CENTER_DIGIT, K_AXES_DIGIT, J_AXES_DIGIT, JK_AXES_DIGIT, I_AXES_DIGIT,
-     IK_AXES_DIGIT, IJ_AXES_DIGIT},
-    {K_AXES_DIGIT, I_AXES_DIGIT, JK_AXES_DIGIT, IJ_AXES_DIGIT, IK_AXES_DIGIT,
-     J_AXES_DIGIT, CENTER_DIGIT},
-    {J_AXES_DIGIT, JK_AXES_DIGIT, K_AXES_DIGIT, I_AXES_DIGIT, IJ_AXES_DIGIT,
-     CENTER_DIGIT, IK_AXES_DIGIT},
-    {JK_AXES_DIGIT, IJ_AXES_DIGIT, I_AXES_DIGIT, IK_AXES_DIGIT, CENTER_DIGIT,
-     K_AXES_DIGIT, J_AXES_DIGIT},
-    {I_AXES_DIGIT, IK_AXES_DIGIT, IJ_AXES_DIGIT, CENTER_DIGIT, J_AXES_DIGIT,
-     JK_AXES_DIGIT, K_AXES_DIGIT},
-    {IK_AXES_DIGIT, J_AXES_DIGIT, CENTER_DIGIT, K_AXES_DIGIT, JK_AXES_DIGIT,
-     IJ_AXES_DIGIT, I_AXES_DIGIT},
-    {IJ_AXES_DIGIT, CENTER_DIGIT, IK_AXES_DIGIT, J_AXES_DIGIT, K_AXES_DIGIT,
-     I_AXES_DIGIT, JK_AXES_DIGIT}};
+    {CENTER_DIGIT, K_AXES_DIGIT, J_AXES_DIGIT, JK_AXES_DIGIT, I_AXES_DIGIT, IK_AXES_DIGIT, IJ_AXES_DIGIT},
+    {K_AXES_DIGIT, I_AXES_DIGIT, JK_AXES_DIGIT, IJ_AXES_DIGIT, IK_AXES_DIGIT, J_AXES_DIGIT, CENTER_DIGIT},
+    {J_AXES_DIGIT, JK_AXES_DIGIT, K_AXES_DIGIT, I_AXES_DIGIT, IJ_AXES_DIGIT, CENTER_DIGIT, IK_AXES_DIGIT},
+    {JK_AXES_DIGIT, IJ_AXES_DIGIT, I_AXES_DIGIT, IK_AXES_DIGIT, CENTER_DIGIT, K_AXES_DIGIT, J_AXES_DIGIT},
+    {I_AXES_DIGIT, IK_AXES_DIGIT, IJ_AXES_DIGIT, CENTER_DIGIT, J_AXES_DIGIT, JK_AXES_DIGIT, K_AXES_DIGIT},
+    {IK_AXES_DIGIT, J_AXES_DIGIT, CENTER_DIGIT, K_AXES_DIGIT, JK_AXES_DIGIT, IJ_AXES_DIGIT, I_AXES_DIGIT},
+    {IJ_AXES_DIGIT, CENTER_DIGIT, IK_AXES_DIGIT, J_AXES_DIGIT, K_AXES_DIGIT, I_AXES_DIGIT, JK_AXES_DIGIT}};
 
 /**
  * New traversal direction when traversing along class II grids.
@@ -98,20 +91,13 @@ static const Direction NEW_DIGIT_II[7][7] = {
  * Current digit -> direction -> new ap7 move (at coarser level).
  */
 static const Direction NEW_ADJUSTMENT_II[7][7] = {
-    {CENTER_DIGIT, CENTER_DIGIT, CENTER_DIGIT, CENTER_DIGIT, CENTER_DIGIT,
-     CENTER_DIGIT, CENTER_DIGIT},
-    {CENTER_DIGIT, K_AXES_DIGIT, CENTER_DIGIT, K_AXES_DIGIT, CENTER_DIGIT,
-     IK_AXES_DIGIT, CENTER_DIGIT},
-    {CENTER_DIGIT, CENTER_DIGIT, J_AXES_DIGIT, JK_AXES_DIGIT, CENTER_DIGIT,
-     CENTER_DIGIT, J_AXES_DIGIT},
-    {CENTER_DIGIT, K_AXES_DIGIT, JK_AXES_DIGIT, JK_AXES_DIGIT, CENTER_DIGIT,
-     CENTER_DIGIT, CENTER_DIGIT},
-    {CENTER_DIGIT, CENTER_DIGIT, CENTER_DIGIT, CENTER_DIGIT, I_AXES_DIGIT,
-     I_AXES_DIGIT, IJ_AXES_DIGIT},
-    {CENTER_DIGIT, IK_AXES_DIGIT, CENTER_DIGIT, CENTER_DIGIT, I_AXES_DIGIT,
-     IK_AXES_DIGIT, CENTER_DIGIT},
-    {CENTER_DIGIT, CENTER_DIGIT, J_AXES_DIGIT, CENTER_DIGIT, IJ_AXES_DIGIT,
-     CENTER_DIGIT, IJ_AXES_DIGIT}};
+    {CENTER_DIGIT, CENTER_DIGIT, CENTER_DIGIT, CENTER_DIGIT, CENTER_DIGIT, CENTER_DIGIT, CENTER_DIGIT},
+    {CENTER_DIGIT, K_AXES_DIGIT, CENTER_DIGIT, K_AXES_DIGIT, CENTER_DIGIT, IK_AXES_DIGIT, CENTER_DIGIT},
+    {CENTER_DIGIT, CENTER_DIGIT, J_AXES_DIGIT, JK_AXES_DIGIT, CENTER_DIGIT, CENTER_DIGIT, J_AXES_DIGIT},
+    {CENTER_DIGIT, K_AXES_DIGIT, JK_AXES_DIGIT, JK_AXES_DIGIT, CENTER_DIGIT, CENTER_DIGIT, CENTER_DIGIT},
+    {CENTER_DIGIT, CENTER_DIGIT, CENTER_DIGIT, CENTER_DIGIT, I_AXES_DIGIT, I_AXES_DIGIT, IJ_AXES_DIGIT},
+    {CENTER_DIGIT, IK_AXES_DIGIT, CENTER_DIGIT, CENTER_DIGIT, I_AXES_DIGIT, IK_AXES_DIGIT, CENTER_DIGIT},
+    {CENTER_DIGIT, CENTER_DIGIT, J_AXES_DIGIT, CENTER_DIGIT, IJ_AXES_DIGIT, CENTER_DIGIT, IJ_AXES_DIGIT}};
 
 /**
  * New traversal direction when traversing along class III grids.
@@ -119,20 +105,13 @@ static const Direction NEW_ADJUSTMENT_II[7][7] = {
  * Current digit -> direction -> new ap7 move (at coarser level).
  */
 static const Direction NEW_DIGIT_III[7][7] = {
-    {CENTER_DIGIT, K_AXES_DIGIT, J_AXES_DIGIT, JK_AXES_DIGIT, I_AXES_DIGIT,
-     IK_AXES_DIGIT, IJ_AXES_DIGIT},
-    {K_AXES_DIGIT, J_AXES_DIGIT, JK_AXES_DIGIT, I_AXES_DIGIT, IK_AXES_DIGIT,
-     IJ_AXES_DIGIT, CENTER_DIGIT},
-    {J_AXES_DIGIT, JK_AXES_DIGIT, I_AXES_DIGIT, IK_AXES_DIGIT, IJ_AXES_DIGIT,
-     CENTER_DIGIT, K_AXES_DIGIT},
-    {JK_AXES_DIGIT, I_AXES_DIGIT, IK_AXES_DIGIT, IJ_AXES_DIGIT, CENTER_DIGIT,
-     K_AXES_DIGIT, J_AXES_DIGIT},
-    {I_AXES_DIGIT, IK_AXES_DIGIT, IJ_AXES_DIGIT, CENTER_DIGIT, K_AXES_DIGIT,
-     J_AXES_DIGIT, JK_AXES_DIGIT},
-    {IK_AXES_DIGIT, IJ_AXES_DIGIT, CENTER_DIGIT, K_AXES_DIGIT, J_AXES_DIGIT,
-     JK_AXES_DIGIT, I_AXES_DIGIT},
-    {IJ_AXES_DIGIT, CENTER_DIGIT, K_AXES_DIGIT, J_AXES_DIGIT, JK_AXES_DIGIT,
-     I_AXES_DIGIT, IK_AXES_DIGIT}};
+    {CENTER_DIGIT, K_AXES_DIGIT, J_AXES_DIGIT, JK_AXES_DIGIT, I_AXES_DIGIT, IK_AXES_DIGIT, IJ_AXES_DIGIT},
+    {K_AXES_DIGIT, J_AXES_DIGIT, JK_AXES_DIGIT, I_AXES_DIGIT, IK_AXES_DIGIT, IJ_AXES_DIGIT, CENTER_DIGIT},
+    {J_AXES_DIGIT, JK_AXES_DIGIT, I_AXES_DIGIT, IK_AXES_DIGIT, IJ_AXES_DIGIT, CENTER_DIGIT, K_AXES_DIGIT},
+    {JK_AXES_DIGIT, I_AXES_DIGIT, IK_AXES_DIGIT, IJ_AXES_DIGIT, CENTER_DIGIT, K_AXES_DIGIT, J_AXES_DIGIT},
+    {I_AXES_DIGIT, IK_AXES_DIGIT, IJ_AXES_DIGIT, CENTER_DIGIT, K_AXES_DIGIT, J_AXES_DIGIT, JK_AXES_DIGIT},
+    {IK_AXES_DIGIT, IJ_AXES_DIGIT, CENTER_DIGIT, K_AXES_DIGIT, J_AXES_DIGIT, JK_AXES_DIGIT, I_AXES_DIGIT},
+    {IJ_AXES_DIGIT, CENTER_DIGIT, K_AXES_DIGIT, J_AXES_DIGIT, JK_AXES_DIGIT, I_AXES_DIGIT, IK_AXES_DIGIT}};
 
 /**
  * New traversal direction when traversing along class III grids.
@@ -140,20 +119,13 @@ static const Direction NEW_DIGIT_III[7][7] = {
  * Current digit -> direction -> new ap7 move (at coarser level).
  */
 static const Direction NEW_ADJUSTMENT_III[7][7] = {
-    {CENTER_DIGIT, CENTER_DIGIT, CENTER_DIGIT, CENTER_DIGIT, CENTER_DIGIT,
-     CENTER_DIGIT, CENTER_DIGIT},
-    {CENTER_DIGIT, K_AXES_DIGIT, CENTER_DIGIT, JK_AXES_DIGIT, CENTER_DIGIT,
-     K_AXES_DIGIT, CENTER_DIGIT},
-    {CENTER_DIGIT, CENTER_DIGIT, J_AXES_DIGIT, J_AXES_DIGIT, CENTER_DIGIT,
-     CENTER_DIGIT, IJ_AXES_DIGIT},
-    {CENTER_DIGIT, JK_AXES_DIGIT, J_AXES_DIGIT, JK_AXES_DIGIT, CENTER_DIGIT,
-     CENTER_DIGIT, CENTER_DIGIT},
-    {CENTER_DIGIT, CENTER_DIGIT, CENTER_DIGIT, CENTER_DIGIT, I_AXES_DIGIT,
-     IK_AXES_DIGIT, I_AXES_DIGIT},
-    {CENTER_DIGIT, K_AXES_DIGIT, CENTER_DIGIT, CENTER_DIGIT, IK_AXES_DIGIT,
-     IK_AXES_DIGIT, CENTER_DIGIT},
-    {CENTER_DIGIT, CENTER_DIGIT, IJ_AXES_DIGIT, CENTER_DIGIT, I_AXES_DIGIT,
-     CENTER_DIGIT, IJ_AXES_DIGIT}};
+    {CENTER_DIGIT, CENTER_DIGIT, CENTER_DIGIT, CENTER_DIGIT, CENTER_DIGIT, CENTER_DIGIT, CENTER_DIGIT},
+    {CENTER_DIGIT, K_AXES_DIGIT, CENTER_DIGIT, JK_AXES_DIGIT, CENTER_DIGIT, K_AXES_DIGIT, CENTER_DIGIT},
+    {CENTER_DIGIT, CENTER_DIGIT, J_AXES_DIGIT, J_AXES_DIGIT, CENTER_DIGIT, CENTER_DIGIT, IJ_AXES_DIGIT},
+    {CENTER_DIGIT, JK_AXES_DIGIT, J_AXES_DIGIT, JK_AXES_DIGIT, CENTER_DIGIT, CENTER_DIGIT, CENTER_DIGIT},
+    {CENTER_DIGIT, CENTER_DIGIT, CENTER_DIGIT, CENTER_DIGIT, I_AXES_DIGIT, IK_AXES_DIGIT, I_AXES_DIGIT},
+    {CENTER_DIGIT, K_AXES_DIGIT, CENTER_DIGIT, CENTER_DIGIT, IK_AXES_DIGIT, IK_AXES_DIGIT, CENTER_DIGIT},
+    {CENTER_DIGIT, CENTER_DIGIT, IJ_AXES_DIGIT, CENTER_DIGIT, I_AXES_DIGIT, CENTER_DIGIT, IJ_AXES_DIGIT}};
 
 /**
  * Maximum number of cells that result from the kRing algorithm with the given
@@ -196,8 +168,7 @@ void H3_EXPORT(kRing)(H3Index origin, int k, H3Index* out) {
  * @param  distances   NULL or a zero-filled array which must be of size
  *                     maxKringSize(k)
  */
-void H3_EXPORT(kRingDistances)(H3Index origin, int k, H3Index* out,
-                               int* distances) {
+void H3_EXPORT(kRingDistances)(H3Index origin, int k, H3Index* out, int* distances) {
     // Optimistically try the faster hexRange algorithm first
     const bool failed = H3_EXPORT(hexRangeDistances)(origin, k, out, distances);
     if (failed) {
@@ -237,8 +208,7 @@ void H3_EXPORT(kRingDistances)(H3Index origin, int k, H3Index* out,
  * @param  maxIdx      Size of out and scratch arrays (must be maxKringSize(k))
  * @param  curK        Current distance from the origin
  */
-void _kRingInternal(H3Index origin, int k, H3Index* out, int* distances,
-                    int maxIdx, int curK) {
+void _kRingInternal(H3Index origin, int k, H3Index* out, int* distances, int maxIdx, int curK) {
     if (origin == 0) return;
 
     // Put origin in the output array. out is used as a hash set.
@@ -973,8 +943,7 @@ int _polyfillInternal(const GeoPolygon* geoPolygon, int res, H3Index* out) {
  * @param numHexes Number of hexagons in the set
  * @param graph    Output graph
  */
-void h3SetToVertexGraph(const H3Index* h3Set, const int numHexes,
-                        VertexGraph* graph) {
+void h3SetToVertexGraph(const H3Index* h3Set, const int numHexes, VertexGraph* graph) {
     GeoBoundary vertices;
     GeoCoord* fromVtx;
     GeoCoord* toVtx;
@@ -1056,8 +1025,7 @@ void _vertexGraphToLinkedGeo(VertexGraph* graph, LinkedGeoPolygon* out) {
  * @param numHexes Number of hexagons in set
  * @param out      Output polygon
  */
-void H3_EXPORT(h3SetToLinkedGeo)(const H3Index* h3Set, const int numHexes,
-                                 LinkedGeoPolygon* out) {
+void H3_EXPORT(h3SetToLinkedGeo)(const H3Index* h3Set, const int numHexes, LinkedGeoPolygon* out) {
     VertexGraph graph;
     h3SetToVertexGraph(h3Set, numHexes, &graph);
     _vertexGraphToLinkedGeo(&graph, out);
