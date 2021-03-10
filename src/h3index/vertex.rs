@@ -6,7 +6,7 @@ impl H3Index {
      * @return        Whether the input is valid
      */
     fn isValidVertex(&self) -> bool {
-        if (self.H3_GET_MODE() != H3_VERTEX_MODE) {
+        if self.H3_GET_MODE() != H3_VERTEX_MODE {
             return false;
         }
 
@@ -15,7 +15,7 @@ impl H3Index {
         owner.H3_SET_MODE(H3_HEXAGON_MODE);
         owner.H3_SET_RESERVED_BITS(0);
 
-        if (!owner.h3IsValid()) {
+        if !owner.h3IsValid() {
             return false;
         }
 

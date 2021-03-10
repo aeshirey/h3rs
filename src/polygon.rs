@@ -67,7 +67,7 @@ impl GeoFence {
         // If the point is contained in the primary geofence, but there are holes in
         // the geofence iterate through all holes and return false if the point is
         // contained in any hole
-        if (contains && geoPolygon->numHoles > 0) {
+        if contains && geoPolygon->numHoles > 0 {
             for i in 0..geoPolygon.numholes {
                 todo!()
                     /*

@@ -1,3 +1,7 @@
+use crate::constants::*;
+use crate::faceijk::*;
+use crate::geocoord::*;
+
 #[derive(PartialEq, Default)]
 pub struct Vec2d {
     /// x component,
@@ -49,35 +53,30 @@ impl Vec2d {
 
     /// Determine the containing hex in ijk+ coordinates for a 2D cartesian coordinate vector (from DGGRID).
     pub fn _hex2dToCoordIJK(&self) -> CoordIJK {
-        //double a1, a2;
-        //double x1, x2;
-        //int m1, m2;
-        //double r1, r2;
-
         // quantize into the ij system and then normalize
         let k = 0;
 
-        let a1 = self.x.abs();
-        let a2 = self.y.abs();
+        let a1: f64 = self.x.abs();
+        let a2: f64 = self.y.abs();
 
         // first do a reverse conversion
-        let x2 = a2 / M_SIN60;
-        let x1 = a1 + x2 / 2.0;
+        let x2: f64 = a2 / M_SIN60;
+        let x1: f64 = a1 + x2 / 2.0;
 
         // check if we have the center of a hex
-        let m1 = x1;
-        let m2 = x2;
+        let m1 = x1 as i32;
+        let m2 = x2 as i32;
 
         // otherwise round correctly
-        let r1 = x1 - m1;
-        let r2 = x2 - m2;
+        let r1: f64 = x1 - m1 as f64;
+        let r2: f64 = x2 - m2 as f64;
 
-        let mut i;
-        let mut j;
+        let mut i: i32;
+        let mut j: i32;
 
-        if (r1 < 0.5) {
-            if (r1 < 1.0 / 3.0) {
-                if (r2 < (1.0 + r1) / 2.0) {
+        if r1 < 0.5 {
+            if r1 < 1.0 / 3.0 {
+                if r2 < (1.0 + r1) / 2.0 {
                     i = m1;
                     j = m2;
                 } else {
@@ -85,33 +84,33 @@ impl Vec2d {
                     j = m2 + 1;
                 }
             } else {
-                if (r2 < (1.0 - r1)) {
+                if r2 < (1.0 - r1) {
                     j = m2;
                 } else {
                     j = m2 + 1;
                 }
 
-                if ((1.0 - r1) <= r2 && r2 < (2.0 * r1)) {
+                if 1.0 - r1 <= r2 && r2 < (2.0 * r1) {
                     i = m1 + 1;
                 } else {
                     i = m1;
                 }
             }
         } else {
-            if (r1 < 2.0 / 3.0) {
-                if (r2 < (1.0 - r1)) {
+            if r1 < 2.0 / 3.0 {
+                if r2 < (1.0 - r1) {
                     j = m2;
                 } else {
                     j = m2 + 1;
                 }
 
-                if ((2.0 * r1 - 1.0) < r2 && r2 < (1.0 - r1)) {
+                if 2.0 * r1 - 1.0 < r2 && r2 < (1.0 - r1) {
                     i = m1;
                 } else {
                     i = m1 + 1;
                 }
             } else {
-                if (r2 < (r1 / 2.0)) {
+                if r2 < (r1 / 2.0) {
                     i = m1 + 1;
                     j = m2;
                 } else {
@@ -123,21 +122,20 @@ impl Vec2d {
 
         // now fold across the axes if necessary
 
-        if (self.x < 0.0) {
-            if ((j % 2) == 0)
-            // even
-            {
+        if self.x < 0.0 {
+            if j % 2 == 0 {
+                // even
                 let axisi = j / 2;
                 let diff = i - axisi;
-                i = i - 2.0 * diff;
+                i = i - (2.0 * diff) as i32;
             } else {
                 let axisi = (j + 1) / 2;
                 let diff = i - axisi;
-                i = i - (2.0 * diff + 1);
+                i = i - (2 * diff + 1);
             }
         }
 
-        if (self.y < 0.0) {
+        if self.y < 0.0 {
             i = i - (2 * j + 1) / 2;
             j = -1 * j;
         }
@@ -161,7 +159,7 @@ impl Vec2d {
         // calculate (r, theta) in hex2d
         let mut r: f64 = self._v2dMag();
 
-        if (r < EPSILON) {
+        if r < EPSILON {
             return faceCenterGeo[face];
         }
 
@@ -173,9 +171,9 @@ impl Vec2d {
         }
 
         // scale accordingly if this is a substrate grid
-        if (substrate) {
+        if substrate {
             r /= 3.0;
-            if (isResClassIII(res)) {
+            if H3Index::isResClassIII(res) {
                 r /= M_SQRT7;
             }
         }
@@ -187,7 +185,7 @@ impl Vec2d {
 
         // adjust theta for Class III
         // if a substrate grid, then it's already been adjusted for Class III
-        if (!substrate && isResClassIII(res)) {
+        if !substrate && H3Index::isResClassIII(res) {
             theta = _posAngleRads(theta + M_AP7_ROT_RADS);
         }
 
@@ -195,6 +193,6 @@ impl Vec2d {
         theta = _posAngleRads(faceAxesAzRadsCII[face][0] - theta);
 
         // now find the point at (r,theta) from the face center
-        GeoCoord::_geoAzDistanceRads(&faceCenterGeo[face], theta, r, g);
+        GeoCoord::_geoAzDistanceRads(&faceCenterGeo[face], theta, r)
     }
 }

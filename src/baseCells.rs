@@ -1458,133 +1458,133 @@ const faceIjkBaseCells: [[[[BaseCellRotation; 3]; 3]; 3]; NUM_ICOSA_FACES] = [
  * indicates that no cw offset rotation faces exist for this base cell).
  */
 const baseCellData: [BaseCellData; NUM_BASE_CELLS] = [
-    BaseCellData::new(1, [1, 0, 0], 0, [0, 0]), // base cell 0
-    BaseCellData::new(2, [1, 1, 0], 0, [0, 0]), // base cell 1
-    BaseCellData::new(1, [0, 0, 0], 0, [0, 0]), // base cell 2
-    BaseCellData::new(2, [1, 0, 0], 0, [0, 0]), // base cell 3
-    BaseCellData::new(0, [2, 0, 0], 1, [-1, -1]), // base cell 4
-    BaseCellData::new(1, [1, 1, 0], 0, [0, 0]), // base cell 5
-    BaseCellData::new(1, [0, 0, 1], 0, [0, 0]), // base cell 6
-    BaseCellData::new(2, [0, 0, 0], 0, [0, 0]), // base cell 7
-    BaseCellData::new(0, [1, 0, 0], 0, [0, 0]), // base cell 8
-    BaseCellData::new(2, [0, 1, 0], 0, [0, 0]), // base cell 9
-    BaseCellData::new(1, [0, 1, 0], 0, [0, 0]), // base cell 10
-    BaseCellData::new(1, [0, 1, 1], 0, [0, 0]), // base cell 11
-    BaseCellData::new(3, [1, 0, 0], 0, [0, 0]), // base cell 12
-    BaseCellData::new(3, [1, 1, 0], 0, [0, 0]), // base cell 13
-    BaseCellData::new(11, [2, 0, 0], 1, [2, 6]), // base cell 14
-    BaseCellData::new(4, [1, 0, 0], 0, [0, 0]), // base cell 15
-    BaseCellData::new(0, [0, 0, 0], 0, [0, 0]), // base cell 16
-    BaseCellData::new(6, [0, 1, 0], 0, [0, 0]), // base cell 17
-    BaseCellData::new(0, [0, 0, 1], 0, [0, 0]), // base cell 18
-    BaseCellData::new(2, [0, 1, 1], 0, [0, 0]), // base cell 19
-    BaseCellData::new(7, [0, 0, 1], 0, [0, 0]), // base cell 20
-    BaseCellData::new(2, [0, 0, 1], 0, [0, 0]), // base cell 21
-    BaseCellData::new(0, [1, 1, 0], 0, [0, 0]), // base cell 22
-    BaseCellData::new(6, [0, 0, 1], 0, [0, 0]), // base cell 23
-    BaseCellData::new(10, [2, 0, 0], 1, [1, 5]), // base cell 24
-    BaseCellData::new(6, [0, 0, 0], 0, [0, 0]), // base cell 25
-    BaseCellData::new(3, [0, 0, 0], 0, [0, 0]), // base cell 26
-    BaseCellData::new(11, [1, 0, 0], 0, [0, 0]), // base cell 27
-    BaseCellData::new(4, [1, 1, 0], 0, [0, 0]), // base cell 28
-    BaseCellData::new(3, [0, 1, 0], 0, [0, 0]), // base cell 29
-    BaseCellData::new(0, [0, 1, 1], 0, [0, 0]), // base cell 30
-    BaseCellData::new(4, [0, 0, 0], 0, [0, 0]), // base cell 31
-    BaseCellData::new(5, [0, 1, 0], 0, [0, 0]), // base cell 32
-    BaseCellData::new(0, [0, 1, 0], 0, [0, 0]), // base cell 33
-    BaseCellData::new(7, [0, 1, 0], 0, [0, 0]), // base cell 34
-    BaseCellData::new(11, [1, 1, 0], 0, [0, 0]), // base cell 35
-    BaseCellData::new(7, [0, 0, 0], 0, [0, 0]), // base cell 36
-    BaseCellData::new(10, [1, 0, 0], 0, [0, 0]), // base cell 37
-    BaseCellData::new(12, [2, 0, 0], 1, [3, 7]), // base cell 38
-    BaseCellData::new(6, [1, 0, 1], 0, [0, 0]), // base cell 39
-    BaseCellData::new(7, [1, 0, 1], 0, [0, 0]), // base cell 40
-    BaseCellData::new(4, [0, 0, 1], 0, [0, 0]), // base cell 41
-    BaseCellData::new(3, [0, 0, 1], 0, [0, 0]), // base cell 42
-    BaseCellData::new(3, [0, 1, 1], 0, [0, 0]), // base cell 43
-    BaseCellData::new(4, [0, 1, 0], 0, [0, 0]), // base cell 44
-    BaseCellData::new(6, [1, 0, 0], 0, [0, 0]), // base cell 45
-    BaseCellData::new(11, [0, 0, 0], 0, [0, 0]), // base cell 46
-    BaseCellData::new(8, [0, 0, 1], 0, [0, 0]), // base cell 47
-    BaseCellData::new(5, [0, 0, 1], 0, [0, 0]), // base cell 48
-    BaseCellData::new(14, [2, 0, 0], 1, [0, 9]), // base cell 49
-    BaseCellData::new(5, [0, 0, 0], 0, [0, 0]), // base cell 50
-    BaseCellData::new(12, [1, 0, 0], 0, [0, 0]), // base cell 51
-    BaseCellData::new(10, [1, 1, 0], 0, [0, 0]), // base cell 52
-    BaseCellData::new(4, [0, 1, 1], 0, [0, 0]), // base cell 53
-    BaseCellData::new(12, [1, 1, 0], 0, [0, 0]), // base cell 54
-    BaseCellData::new(7, [1, 0, 0], 0, [0, 0]), // base cell 55
-    BaseCellData::new(11, [0, 1, 0], 0, [0, 0]), // base cell 56
-    BaseCellData::new(10, [0, 0, 0], 0, [0, 0]), // base cell 57
-    BaseCellData::new(13, [2, 0, 0], 1, [4, 8]), // base cell 58
-    BaseCellData::new(10, [0, 0, 1], 0, [0, 0]), // base cell 59
-    BaseCellData::new(11, [0, 0, 1], 0, [0, 0]), // base cell 60
-    BaseCellData::new(9, [0, 1, 0], 0, [0, 0]), // base cell 61
-    BaseCellData::new(8, [0, 1, 0], 0, [0, 0]), // base cell 62
-    BaseCellData::new(6, [2, 0, 0], 1, [11, 15]), // base cell 63
-    BaseCellData::new(8, [0, 0, 0], 0, [0, 0]), // base cell 64
-    BaseCellData::new(9, [0, 0, 1], 0, [0, 0]), // base cell 65
-    BaseCellData::new(14, [1, 0, 0], 0, [0, 0]), // base cell 66
-    BaseCellData::new(5, [1, 0, 1], 0, [0, 0]), // base cell 67
-    BaseCellData::new(16, [0, 1, 1], 0, [0, 0]), // base cell 68
-    BaseCellData::new(8, [1, 0, 1], 0, [0, 0]), // base cell 69
-    BaseCellData::new(5, [1, 0, 0], 0, [0, 0]), // base cell 70
-    BaseCellData::new(12, [0, 0, 0], 0, [0, 0]), // base cell 71
-    BaseCellData::new(7, [2, 0, 0], 1, [12, 16]), // base cell 72
-    BaseCellData::new(12, [0, 1, 0], 0, [0, 0]), // base cell 73
-    BaseCellData::new(10, [0, 1, 0], 0, [0, 0]), // base cell 74
-    BaseCellData::new(9, [0, 0, 0], 0, [0, 0]), // base cell 75
-    BaseCellData::new(13, [1, 0, 0], 0, [0, 0]), // base cell 76
-    BaseCellData::new(16, [0, 0, 1], 0, [0, 0]), // base cell 77
-    BaseCellData::new(15, [0, 1, 1], 0, [0, 0]), // base cell 78
-    BaseCellData::new(15, [0, 1, 0], 0, [0, 0]), // base cell 79
-    BaseCellData::new(16, [0, 1, 0], 0, [0, 0]), // base cell 80
-    BaseCellData::new(14, [1, 1, 0], 0, [0, 0]), // base cell 81
-    BaseCellData::new(13, [1, 1, 0], 0, [0, 0]), // base cell 82
-    BaseCellData::new(5, [2, 0, 0], 1, [10, 19]), // base cell 83
-    BaseCellData::new(8, [1, 0, 0], 0, [0, 0]), // base cell 84
-    BaseCellData::new(14, [0, 0, 0], 0, [0, 0]), // base cell 85
-    BaseCellData::new(9, [1, 0, 1], 0, [0, 0]), // base cell 86
-    BaseCellData::new(14, [0, 0, 1], 0, [0, 0]), // base cell 87
-    BaseCellData::new(17, [0, 0, 1], 0, [0, 0]), // base cell 88
-    BaseCellData::new(12, [0, 0, 1], 0, [0, 0]), // base cell 89
-    BaseCellData::new(16, [0, 0, 0], 0, [0, 0]), // base cell 90
-    BaseCellData::new(17, [0, 1, 1], 0, [0, 0]), // base cell 91
-    BaseCellData::new(15, [0, 0, 1], 0, [0, 0]), // base cell 92
-    BaseCellData::new(16, [1, 0, 1], 0, [0, 0]), // base cell 93
-    BaseCellData::new(9, [1, 0, 0], 0, [0, 0]), // base cell 94
-    BaseCellData::new(15, [0, 0, 0], 0, [0, 0]), // base cell 95
-    BaseCellData::new(13, [0, 0, 0], 0, [0, 0]), // base cell 96
-    BaseCellData::new(8, [2, 0, 0], 1, [13, 17]), // base cell 97
-    BaseCellData::new(13, [0, 1, 0], 0, [0, 0]), // base cell 98
-    BaseCellData::new(17, [1, 0, 1], 0, [0, 0]), // base cell 99
-    BaseCellData::new(19, [0, 1, 0], 0, [0, 0]), // base cell 100
-    BaseCellData::new(14, [0, 1, 0], 0, [0, 0]), // base cell 101
-    BaseCellData::new(19, [0, 1, 1], 0, [0, 0]), // base cell 102
-    BaseCellData::new(17, [0, 1, 0], 0, [0, 0]), // base cell 103
-    BaseCellData::new(13, [0, 0, 1], 0, [0, 0]), // base cell 104
-    BaseCellData::new(17, [0, 0, 0], 0, [0, 0]), // base cell 105
-    BaseCellData::new(16, [1, 0, 0], 0, [0, 0]), // base cell 106
-    BaseCellData::new(9, [2, 0, 0], 1, [14, 18]), // base cell 107
-    BaseCellData::new(15, [1, 0, 1], 0, [0, 0]), // base cell 108
-    BaseCellData::new(15, [1, 0, 0], 0, [0, 0]), // base cell 109
-    BaseCellData::new(18, [0, 1, 1], 0, [0, 0]), // base cell 110
-    BaseCellData::new(18, [0, 0, 1], 0, [0, 0]), // base cell 111
-    BaseCellData::new(19, [0, 0, 1], 0, [0, 0]), // base cell 112
-    BaseCellData::new(17, [1, 0, 0], 0, [0, 0]), // base cell 113
-    BaseCellData::new(19, [0, 0, 0], 0, [0, 0]), // base cell 114
-    BaseCellData::new(18, [0, 1, 0], 0, [0, 0]), // base cell 115
-    BaseCellData::new(18, [1, 0, 1], 0, [0, 0]), // base cell 116
-    BaseCellData::new(19, [2, 0, 0], 1, [-1, -1]), // base cell 117
-    BaseCellData::new(19, [1, 0, 0], 0, [0, 0]), // base cell 118
-    BaseCellData::new(18, [0, 0, 0], 0, [0, 0]), // base cell 119
-    BaseCellData::new(19, [1, 0, 1], 0, [0, 0]), // base cell 120
-    BaseCellData::new(18, [1, 0, 0], 0, [0, 0]), // base cell 121
+    BaseCellData::new(1, [1, 0, 0], false, [0, 0]), // base cell 0
+    BaseCellData::new(2, [1, 1, 0], false, [0, 0]), // base cell 1
+    BaseCellData::new(1, [0, 0, 0], false, [0, 0]), // base cell 2
+    BaseCellData::new(2, [1, 0, 0], false, [0, 0]), // base cell 3
+    BaseCellData::new(0, [2, 0, 0], true, [-1, -1]), // base cell 4
+    BaseCellData::new(1, [1, 1, 0], false, [0, 0]), // base cell 5
+    BaseCellData::new(1, [0, 0, 1], false, [0, 0]), // base cell 6
+    BaseCellData::new(2, [0, 0, 0], false, [0, 0]), // base cell 7
+    BaseCellData::new(0, [1, 0, 0], false, [0, 0]), // base cell 8
+    BaseCellData::new(2, [0, 1, 0], false, [0, 0]), // base cell 9
+    BaseCellData::new(1, [0, 1, 0], false, [0, 0]), // base cell 10
+    BaseCellData::new(1, [0, 1, 1], false, [0, 0]), // base cell 11
+    BaseCellData::new(3, [1, 0, 0], false, [0, 0]), // base cell 12
+    BaseCellData::new(3, [1, 1, 0], false, [0, 0]), // base cell 13
+    BaseCellData::new(11, [2, 0, 0], true, [2, 6]), // base cell 14
+    BaseCellData::new(4, [1, 0, 0], false, [0, 0]), // base cell 15
+    BaseCellData::new(0, [0, 0, 0], false, [0, 0]), // base cell 16
+    BaseCellData::new(6, [0, 1, 0], false, [0, 0]), // base cell 17
+    BaseCellData::new(0, [0, 0, 1], false, [0, 0]), // base cell 18
+    BaseCellData::new(2, [0, 1, 1], false, [0, 0]), // base cell 19
+    BaseCellData::new(7, [0, 0, 1], false, [0, 0]), // base cell 20
+    BaseCellData::new(2, [0, 0, 1], false, [0, 0]), // base cell 21
+    BaseCellData::new(0, [1, 1, 0], false, [0, 0]), // base cell 22
+    BaseCellData::new(6, [0, 0, 1], false, [0, 0]), // base cell 23
+    BaseCellData::new(10, [2, 0, 0], true, [1, 5]), // base cell 24
+    BaseCellData::new(6, [0, 0, 0], false, [0, 0]), // base cell 25
+    BaseCellData::new(3, [0, 0, 0], false, [0, 0]), // base cell 26
+    BaseCellData::new(11, [1, 0, 0], false, [0, 0]), // base cell 27
+    BaseCellData::new(4, [1, 1, 0], false, [0, 0]), // base cell 28
+    BaseCellData::new(3, [0, 1, 0], false, [0, 0]), // base cell 29
+    BaseCellData::new(0, [0, 1, 1], false, [0, 0]), // base cell 30
+    BaseCellData::new(4, [0, 0, 0], false, [0, 0]), // base cell 31
+    BaseCellData::new(5, [0, 1, 0], false, [0, 0]), // base cell 32
+    BaseCellData::new(0, [0, 1, 0], false, [0, 0]), // base cell 33
+    BaseCellData::new(7, [0, 1, 0], false, [0, 0]), // base cell 34
+    BaseCellData::new(11, [1, 1, 0], false, [0, 0]), // base cell 35
+    BaseCellData::new(7, [0, 0, 0], false, [0, 0]), // base cell 36
+    BaseCellData::new(10, [1, 0, 0], false, [0, 0]), // base cell 37
+    BaseCellData::new(12, [2, 0, 0], true, [3, 7]), // base cell 38
+    BaseCellData::new(6, [1, 0, 1], false, [0, 0]), // base cell 39
+    BaseCellData::new(7, [1, 0, 1], false, [0, 0]), // base cell 40
+    BaseCellData::new(4, [0, 0, 1], false, [0, 0]), // base cell 41
+    BaseCellData::new(3, [0, 0, 1], false, [0, 0]), // base cell 42
+    BaseCellData::new(3, [0, 1, 1], false, [0, 0]), // base cell 43
+    BaseCellData::new(4, [0, 1, 0], false, [0, 0]), // base cell 44
+    BaseCellData::new(6, [1, 0, 0], false, [0, 0]), // base cell 45
+    BaseCellData::new(11, [0, 0, 0], false, [0, 0]), // base cell 46
+    BaseCellData::new(8, [0, 0, 1], false, [0, 0]), // base cell 47
+    BaseCellData::new(5, [0, 0, 1], false, [0, 0]), // base cell 48
+    BaseCellData::new(14, [2, 0, 0], true, [0, 9]), // truease cell 49
+    BaseCellData::new(5, [0, 0, 0], false, [0, 0]), // base cell 50
+    BaseCellData::new(12, [1, 0, 0], false, [0, 0]), // base cell 51
+    BaseCellData::new(10, [1, 1, 0], false, [0, 0]), // base cell 52
+    BaseCellData::new(4, [0, 1, 1], false, [0, 0]), // base cell 53
+    BaseCellData::new(12, [1, 1, 0], false, [0, 0]), // base cell 54
+    BaseCellData::new(7, [1, 0, 0], false, [0, 0]), // base cell 55
+    BaseCellData::new(11, [0, 1, 0], false, [0, 0]), // base cell 56
+    BaseCellData::new(10, [0, 0, 0], false, [0, 0]), // base cell 57
+    BaseCellData::new(13, [2, 0, 0], true, [4, 8]), // base cell 58
+    BaseCellData::new(10, [0, 0, 1], false, [0, 0]), // falsease cell 59
+    BaseCellData::new(11, [0, 0, 1], false, [0, 0]), // base cell 60
+    BaseCellData::new(9, [0, 1, 0], false, [0, 0]), // base cell 61
+    BaseCellData::new(8, [0, 1, 0], false, [0, 0]), // base cell 62
+    BaseCellData::new(6, [2, 0, 0], true, [11, 15]), // base cell 63
+    BaseCellData::new(8, [0, 0, 0], false, [0, 0]), // base cell 64
+    BaseCellData::new(9, [0, 0, 1], false, [0, 0]), // base cell 65
+    BaseCellData::new(14, [1, 0, 0], false, [0, 0]), // base cell 66
+    BaseCellData::new(5, [1, 0, 1], false, [0, 0]), // base cell 67
+    BaseCellData::new(16, [0, 1, 1], false, [0, 0]), // base cell 68
+    BaseCellData::new(8, [1, 0, 1], false, [0, 0]), // base cell 69
+    BaseCellData::new(5, [1, 0, 0], false, [0, 0]), // base cell 70
+    BaseCellData::new(12, [0, 0, 0], false, [0, 0]), // base cell 71
+    BaseCellData::new(7, [2, 0, 0], true, [12, 16]), // base cell 72
+    BaseCellData::new(12, [0, 1, 0], false, [0, 0]), // base cell 73
+    BaseCellData::new(10, [0, 1, 0], false, [0, 0]), // base cell 74
+    BaseCellData::new(9, [0, 0, 0], false, [0, 0]), // base cell 75
+    BaseCellData::new(13, [1, 0, 0], false, [0, 0]), // base cell 76
+    BaseCellData::new(16, [0, 0, 1], false, [0, 0]), // base cell 77
+    BaseCellData::new(15, [0, 1, 1], false, [0, 0]), // base cell 78
+    BaseCellData::new(15, [0, 1, 0], false, [0, 0]), // base cell 79
+    BaseCellData::new(16, [0, 1, 0], false, [0, 0]), // base cell 80
+    BaseCellData::new(14, [1, 1, 0], false, [0, 0]), // base cell 81
+    BaseCellData::new(13, [1, 1, 0], false, [0, 0]), // base cell 82
+    BaseCellData::new(5, [2, 0, 0], true, [10, 19]), // base cell 83
+    BaseCellData::new(8, [1, 0, 0], false, [0, 0]), // base cell 84
+    BaseCellData::new(14, [0, 0, 0], false, [0, 0]), // base cell 85
+    BaseCellData::new(9, [1, 0, 1], false, [0, 0]), // base cell 86
+    BaseCellData::new(14, [0, 0, 1], false, [0, 0]), // base cell 87
+    BaseCellData::new(17, [0, 0, 1], false, [0, 0]), // base cell 88
+    BaseCellData::new(12, [0, 0, 1], false, [0, 0]), // base cell 89
+    BaseCellData::new(16, [0, 0, 0], false, [0, 0]), // base cell 90
+    BaseCellData::new(17, [0, 1, 1], false, [0, 0]), // base cell 91
+    BaseCellData::new(15, [0, 0, 1], false, [0, 0]), // base cell 92
+    BaseCellData::new(16, [1, 0, 1], false, [0, 0]), // base cell 93
+    BaseCellData::new(9, [1, 0, 0], false, [0, 0]), // base cell 94
+    BaseCellData::new(15, [0, 0, 0], false, [0, 0]), // base cell 95
+    BaseCellData::new(13, [0, 0, 0], false, [0, 0]), // base cell 96
+    BaseCellData::new(8, [2, 0, 0], true, [13, 17]), // base cell 97
+    BaseCellData::new(13, [0, 1, 0], false, [0, 0]), // base cell 98
+    BaseCellData::new(17, [1, 0, 1], false, [0, 0]), // base cell 99
+    BaseCellData::new(19, [0, 1, 0], false, [0, 0]), // base cell 100
+    BaseCellData::new(14, [0, 1, 0], false, [0, 0]), // base cell 101
+    BaseCellData::new(19, [0, 1, 1], false, [0, 0]), // base cell 102
+    BaseCellData::new(17, [0, 1, 0], false, [0, 0]), // base cell 103
+    BaseCellData::new(13, [0, 0, 1], false, [0, 0]), // base cell 104
+    BaseCellData::new(17, [0, 0, 0], false, [0, 0]), // base cell 105
+    BaseCellData::new(16, [1, 0, 0], false, [0, 0]), // base cell 106
+    BaseCellData::new(9, [2, 0, 0], true, [14, 18]), // base cell 107
+    BaseCellData::new(15, [1, 0, 1], false, [0, 0]), // base cell 108
+    BaseCellData::new(15, [1, 0, 0], false, [0, 0]), // base cell 109
+    BaseCellData::new(18, [0, 1, 1], false, [0, 0]), // base cell 110
+    BaseCellData::new(18, [0, 0, 1], false, [0, 0]), // base cell 111
+    BaseCellData::new(19, [0, 0, 1], false, [0, 0]), // base cell 112
+    BaseCellData::new(17, [1, 0, 0], false, [0, 0]), // base cell 113
+    BaseCellData::new(19, [0, 0, 0], false, [0, 0]), // base cell 114
+    BaseCellData::new(18, [0, 1, 0], false, [0, 0]), // base cell 115
+    BaseCellData::new(18, [1, 0, 1], false, [0, 0]), // base cell 116
+    BaseCellData::new(19, [2, 0, 0], true, [-1, -1]), // base cell 117
+    BaseCellData::new(19, [1, 0, 0], false, [0, 0]), // base cell 118
+    BaseCellData::new(18, [0, 0, 0], false, [0, 0]), // base cell 119
+    BaseCellData::new(19, [1, 0, 1], false, [0, 0]), // base cell 120
+    BaseCellData::new(18, [1, 0, 0], false, [0, 0]), // base cell 121
 ];
 
 /// Return whether or not the indicated base cell is a pentagon.
 fn _isBaseCellPentagon(baseCell: i32) -> bool {
-    if (baseCell < 0 || baseCell >= NUM_BASE_CELLS) {
+    if baseCell < 0 || baseCell >= NUM_BASE_CELLS {
         // LCOV_EXCL_BR_LINE
         // Base cells less than zero can not be represented in an index
         return false;
@@ -1607,14 +1607,14 @@ fn _isBaseCellPolarPentagon(baseCell: i32) -> bool {
  *          cell is not found on the given face
  */
 fn _baseCellToCCWrot60(baseCell: i32, face: i32) -> i32 {
-    if (face < 0 || face > NUM_ICOSA_FACES) {
+    if face < 0 || face > NUM_ICOSA_FACES {
         return INVALID_ROTATIONS;
     }
 
     for i in 0..3 {
         for j in 0..3 {
             for k in 0..3 {
-                if (faceIjkBaseCells[face][i][j][k].baseCell == baseCell) {
+                if faceIjkBaseCells[face][i][j][k].baseCell == baseCell {
                     return faceIjkBaseCells[face][i][j][k].ccwRot60;
                 }
             }

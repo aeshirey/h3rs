@@ -1,4 +1,5 @@
 use crate::constants::*;
+use crate::Vec3d;
 
 /// epsilon of ~0.1mm in degrees
 const EPSILON_DEG: f64 = 0.000000001;
@@ -82,43 +83,40 @@ impl GeoCoord {
     }
 
     /// Computes the point on the sphere a specified azimuth and distance from another point.
-    fn _geoAzDistanceRads(p1: &GeoCoord, az: f64, distance: f64, p2: &GeoCoord) {
+    pub fn _geoAzDistanceRads(p1: &GeoCoord, az: f64, distance: f64) -> GeoCoord {
         if distance < EPSILON {
-            *p2 = *p1;
-            return;
+            return p1;
         }
 
-        az = _posAngleRads(az);
+        let az = _posAngleRads(az);
 
+        let lat;
+        let lon;
         // check for due north/south azimuth
         if az < EPSILON || (az - M_PI).abs() < EPSILON {
             if az < EPSILON {
                 // due north
-                p2.lat = p1.lat + distance;
+                lat = p1.lat + distance;
             } else {
                 // due south
-                p2.lat = p1.lat - distance;
+                lat = p1.lat - distance;
             }
 
-            if (p2.lat - M_PI_2).abs() < EPSILON
-            // north pole
-            {
-                p2.lat = M_PI_2;
-                p2.lon = 0.0;
-            } else if (p2.lat + M_PI_2).abs() < EPSILON
-            // south pole
-            {
-                p2.lat = -M_PI_2;
-                p2.lon = 0.0;
+            if lat - M_PI_2.abs() < EPSILON {
+                // north pole
+                lat = M_PI_2;
+                lon = 0.0;
+            } else if p2.lat + M_PI_2.abs() < EPSILON {
+                // south pole
+                lat = -M_PI_2;
+                lon = 0.0;
             } else {
-                p2.lon = constrainLng(p1.lon);
+                lon = constrainLng(p1.lon);
             }
-        } else
-        // not due north or south
-        {
+        } else {
+            // not due north or south
             //double sinlat, sinlon, coslon;
-            let mut sinlat =
-                p1.lat.sin() * distance.cos() + p1.lat.cos() * distance.sin() * az.cos();
+            let mut sinlat = lat.sin() * distance.cos() + p1.lat.cos() * distance.sin() * az.cos();
 
             if sinlat > 1.0 {
                 sinlat = 1.0;
@@ -126,21 +124,19 @@ impl GeoCoord {
                 sinlat = -1.0;
             }
 
-            p2.lat = sinlat.asin();
-            if (p2.lat - M_PI_2).abs() < EPSILON
-            // north pole
-            {
-                p2.lat = M_PI_2;
-                p2.lon = 0.0;
-            } else if (p2.lat + M_PI_2).abs() < EPSILON
-            // south pole
-            {
-                p2.lat = -M_PI_2;
-                p2.lon = 0.0;
+            lat = sinlat.asin();
+            if lat - M_PI_2.abs() < EPSILON {
+                // north pole
+                lat = M_PI_2;
+                lon = 0.0;
+            } else if lat + M_PI_2.abs() < EPSILON {
+                // south pole
+                lat = -M_PI_2;
+                lon = 0.0;
             } else {
-                let mut sinlon = az.sin() * distance.sin() / p2.lat.cos();
+                let mut sinlon = az.sin() * distance.sin() / lat.cos();
                 let mut coslon =
-                    (distance.cos() - p1.lat.sin() * p2.lat.sin()) / p1.lat.cos() / p2.lat.cos();
+                    (distance.cos() - p1.lat.sin() * lat.sin()) / p1.lat.cos() / lat.cos();
 
                 if sinlon > 1.0 {
                     sinlon = 1.0;
@@ -154,9 +150,11 @@ impl GeoCoord {
                     coslon = -1.0;
                 }
 
-                p2.lon = constrainLng(p1.lon + f64::atan2(sinlon, coslon));
+                lon = constrainLng(p1.lon + f64::atan2(sinlon, coslon));
             }
         }
+
+        GeoCoord { lat, lon }
     }
 
     /// The following functions provide meta information about the H3 hexagons at
@@ -190,9 +188,9 @@ impl GeoCoord {
         const AREAS: [f64; 16] = [
             4.25055E+12,
             6.07221E+11,
-            86745854035,
-            12392264862,
-            1770323552,
+            86745854035.,
+            12392264862.,
+            1770323552.,
             252903364.5,
             36129052.1,
             5161293.2,
@@ -249,7 +247,7 @@ impl GeoCoord {
             1.348574562,
             0.509713273,
         ];
-        lens[res]
+        lens[res as usize]
     }
 
     fn numHexagons(res: i32) -> i64 {
@@ -339,7 +337,7 @@ impl GeoCoord {
         // determine the icosahedron face
         let mut face = 0;
         let mut sqd = faceCenterPoint[0]._pointSquareDist(&v3d);
-        for f in (1..NUM_ICOSA_FACES) {
+        for f in 1..NUM_ICOSA_FACES {
             let sqdT = faceCenterPoint[f]._pointSquareDist(&v3d);
             if sqdT < sqd {
                 face = f;
@@ -360,7 +358,7 @@ impl GeoCoord {
         );
 
         // adjust theta for Class III (odd resolutions)
-        if (isResClassIII(res)) {
+        if isResClassIII(res) {
             theta = _posAngleRads(theta - M_AP7_ROT_RADS);
         }
 
@@ -392,7 +390,7 @@ impl GeoCoord {
      * @return The encoded H3Index (or H3_NULL on failure).
      */
     fn geoToH3(&self, res: i32) -> H3Index {
-        if (res < 0 || res > MAX_H3_RES) {
+        if res < 0 || res > MAX_H3_RES {
             return H3_NULL;
         }
         if is_infinite(self.lat) || self.lon.is_infinite() {

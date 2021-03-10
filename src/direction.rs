@@ -1,3 +1,4 @@
+#[derive(PartialEq)]
 /// H3 digit representing ijk+ axes direction.
 ///Values will be within the lowest 3 bits of an integer.
 pub enum Direction {

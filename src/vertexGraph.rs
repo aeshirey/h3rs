@@ -14,7 +14,6 @@ struct VertexGraph {
     res: i32,
 }
 
-
 impl VertexGraph {
     /**
      * Initialize a new VertexGraph
@@ -23,8 +22,8 @@ impl VertexGraph {
      * @param  res        Resolution of the hexagons whose vertices we're storing
      */
     fn initVertexGraph(numBuckets: i32, res: i32) -> Self {
-        let buckets = if (numBuckets > 0) {
-            Vec::with_capacity(numBuckets)
+        let buckets = if numBuckets > 0 {
+            Some(Vec::with_capacity(numBuckets as usize))
         } else {
             None
         };
@@ -33,7 +32,7 @@ impl VertexGraph {
             numBuckets,
             res,
             size: 0,
-            buckets
+            buckets,
         }
     }
 }

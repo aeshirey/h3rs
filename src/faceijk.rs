@@ -1,3 +1,5 @@
+use crate::{CoordIJK, Vec3d};
+
 ///Information to transform into an adjacent face IJK system
 pub struct FaceOrientIJK {
     /// face number
@@ -384,24 +386,24 @@ impl FaceIJK {
         let mut ijk: CoordIJK = self.coord;
 
         // get the maximum dimension value; scale if a substrate grid
-        let mut maxDim = maxDimByCIIres[res];
-        if (substrate) {
+        let mut maxDim = maxDimByCIIres[res as usize];
+        if substrate {
             maxDim *= 3;
         }
 
         // check for overage
-        if (substrate && ijk.i + ijk.j + ijk.k == maxDim) {
+        if substrate && ijk.i + ijk.j + ijk.k == maxDim {
             // on edge
             overage = FACE_EDGE;
-        } else if (ijk.i + ijk.j + ijk.k > maxDim) {
+        } else if ijk.i + ijk.j + ijk.k > maxDim {
             // overage
             overage = NEW_FACE;
 
             //const FaceOrientIJK* fijkOrient;
-            let fijkOrient = if (ijk.k > 0) {
-                if (ijk.j > 0) {
+            let fijkOrient = if ijk.k > 0 {
+                if ijk.j > 0 {
                     // jk "quadrant"
-                    &faceNeighbors[self.face][JK]
+                    &faceNeighbors[self.face as usize][JK as usize]
                 } else {
                     // adjust for the pentagonal missing sequence
                     if pentLeading4 {
@@ -414,23 +416,23 @@ impl FaceIJK {
                         ijk = tmp + origin;
                     }
                     // ik "quadrant"
-                    faceNeighbors[self.face][KI]
+                    faceNeighbors[self.face as usize][KI as usize]
                 }
             } else {
                 // ij "quadrant"
-                faceNeighbors[self.face][IJ]
+                faceNeighbors[self.face as usize][IJ as usize]
             };
 
             self.face = fijkOrient.face;
 
             // rotate and translate for adjacent face
-            for _ in (0..fijkOrient.ccwRot60) {
+            for _ in 0..fijkOrient.ccwRot60 {
                 ijk._ijkRotate60ccw();
             }
 
             let mut transVec = fijkOrient.translate;
-            let unitScale = unitScaleByCIIres[res];
-            if (substrate) {
+            let unitScale = unitScaleByCIIres[res as usize];
+            if substrate {
                 unitScale *= 3;
             }
 
@@ -439,7 +441,7 @@ impl FaceIJK {
             ijk._ijkNormalize();
 
             // overage points on pentagon boundaries can end up on edges
-            if (substrate && ijk.i + ijk.j + ijk.k == maxDim) {
+            if substrate && ijk.i + ijk.j + ijk.k == maxDim {
                 // on edge
                 overage = Overage::FACE_EDGE;
             }
@@ -475,10 +477,10 @@ impl FaceIJK {
         h.H3_SET_RESOLUTION(res);
 
         // check for res 0/base cell
-        if (res == 0) {
-            if (self.coord.i > MAX_FACE_COORD
+        if res == 0 {
+            if self.coord.i > MAX_FACE_COORD
                 || self.coord.j > MAX_FACE_COORD
-                || self.coord.k > MAX_FACE_COORD)
+                || self.coord.k > MAX_FACE_COORD
             {
                 // out of range input
                 return H3_NULL;
@@ -610,7 +612,7 @@ impl FaceIJK {
         _downAp3r(self.coord);
 
         // if res is Class III we need to add a cw aperture 7 to get to icosahedral Class II
-        if (isResClassIII(*res)) {
+        if isResClassIII(*res) {
             _downAp7r(&self.coord);
             *res += 1;
         }
@@ -624,6 +626,8 @@ impl FaceIJK {
             fijkVerts[v].coord = self.coord + verts[v];
             fijkVerts[v].coord._ijkNormalize();
         }
+
+        todo!()
     }
 }
 
@@ -637,9 +641,6 @@ const JK: i32 = 3;
 
 /// Invalid face index */
 const INVALID_FACE: i32 = -1;
-
-/// square root of 7
-const M_SQRT7: f64 = 2.6457513110645905905016157536392604257102;
 
 /// icosahedron face centers in lat/lon radians
 const faceCenterGeo: [GeoCoord; NUM_ICOSA_FACES] = [
@@ -854,136 +855,136 @@ const faceNeighbors: [[FaceOrientIJK; 4]; NUM_ICOSA_FACES] = [
     ],
     [
         // face 1
-        FaceOrienTIJK::new(1, [0, 0, 0], 0), // central face
-        FaceOrienTIJK::new(0, [2, 0, 2], 1), // ij quadrant
-        FaceOrienTIJK::new(2, [2, 2, 0], 5), // ki quadrant
-        FaceOrienTIJK::new(6, [0, 2, 2], 3), // jk quadrant
+        FaceOrientIJK::new(1, [0, 0, 0], 0), // central face
+        FaceOrientIJK::new(0, [2, 0, 2], 1), // ij quadrant
+        FaceOrientIJK::new(2, [2, 2, 0], 5), // ki quadrant
+        FaceOrientIJK::new(6, [0, 2, 2], 3), // jk quadrant
     ],
     [
         // face 2
-        FaceOrienTIJK::new(2, [0, 0, 0], 0), // central face
-        FaceOrienTIJK::new(1, [2, 0, 2], 1), // ij quadrant
-        FaceOrienTIJK::new(3, [2, 2, 0], 5), // ki quadrant
-        FaceOrienTIJK::new(7, [0, 2, 2], 3), // jk quadrant
+        FaceOrientIJK::new(2, [0, 0, 0], 0), // central face
+        FaceOrientIJK::new(1, [2, 0, 2], 1), // ij quadrant
+        FaceOrientIJK::new(3, [2, 2, 0], 5), // ki quadrant
+        FaceOrientIJK::new(7, [0, 2, 2], 3), // jk quadrant
     ],
     [
         // face 3
-        FaceOrienTIJK::new(3, [0, 0, 0], 0), // central face
-        FaceOrienTIJK::new(2, [2, 0, 2], 1), // ij quadrant
-        FaceOrienTIJK::new(4, [2, 2, 0], 5), // ki quadrant
-        FaceOrienTIJK::new(8, [0, 2, 2], 3), // jk quadrant
+        FaceOrientIJK::new(3, [0, 0, 0], 0), // central face
+        FaceOrientIJK::new(2, [2, 0, 2], 1), // ij quadrant
+        FaceOrientIJK::new(4, [2, 2, 0], 5), // ki quadrant
+        FaceOrientIJK::new(8, [0, 2, 2], 3), // jk quadrant
     ],
     [
         // face 4
-        FaceOrienTIJK::new(4, [0, 0, 0], 0), // central face
-        FaceOrienTIJK::new(3, [2, 0, 2], 1), // ij quadrant
-        FaceOrienTIJK::new(0, [2, 2, 0], 5), // ki quadrant
-        FaceOrienTIJK::new(9, [0, 2, 2], 3), // jk quadrant
+        FaceOrientIJK::new(4, [0, 0, 0], 0), // central face
+        FaceOrientIJK::new(3, [2, 0, 2], 1), // ij quadrant
+        FaceOrientIJK::new(0, [2, 2, 0], 5), // ki quadrant
+        FaceOrientIJK::new(9, [0, 2, 2], 3), // jk quadrant
     ],
     [
         // face 5
-        FaceOrienTIJK::new(5, [0, 0, 0], 0),  // central face
-        FaceOrienTIJK::new(10, [2, 2, 0], 3), // ij quadrant
-        FaceOrienTIJK::new(14, [2, 0, 2], 3), // ki quadrant
-        FaceOrienTIJK::new(0, [0, 2, 2], 3),  // jk quadrant
+        FaceOrientIJK::new(5, [0, 0, 0], 0),  // central face
+        FaceOrientIJK::new(10, [2, 2, 0], 3), // ij quadrant
+        FaceOrientIJK::new(14, [2, 0, 2], 3), // ki quadrant
+        FaceOrientIJK::new(0, [0, 2, 2], 3),  // jk quadrant
     ],
     [
         // face 6
-        FaceOrienTIJK::new(6, [0, 0, 0], 0),  // central face
-        FaceOrienTIJK::new(11, [2, 2, 0], 3), // ij quadrant
-        FaceOrienTIJK::new(10, [2, 0, 2], 3), // ki quadrant
-        FaceOrienTIJK::new(1, [0, 2, 2], 3),  // jk quadrant
+        FaceOrientIJK::new(6, [0, 0, 0], 0),  // central face
+        FaceOrientIJK::new(11, [2, 2, 0], 3), // ij quadrant
+        FaceOrientIJK::new(10, [2, 0, 2], 3), // ki quadrant
+        FaceOrientIJK::new(1, [0, 2, 2], 3),  // jk quadrant
     ],
     [
         // face 7
-        FaceOrienTIJK::new(7, [0, 0, 0], 0),  // central face
-        FaceOrienTIJK::new(12, [2, 2, 0], 3), // ij quadrant
-        FaceOrienTIJK::new(11, [2, 0, 2], 3), // ki quadrant
-        FaceOrienTIJK::new(2, [0, 2, 2], 3),  // jk quadrant
+        FaceOrientIJK::new(7, [0, 0, 0], 0),  // central face
+        FaceOrientIJK::new(12, [2, 2, 0], 3), // ij quadrant
+        FaceOrientIJK::new(11, [2, 0, 2], 3), // ki quadrant
+        FaceOrientIJK::new(2, [0, 2, 2], 3),  // jk quadrant
     ],
     [
         // face 8
-        FaceOrienTIJK::new(8, [0, 0, 0], 0),  // central face
-        FaceOrienTIJK::new(13, [2, 2, 0], 3), // ij quadrant
-        FaceOrienTIJK::new(12, [2, 0, 2], 3), // ki quadrant
-        FaceOrienTIJK::new(3, [0, 2, 2], 3),  // jk quadrant
+        FaceOrientIJK::new(8, [0, 0, 0], 0),  // central face
+        FaceOrientIJK::new(13, [2, 2, 0], 3), // ij quadrant
+        FaceOrientIJK::new(12, [2, 0, 2], 3), // ki quadrant
+        FaceOrientIJK::new(3, [0, 2, 2], 3),  // jk quadrant
     ],
     [
         // face 9
-        FaceOrienTIJK::new(9, [0, 0, 0], 0),  // central face
-        FaceOrienTIJK::new(14, [2, 2, 0], 3), // ij quadrant
-        FaceOrienTIJK::new(13, [2, 0, 2], 3), // ki quadrant
-        FaceOrienTIJK::new(4, [0, 2, 2], 3),  // jk quadrant
+        FaceOrientIJK::new(9, [0, 0, 0], 0),  // central face
+        FaceOrientIJK::new(14, [2, 2, 0], 3), // ij quadrant
+        FaceOrientIJK::new(13, [2, 0, 2], 3), // ki quadrant
+        FaceOrientIJK::new(4, [0, 2, 2], 3),  // jk quadrant
     ],
     [
         // face 10
-        FaceOrienTIJK::new(10, [0, 0, 0], 0), // central face
-        FaceOrienTIJK::new(5, [2, 2, 0], 3),  // ij quadrant
-        FaceOrienTIJK::new(6, [2, 0, 2], 3),  // ki quadrant
-        FaceOrienTIJK::new(15, [0, 2, 2], 3), // jk quadrant
+        FaceOrientIJK::new(10, [0, 0, 0], 0), // central face
+        FaceOrientIJK::new(5, [2, 2, 0], 3),  // ij quadrant
+        FaceOrientIJK::new(6, [2, 0, 2], 3),  // ki quadrant
+        FaceOrientIJK::new(15, [0, 2, 2], 3), // jk quadrant
     ],
     [
         // face 11
-        FaceOrienTIJK::new(11, [0, 0, 0], 0), // central face
-        FaceOrienTIJK::new(6, [2, 2, 0], 3),  // ij quadrant
-        FaceOrienTIJK::new(7, [2, 0, 2], 3),  // ki quadrant
-        FaceOrienTIJK::new(16, [0, 2, 2], 3), // jk quadrant
+        FaceOrientIJK::new(11, [0, 0, 0], 0), // central face
+        FaceOrientIJK::new(6, [2, 2, 0], 3),  // ij quadrant
+        FaceOrientIJK::new(7, [2, 0, 2], 3),  // ki quadrant
+        FaceOrientIJK::new(16, [0, 2, 2], 3), // jk quadrant
     ],
     [
         // face 12
-        FaceOrienTIJK::new(12, [0, 0, 0], 0), // central face
-        FaceOrienTIJK::new(7, [2, 2, 0], 3),  // ij quadrant
-        FaceOrienTIJK::new(8, [2, 0, 2], 3),  // ki quadrant
-        FaceOrienTIJK::new(17, [0, 2, 2], 3), // jk quadrant
+        FaceOrientIJK::new(12, [0, 0, 0], 0), // central face
+        FaceOrientIJK::new(7, [2, 2, 0], 3),  // ij quadrant
+        FaceOrientIJK::new(8, [2, 0, 2], 3),  // ki quadrant
+        FaceOrientIJK::new(17, [0, 2, 2], 3), // jk quadrant
     ],
     [
         // face 13
-        FaceOrienTIJK::new(13, [0, 0, 0], 0), // central face
-        FaceOrienTIJK::new(8, [2, 2, 0], 3),  // ij quadrant
-        FaceOrienTIJK::new(9, [2, 0, 2], 3),  // ki quadrant
-        FaceOrienTIJK::new(18, [0, 2, 2], 3), // jk quadrant
+        FaceOrientIJK::new(13, [0, 0, 0], 0), // central face
+        FaceOrientIJK::new(8, [2, 2, 0], 3),  // ij quadrant
+        FaceOrientIJK::new(9, [2, 0, 2], 3),  // ki quadrant
+        FaceOrientIJK::new(18, [0, 2, 2], 3), // jk quadrant
     ],
     [
         // face 14
-        FaceOrienTIJK::new(14, [0, 0, 0], 0), // central face
-        FaceOrienTIJK::new(9, [2, 2, 0], 3),  // ij quadrant
-        FaceOrienTIJK::new(5, [2, 0, 2], 3),  // ki quadrant
-        FaceOrienTIJK::new(19, [0, 2, 2], 3), // jk quadrant
+        FaceOrientIJK::new(14, [0, 0, 0], 0), // central face
+        FaceOrientIJK::new(9, [2, 2, 0], 3),  // ij quadrant
+        FaceOrientIJK::new(5, [2, 0, 2], 3),  // ki quadrant
+        FaceOrientIJK::new(19, [0, 2, 2], 3), // jk quadrant
     ],
     [
         // face 15
-        FaceOrienTIJK::new(15, [0, 0, 0], 0), // central face
-        FaceOrienTIJK::new(16, [2, 0, 2], 1), // ij quadrant
-        FaceOrienTIJK::new(19, [2, 2, 0], 5), // ki quadrant
-        FaceOrienTIJK::new(10, [0, 2, 2], 3), // jk quadrant
+        FaceOrientIJK::new(15, [0, 0, 0], 0), // central face
+        FaceOrientIJK::new(16, [2, 0, 2], 1), // ij quadrant
+        FaceOrientIJK::new(19, [2, 2, 0], 5), // ki quadrant
+        FaceOrientIJK::new(10, [0, 2, 2], 3), // jk quadrant
     ],
     [
         // face 16
-        FaceOrienTIJK::new(16, [0, 0, 0], 0), // central face
-        FaceOrienTIJK::new(17, [2, 0, 2], 1), // ij quadrant
-        FaceOrienTIJK::new(15, [2, 2, 0], 5), // ki quadrant
-        FaceOrienTIJK::new(11, [0, 2, 2], 3), // jk quadrant
+        FaceOrientIJK::new(16, [0, 0, 0], 0), // central face
+        FaceOrientIJK::new(17, [2, 0, 2], 1), // ij quadrant
+        FaceOrientIJK::new(15, [2, 2, 0], 5), // ki quadrant
+        FaceOrientIJK::new(11, [0, 2, 2], 3), // jk quadrant
     ],
     [
         // face 17
-        FaceOrienTIJK::new(17, [0, 0, 0], 0), // central face
-        FaceOrienTIJK::new(18, [2, 0, 2], 1), // ij quadrant
-        FaceOrienTIJK::new(16, [2, 2, 0], 5), // ki quadrant
-        FaceOrienTIJK::new(12, [0, 2, 2], 3), // jk quadrant
+        FaceOrientIJK::new(17, [0, 0, 0], 0), // central face
+        FaceOrientIJK::new(18, [2, 0, 2], 1), // ij quadrant
+        FaceOrientIJK::new(16, [2, 2, 0], 5), // ki quadrant
+        FaceOrientIJK::new(12, [0, 2, 2], 3), // jk quadrant
     ],
     [
         // face 18
-        FaceOrienTIJK::new(18, [0, 0, 0], 0), // central face
-        FaceOrienTIJK::new(19, [2, 0, 2], 1), // ij quadrant
-        FaceOrienTIJK::new(17, [2, 2, 0], 5), // ki quadrant
-        FaceOrienTIJK::new(13, [0, 2, 2], 3), // jk quadrant
+        FaceOrientIJK::new(18, [0, 0, 0], 0), // central face
+        FaceOrientIJK::new(19, [2, 0, 2], 1), // ij quadrant
+        FaceOrientIJK::new(17, [2, 2, 0], 5), // ki quadrant
+        FaceOrientIJK::new(13, [0, 2, 2], 3), // jk quadrant
     ],
     [
         // face 19
-        FaceOrienTIJK::new(19, [0, 0, 0], 0), // central face
-        FaceOrienTIJK::new(15, [2, 0, 2], 1), // ij quadrant
-        FaceOrienTIJK::new(18, [2, 2, 0], 5), // ki quadrant
-        FaceOrienTIJK::new(14, [0, 2, 2], 3), // jk quadrant
+        FaceOrientIJK::new(19, [0, 0, 0], 0), // central face
+        FaceOrientIJK::new(15, [2, 0, 2], 1), // ij quadrant
+        FaceOrientIJK::new(18, [2, 2, 0], 5), // ki quadrant
+        FaceOrientIJK::new(14, [0, 2, 2], 3), // jk quadrant
     ],
 ];
 

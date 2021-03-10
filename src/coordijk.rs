@@ -34,19 +34,19 @@ impl CoordIJK {
     /// Normalizes ijk coordinates by setting the components to the smallest possible values. Works in place.
     pub fn _ijkNormalize(&mut self) {
         // remove any negative values
-        if (self.i < 0) {
+        if self.i < 0 {
             self.j -= self.i;
             self.k -= self.i;
             self.i = 0;
         }
 
-        if (self.j < 0) {
+        if self.j < 0 {
             self.i -= self.j;
             self.k -= self.j;
             self.j = 0;
         }
 
-        if (self.k < 0) {
+        if self.k < 0 {
             self.i -= self.k;
             self.j -= self.k;
             self.k = 0;
@@ -54,13 +54,13 @@ impl CoordIJK {
 
         // remove the min value if needed
         let min = self.i;
-        if (self.j < min) {
+        if self.j < min {
             min = self.j;
         }
-        if (self.k < min) {
+        if self.k < min {
             min = self.k;
         }
-        if (min > 0) {
+        if min > 0 {
             self.i -= min;
             self.j -= min;
             self.k -= min;
@@ -104,7 +104,7 @@ impl CoordIJK {
         /*
         let digit = Direction ::INVALID_DIGIT;
         for (Direction i = CENTER_DIGIT; i < NUM_DIGITS; i++) {
-            if (c._ijkMatches(&UNIT_VECS[i])) {
+            if c._ijkMatches(&UNIT_VECS[i]) {
                 digit = i;
                 break;
             }
@@ -158,7 +158,7 @@ impl CoordIJK {
         let jVec = CoordIJK { i: 0, j: 3, k: 1 } * self.j;
         let kVec = CoordIJK { i: 1, j: 0, k: 3 } * self.k;
 
-        self = iVec + jVec + kVec;
+        *self = iVec + jVec + kVec;
         self._ijkNormalize();
     }
 
@@ -169,7 +169,7 @@ impl CoordIJK {
         let jVec = CoordIJK { i: 1, j: 3, k: 0 } * self.j;
         let kVec = CoordIJK { i: 0, j: 1, k: 3 } * self.k;
 
-        self = iVec + jVec + kVec;
+        *self = iVec + jVec + kVec;
         self._ijkNormalize();
     }
 
@@ -180,7 +180,7 @@ impl CoordIJK {
         let jVec = CoordIJK { i: 1, j: 2, k: 0 } * self.j;
         let kVec = CoordIJK { i: 0, j: 1, k: 2 } * self.k;
 
-        self = iVec + jVec + kVec;
+        *self = iVec + jVec + kVec;
         self._ijkNormalize();
     }
 
@@ -191,7 +191,7 @@ impl CoordIJK {
         let jVec = CoordIJK { i: 0, j: 2, k: 1 } * self.j;
         let kVec = CoordIJK { i: 1, j: 0, k: 2 } * self.k;
 
-        self = iVec + jVec + kVec;
+        *self = iVec + jVec + kVec;
         self._ijkNormalize();
     }
 
@@ -217,7 +217,7 @@ impl CoordIJK {
         let mut jVec = CoordIJK { i: 0, j: 1, k: 1 } * self.j;
         let mut kVec = CoordIJK { i: 1, j: 0, k: 1 } * self.k;
 
-        self = iVec + jVec + kVec;
+        *self = iVec + jVec + kVec;
         self._ijkNormalize();
     }
 
@@ -228,7 +228,7 @@ impl CoordIJK {
         let jVec = CoordIJK { i: 1, j: 1, k: 0 } * self.j;
         let kVec = CoordIJK { i: 0, j: 1, k: 1 } * self.k;
 
-        self = iVec + jVec + kVec;
+        *self = iVec + jVec + kVec;
         self._ijkNormalize();
     }
 
@@ -283,9 +283,9 @@ impl CoordIJK {
         let kDiff = (rk - k).abs();
 
         // Round, maintaining valid cube coords
-        if (iDiff > jDiff && iDiff > kDiff) {
+        if iDiff > jDiff && iDiff > kDiff {
             ri = -rj - rk;
-        } else if (jDiff > kDiff) {
+        } else if jDiff > kDiff {
             rj = -ri - rk;
         } else {
             rk = -ri - rj;
@@ -298,10 +298,32 @@ impl CoordIJK {
 }
 
 impl ops::Add for CoordIJK {
-    fn add(&self, other: Self) -> Self {
+    type Output = Self;
+    fn add(self, other: Self) -> Self {
         let i = self.i + other.i;
         let j = self.j + other.j;
         let k = self.k + other.k;
+
+        Self { i, j, k }
+    }
+}
+
+impl ops::Mul<i32> for CoordIJK {
+    type Output = Self;
+    fn mul(self, factor: i32) -> Self {
+        let i = self.i * factor;
+        let j = self.j * factor;
+        let k = self.k * factor;
+        Self { i, j, k }
+    }
+}
+
+impl ops::Sub for CoordIJK {
+    type Output = Self;
+    fn sub(self, other: Self) -> Self {
+        let i = self.i - other.i;
+        let j = self.j - other.j;
+        let k = self.k - other.k;
 
         Self { i, j, k }
     }
@@ -315,24 +337,6 @@ impl ops::AddAssign for CoordIJK {
     }
 }
 
-impl ops::Sub for CoordIJK {
-    fn sub(&self, other: Self) -> Self {
-        let i = self.i - other.i;
-        let j = self.j - other.j;
-        let k = self.k - other.k;
-
-        Self { i, j, k }
-    }
-}
-
-impl ops::Mul<i32> for CoordIJK {
-    fn mul(&self, factor: i32) -> Self {
-        let i = self.i = factor;
-        let j = self.j = factor;
-        let k = self.k = factor;
-        Self { i, j, k }
-    }
-}
 impl ops::MulAssign<i32> for CoordIJK {
     fn mul_assign(&mut self, factor: i32) {
         self.i *= factor;

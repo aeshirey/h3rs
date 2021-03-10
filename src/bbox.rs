@@ -1,4 +1,4 @@
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq)]
 /// Geographic bounding box with coordinates defined in radians
 pub struct BBox {
     /// north latitude
@@ -16,7 +16,7 @@ pub struct BBox {
 
 impl BBox {
     /// Whether the given bounding box crosses the antimeridian
-    pub fn bboxIsTransmeridian(&self) {
+    pub fn bboxIsTransmeridian(&self) -> bool {
         self.east < self.west
     }
 
@@ -38,10 +38,10 @@ impl BBox {
     fn bboxContains(&self, point: &GeoCoord) -> bool {
         if point.lat >= self.south && point.lat <= self.north && self.bboxIsTransmeridian() {
             // transmeridian case
-            (point.lon >= self.west || point.lon <= self.east)
+            point.lon >= self.west || point.lon <= self.east
         } else {
             // standard case
-            (point.lon >= self.west && point.lon <= self.east)
+            point.lon >= self.west && point.lon <= self.east
         }
     }
 
@@ -71,7 +71,7 @@ impl BBox {
 
         // Divide the two to get an estimate of the number of hexagons needed
         let estimate = ceil(a / pentagonAreaKm2).ceil() as i32;
-        if (estimate == 0) {
+        if estimate == 0 {
             1
         } else {
             estimate

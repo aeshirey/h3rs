@@ -1,3 +1,5 @@
+use crate::Direction;
+
 impl H3Index {
     /**
      * Returns whether or not the provided H3Indexes are neighbors.
@@ -7,17 +9,17 @@ impl H3Index {
      */
     fn h3IndexesAreNeighbors(&self, destination: &Self) -> bool {
         // Make sure they're hexagon indexes
-        if (self.H3_GET_MODE() != H3_HEXAGON_MODE || destination.H3_GET_MODE() != H3_HEXAGON_MODE) {
+        if self.H3_GET_MODE() != H3_HEXAGON_MODE || destination.H3_GET_MODE() != H3_HEXAGON_MODE {
             return false;
         }
 
         // Hexagons cannot be neighbors with themselves
-        if (self == destination) {
+        if self == destination {
             return false;
         }
 
         // Only hexagons in the same resolution can be neighbors
-        if (self.H3_GET_RESOLUTION() != destination.H3_GET_RESOLUTION()) {
+        if self.H3_GET_RESOLUTION() != destination.H3_GET_RESOLUTION() {
             return false;
         }
 
@@ -27,10 +29,10 @@ impl H3Index {
         // of origin and destination parents and then a lookup table of the children
         // is a super-cheap way to possibly determine they are neighbors.
         let parentRes = self.H3_GET_RESOLUTION() - 1;
-        if (parentRes > 0 && (self.h3ToParent(parentRes) == destination.h3ToParent(parentRes))) {
+        if parentRes > 0 && (self.h3ToParent(parentRes) == destination.h3ToParent(parentRes)) {
             let originResDigit: Direction = self.H3_GET_INDEX_DIGIT(parentRes + 1);
             let destinationResDigit: Direction = destination.H3_GET_INDEX_DIGIT(parentRes + 1);
-            if (originResDigit == CENTER_DIGIT || destinationResDigit == CENTER_DIGIT) {
+            if originResDigit == CENTER_DIGIT || destinationResDigit == CENTER_DIGIT {
                 return true;
             }
 
@@ -54,8 +56,8 @@ impl H3Index {
                 I_AXES_DIGIT,
                 J_AXES_DIGIT,
             ];
-            if (neighborSetClockwise[originResDigit] == destinationResDigit
-                || neighborSetCounterclockwise[originResDigit] == destinationResDigit)
+            if neighborSetClockwise[originResDigit as usize] == destinationResDigit
+                || neighborSetCounterclockwise[originResDigit as usize] == destinationResDigit
             {
                 return true;
             }
@@ -65,7 +67,7 @@ impl H3Index {
         let neighborRing: [H3Index; 7] = [H3Index::default(); 7];
         kRing(self, 1, neighborRing);
         for i in 0..7 {
-            if (neighborRing[i] == destination) {
+            if neighborRing[i] == destination {
                 return true;
             }
         }
@@ -86,7 +88,7 @@ impl H3Index {
         let direction: Direction = self.directionForNeighbor(destination);
 
         // The direction will be invalid if the cells are not neighbors
-        if (direction == INVALID_DIGIT) {
+        if direction == INVALID_DIGIT {
             return Self::H3_NULL;
         }
 
@@ -104,7 +106,7 @@ impl H3Index {
      * @return The origin H3 hexagon index, or H3_NULL on failure
      */
     fn getOriginH3IndexFromUnidirectionalEdge(&self) -> Self {
-        if (self.H3_GET_MODE() != H3_UNIEDGE_MODE) {
+        if self.H3_GET_MODE() != H3_UNIEDGE_MODE {
             return Self::H3_NULL;
         }
         let mut origin = self.clone();
@@ -119,7 +121,7 @@ impl H3Index {
      * @return The destination H3 hexagon index, or H3_NULL on failure
      */
     fn getDestinationH3IndexFromUnidirectionalEdge(&self) -> Self {
-        if (H3_GET_MODE(edge) != H3_UNIEDGE_MODE) {
+        if self.H3_GET_MODE() != H3_UNIEDGE_MODE {
             return Self::H3_NULL;
         }
 
@@ -140,17 +142,17 @@ impl H3Index {
      * @return 1 if it is a unidirectional edge H3Index, otherwise 0.
      */
     fn h3UnidirectionalEdgeIsValid(&self) -> bool {
-        if (self.H3_GET_MODE() != H3_UNIEDGE_MODE) {
+        if self.H3_GET_MODE() != H3_UNIEDGE_MODE {
             return false;
         }
 
         let neighborDirection: Direction = self.H3_GET_RESERVED_BITS();
-        if (neighborDirection <= CENTER_DIGIT || neighborDirection >= NUM_DIGITS) {
+        if neighborDirection <= CENTER_DIGIT || neighborDirection >= NUM_DIGITS {
             return false;
         }
 
         let origin = self.getOriginH3IndexFromUnidirectionalEdge();
-        if (h3IsPentagon(origin) && neighborDirection == K_AXES_DIGIT) {
+        if h3IsPentagon(origin) && neighborDirection == K_AXES_DIGIT {
             return false;
         }
 
@@ -185,7 +187,7 @@ impl H3Index {
         // slightly for each direction, except the 'k' direction in pentagons,
         // which is zeroed.
         for i in 0..6 {
-            if (isPentagon && i == 0) {
+            if isPentagon && i == 0 {
                 edges[i] = H3_NULL;
             } else {
                 edges[i] = origin;
@@ -209,7 +211,7 @@ impl H3Index {
 
         // Get the start vertex for the edge
         let startVertex = origin.vertexNumForDirection(direction);
-        if (startVertex == INVALID_VERTEX_NUM) {
+        if startVertex == INVALID_VERTEX_NUM {
             // This is not actually an edge (i.e. no valid direction), so return no vertices.
             return GeoBoundary::default();
         }
@@ -222,7 +224,7 @@ impl H3Index {
         let res = origin.H3_GET_RESOLUTION();
         let isPentagon = origin.h3IsPentagon();
 
-        if (isPentagon) {
+        if isPentagon {
             fijk._faceIjkPentToGeoBoundary(res, startVertex, 2)
         } else {
             fijk._faceIjkToGeoBoundary(res, startVertex, 2)

@@ -1,3 +1,5 @@
+use crate::Direction;
+
 /* localij */
 /**
  * Origin leading digit -> index leading digit -> rotations 60 cw
@@ -97,12 +99,12 @@ impl H3Index {
     fn h3Distance(&self, h3: &Self) -> i32 {
         todo!();
         //CoordIJK originIjk, h3Ijk;
-        if (h3ToLocalIjk(self, self, &originIjk)) {
+        if h3ToLocalIjk(self, self, &originIjk) {
             // Currently there are no tests that would cause getting the coordinates
             // for an index the same as the origin to fail.
             return -1; // LCOV_EXCL_LINE
         }
-        if (h3ToLocalIjk(self, h3, &h3Ijk)) {
+        if h3ToLocalIjk(self, h3, &h3Ijk) {
             return -1;
         }
 
@@ -149,20 +151,20 @@ impl H3Index {
     fn h3ToLocalIjk(&self, h3: &H3Index) -> (i32, CoordIJK) {
         let res = self.H3_GET_RESOLUTION();
 
-        if (res != h3.H3_GET_RESOLUTION()) {
+        if res != h3.H3_GET_RESOLUTION() {
             return (1, CoordIJK::default());
         }
 
         let originBaseCell = &self.H3_GET_BASE_CELL();
         let baseCell = h3.H3_GET_BASE_CELL();
 
-        if (originBaseCell < 0 ||  // LCOV_EXCL_BR_LINE
-            originBaseCell >= NUM_BASE_CELLS)
+        if originBaseCell < 0 ||  // LCOV_EXCL_BR_LINE
+            originBaseCell >= NUM_BASE_CELLS
         {
             // Base cells less than zero can not be represented in an index
             return (1, CoordIJK::default());
         }
-        if (baseCell < 0 || baseCell >= NUM_BASE_CELLS) {
+        if baseCell < 0 || baseCell >= NUM_BASE_CELLS {
             // LCOV_EXCL_BR_LINE
             // Base cells less than zero can not be represented in an index
             return (1, CoordIJK::default());
@@ -171,9 +173,9 @@ impl H3Index {
         // Direction from origin base cell to index base cell
         let mut dir = Direction::CENTER_DIGIT;
         let mut revDir = Direction::CENTER_DIGIT;
-        if (originBaseCell != baseCell) {
+        if originBaseCell != baseCell {
             dir = _getBaseCellDirection(originBaseCell, baseCell);
-            if (dir == INVALID_DIGIT) {
+            if dir == INVALID_DIGIT {
                 // Base cells are not neighbors, can't unfold.
                 return (2, CoordIJK::default());
             }
@@ -184,16 +186,16 @@ impl H3Index {
         let originOnPent = originBaseCell._isBaseCellPentagon();
         let indexOnPent = baseCell._isBaseCellPentagon();
 
-        if (dir != Direction::CENTER_DIGIT) {
+        if dir != Direction::CENTER_DIGIT {
             // Rotate index into the orientation of the origin base cell.
             // cw because we are undoing the rotation into that base cell.
             let baseCellRotations = baseCellNeighbor60CCWRots[originBaseCell][dir];
-            if (indexOnPent) {
+            if indexOnPent {
                 for i in 0..baseCellRotations {
                     h3 = _h3RotatePent60cw(h3);
 
                     revDir = _rotate60cw(revDir);
-                    if (revDir == K_AXES_DIGIT) {
+                    if revDir == K_AXES_DIGIT {
                         revDir = _rotate60cw(revDir);
                     }
                 }
@@ -207,36 +209,36 @@ impl H3Index {
         // Face is unused. This produces coordinates in base cell coordinate space.
         let indexFijk: FaceIJK = h3._h3ToFaceIjkWithInitializedFijk(&indexFijk);
 
-        if (dir != CENTER_DIGIT) {
+        if dir != CENTER_DIGIT {
             assert!(baseCell != originBaseCell);
             assert!(!(originOnPent && indexOnPent));
 
             let mut pentagonRotations = 0;
             let mut directionRotations = 0;
 
-            if (originOnPent) {
+            if originOnPent {
                 let originLeadingDigit = self._h3LeadingNonZeroDigit();
 
-                if (FAILED_DIRECTIONS[originLeadingDigit][dir]) {
+                if FAILED_DIRECTIONS[originLeadingDigit as usize][dir as usize] {
                     // TODO: We may be unfolding the pentagon incorrectly in this
                     // case; return an error code until this is guaranteed to be
                     // correct.
                     return (3, CoordIJK::default());
                 }
 
-                directionRotations = PENTAGON_ROTATIONS[originLeadingDigit][dir];
+                directionRotations = PENTAGON_ROTATIONS[originLeadingDigit as usize][dir as usize];
                 pentagonRotations = directionRotations;
-            } else if (indexOnPent) {
+            } else if indexOnPent {
                 let indexLeadingDigit = _h3LeadingNonZeroDigit(h3);
 
-                if (FAILED_DIRECTIONS[indexLeadingDigit][revDir]) {
+                if FAILED_DIRECTIONS[indexLeadingDigit as usize][revDir as usize] {
                     // TODO: We may be unfolding the pentagon incorrectly in this
                     // case; return an error code until this is guaranteed to be
                     // correct.
                     return (4, CoordIJK::default());
                 }
 
-                pentagonRotations = PENTAGON_ROTATIONS[revDir][indexLeadingDigit];
+                pentagonRotations = PENTAGON_ROTATIONS[revDir as usize][indexLeadingDigit as usize];
             }
 
             assert!(pentagonRotations >= 0);
@@ -252,7 +254,7 @@ impl H3Index {
             // Scale offset based on resolution
             for r in (r..res).rev() {
                 //for (int r = res - 1; r >= 0; r--) {
-                if (isResClassIII(r + 1)) {
+                if isResClassIII(r + 1) {
                     // rotate ccw
                     _downAp7(&offset);
                 } else {
@@ -268,7 +270,7 @@ impl H3Index {
             // Perform necessary translation
             indexFijk.coord += offset;
             indexFijk.coord._ijkNormalize();
-        } else if (originOnPent && indexOnPent) {
+        } else if originOnPent && indexOnPent {
             // If the origin and index are on pentagon, and we checked that the base
             // cells are the same or neighboring, then they must be the same base
             // cell.
@@ -277,13 +279,14 @@ impl H3Index {
             let originLeadingDigit = self._h3LeadingNonZeroDigit();
             let indexLeadingDigit = h3._h3LeadingNonZeroDigit();
 
-            if (FAILED_DIRECTIONS[originLeadingDigit][indexLeadingDigit]) {
+            if FAILED_DIRECTIONS[originLeadingDigit as usize][indexLeadingDigit as usize] {
                 // TODO: We may be unfolding the pentagon incorrectly in this case;
                 // return an error code until this is guaranteed to be correct.
                 return (5, CoordIJK::default());
             }
 
-            let withinPentagonRotations = PENTAGON_ROTATIONS[originLeadingDigit][indexLeadingDigit];
+            let withinPentagonRotations =
+                PENTAGON_ROTATIONS[originLeadingDigit as usize][indexLeadingDigit as usize];
 
             for _ in 0..withinPentagonRotations {
                 indexFijk.coord._ijkRotate60cw();
@@ -310,8 +313,8 @@ impl H3Index {
     fn localIjkToH3(origin: Self, ijk: &CoordIJK) -> (i32, H3Index) {
         let res = origin.H3_GET_RESOLUTION();
         let originBaseCell = origin.H3_GET_BASE_CELL();
-        if (originBaseCell < 0 ||  // LCOV_EXCL_BR_LINE
-                originBaseCell >= NUM_BASE_CELLS)
+        if originBaseCell < 0 ||  // LCOV_EXCL_BR_LINE
+                originBaseCell >= NUM_BASE_CELLS
         {
             // Base cells less than zero can not be represented in an index
             return (1, H3Index::default());
@@ -326,15 +329,15 @@ impl H3Index {
         out.H3_SET_RESOLUTION(res);
 
         // check for res 0/base cell
-        if (res == 0) {
-            if (ijk.i > 1 || ijk.j > 1 || ijk.k > 1) {
+        if res == 0 {
+            if ijk.i > 1 || ijk.j > 1 || ijk.k > 1 {
                 // out of range input
                 return (1, out);
             }
 
             let dir: Direction = ijk._unitIjkToDigit();
             let newBaseCell: i32 = originBaseCell._getBaseCellNeighbor(dir);
-            if (newBaseCell == INVALID_BASE_CELL) {
+            if newBaseCell == INVALID_BASE_CELL {
                 // Moving in an invalid direction off a pentagon.
                 return (1, out);
             }
@@ -353,7 +356,7 @@ impl H3Index {
         for r in (0..res).rev() {
             let lastIJK: CoordIJK = ijkCopy.clone();
             let lastCenter;
-            if (isResClassIII(r + 1)) {
+            if isResClassIII(r + 1) {
                 // rotate ccw
                 _upAp7(&ijkCopy);
                 lastCenter = ijkCopy;
@@ -374,7 +377,7 @@ impl H3Index {
         // ijkCopy should now hold the IJK of the base cell in the
         // coordinate system of the current base cell
 
-        if (ijkCopy.i > 1 || ijkCopy.j > 1 || ijkCopy.k > 1) {
+        if ijkCopy.i > 1 || ijkCopy.j > 1 || ijkCopy.k > 1 {
             // out of range input
             return (2, out);
         }
@@ -391,11 +394,11 @@ impl H3Index {
             _isBaseCellPentagon(baseCell)
         };
 
-        if (dir != CENTER_DIGIT) {
+        if dir != CENTER_DIGIT {
             // If the index is in a warped direction, we need to unwarp the base
             // cell direction. There may be further need to rotate the index digits.
             let mut pentagonRotations = 0;
-            if (originOnPent) {
+            if originOnPent {
                 let originLeadingDigit = origin._h3LeadingNonZeroDigit();
                 pentagonRotations = PENTAGON_ROTATIONS_REVERSE[originLeadingDigit][dir];
                 for _ in 0..pentagonRotations {
@@ -404,7 +407,7 @@ impl H3Index {
                 // The pentagon rotations are being chosen so that dir is not the
                 // deleted direction. If it still happens, it means we're moving
                 // into a deleted subsequence, so there is no index here.
-                if (dir == K_AXES_DIGIT) {
+                if dir == K_AXES_DIGIT {
                     return (3, out);
                 }
                 baseCell = _getBaseCellNeighbor(originBaseCell, dir);
@@ -424,7 +427,7 @@ impl H3Index {
             // should be in the right location, so now we need to rotate the index
             // back. We might not need to check for errors since we would just be
             // double mapping.
-            if (indexOnPent) {
+            if indexOnPent {
                 let revDir: Direction = _getBaseCellDirection(baseCell, originBaseCell);
                 assert!(revDir != INVALID_DIGIT);
 
@@ -436,7 +439,7 @@ impl H3Index {
                 }
 
                 let indexLeadingDigit: Direction = out._h3LeadingNonZeroDigit();
-                if (baseCell._isBaseCellPolarPentagon()) {
+                if baseCell._isBaseCellPolarPentagon() {
                     pentagonRotations = PENTAGON_ROTATIONS_REVERSE_POLAR[revDir][indexLeadingDigit];
                 } else {
                     pentagonRotations =
@@ -458,7 +461,7 @@ impl H3Index {
                     out = _h3Rotate60ccw(*out);
                 }
             }
-        } else if (originOnPent && indexOnPent) {
+        } else if originOnPent && indexOnPent {
             let originLeadingDigit = origin._h3LeadingNonZeroDigit();
             let indexLeadingDigit = out._h3LeadingNonZeroDigit();
 
@@ -471,11 +474,11 @@ impl H3Index {
             }
         }
 
-        if (indexOnPent) {
+        if indexOnPent {
             // TODO: There are cases in h3ToLocalIjk which are failed but not
             // accounted for here - instead just fail if the recovered index is
             // invalid.
-            if (out._h3LeadingNonZeroDigit() == K_AXES_DIGIT) {
+            if out._h3LeadingNonZeroDigit() == K_AXES_DIGIT {
                 return (4, out);
             }
         }
@@ -513,7 +516,7 @@ impl H3Index {
         /*
         CoordIJK ijk;
         int failed = h3ToLocalIjk(origin, h3, &ijk);
-        if (failed) {
+        if failed {
         return failed;
         }
 
@@ -578,7 +581,7 @@ impl H3Index {
     fn h3Line(&self, end: &H3Index) -> (i32, Vec<H3Index>) {
         let distance = start.h3Distance(end);
         // Early exit if we can't calculate the line
-        if (distance < 0) {
+        if distance < 0 {
             return (distance, Vec::new());
         }
 

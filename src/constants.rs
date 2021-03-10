@@ -49,3 +49,6 @@ pub const H3_HEXAGON_MODE: i32 = 1;
 pub const H3_UNIEDGE_MODE: i32 = 2;
 pub const H3_EDGE_MODE: i32 = 3;
 pub const H3_VERTEX_MODE: i32 = 4;
+
+/// square root of 7
+pub const M_SQRT7: f64 = 2.6457513110645905905016157536392604257102;
