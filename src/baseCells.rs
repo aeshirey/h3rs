@@ -1626,13 +1626,13 @@ fn _baseCellToCCWrot60(baseCell: i32, face: i32) -> i32 {
 
 /// Return whether or not the tested face is a cw offset face.
 fn _baseCellIsCwOffset(baseCell: i32, testFace: i32) -> bool {
-    baseCellData[baseCell].cwOffsetPent[0] == testFace
-        || baseCellData[baseCell].cwOffsetPent[1] == testFace
+    baseCellData[baseCell as usize].cwOffsetPent[0] == testFace
+        || baseCellData[baseCell as usize].cwOffsetPent[1] == testFace
 }
 
 /// Return the neighboring base cell in the given direction.
 fn _getBaseCellNeighbor(baseCell: i32, dir: Direction) -> i32 {
-    baseCellNeighbors[baseCell][dir]
+    baseCellNeighbors[baseCell as usize][dir as usize]
 }
 
 /// Return the direction from the origin base cell to the neighbor.

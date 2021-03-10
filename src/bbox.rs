@@ -46,7 +46,7 @@ impl BBox {
     }
 
     /// returns an estimated number of hexagons that fit within the cartesian-projected bounding box
-    fn bboxHexEstimate(&self /*bbox*/, res: i32) -> i32 {
+    fn bboxHexEstimate(&self /*bbox*/, res: Resolution) -> i32 {
         // Get the area of the pentagon as the maximally-distorted area possible
         let pentagons = getPentagonIndexes(res);
         let pentagonRadiusKm: f64 = pentagons[0]._hexRadiusKm();

@@ -1,6 +1,8 @@
 use crate::constants::*;
 use crate::faceijk::*;
 use crate::geocoord::*;
+use crate::h3index::{H3Index, Resolution};
+use crate::CoordIJK;
 
 #[derive(PartialEq, Default)]
 pub struct Vec2d {
@@ -127,7 +129,7 @@ impl Vec2d {
                 // even
                 let axisi = j / 2;
                 let diff = i - axisi;
-                i = i - (2.0 * diff) as i32;
+                i = i - 2 * diff;
             } else {
                 let axisi = (j + 1) / 2;
                 let diff = i - axisi;
@@ -141,9 +143,8 @@ impl Vec2d {
         }
 
         let h = CoordIJK { i, j, k };
-        h._ijkNormalize()
-
-        //_ijkNormalize(h);
+        h._ijkNormalize();
+        h
     }
 
     /// Determines the center point in spherical coordinates of a cell given by 2D hex coordinates on a particular icosahedral face.
@@ -155,7 +156,7 @@ impl Vec2d {
     ///@param substrate Indicates whether or not this grid is actually a substrate
     ///       grid relative to the specified resolution.
     ///@param g The spherical coordinates of the cell center point.
-    fn _hex2dToGeo(&self, face: i32, res: i32, substrate: bool) -> GeoCoord {
+    fn _hex2dToGeo(&self, face: i32, res: Resolution, substrate: bool) -> GeoCoord {
         // calculate (r, theta) in hex2d
         let mut r: f64 = self._v2dMag();
 

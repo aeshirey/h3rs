@@ -5,11 +5,11 @@ use std::{cmp, ops};
 ///Each axis is spaced 120 degrees apart.
 pub struct CoordIJK {
     /// i component
-    i: i32,
+    pub(crate) i: i32,
     /// j component
-    j: i32,
+    pub(crate) j: i32,
     /// k component
-    k: i32,
+    pub(crate) k: i32,
 }
 
 impl CoordIJK {
@@ -146,7 +146,7 @@ impl CoordIJK {
         //if (digit > CENTER_DIGIT && digit < NUM_DIGITS) {
         //_ijkAdd(ijk, &UNIT_VECS[digit], ijk);
         let ijk = self + digit.unit_vecs();
-        self += ijk;
+        *self += ijk;
         self._ijkNormalize();
         //}
     }
@@ -274,9 +274,9 @@ impl CoordIJK {
      * @param ijk IJK coord struct, modified in place
      */
     fn cubeRound(&mut self, i: f64, j: f64, k: f64) {
-        let mut ri = i.round() as i32;
-        let mut rj = j.round() as i32;
-        let mut rk = k.round() as i32;
+        let mut ri = i.round(); // as i32;
+        let mut rj = j.round(); // as i32;
+        let mut rk = k.round(); // as i32;
 
         let iDiff = (ri - i).abs();
         let jDiff = (rj - j).abs();
@@ -291,9 +291,9 @@ impl CoordIJK {
             rk = -ri - rj;
         }
 
-        self.i = ri;
-        self.j = rj;
-        self.k = rk;
+        self.i = ri as i32;
+        self.j = rj as i32;
+        self.k = rk as i32;
     }
 }
 
@@ -308,16 +308,6 @@ impl ops::Add for CoordIJK {
     }
 }
 
-impl ops::Mul<i32> for CoordIJK {
-    type Output = Self;
-    fn mul(self, factor: i32) -> Self {
-        let i = self.i * factor;
-        let j = self.j * factor;
-        let k = self.k * factor;
-        Self { i, j, k }
-    }
-}
-
 impl ops::Sub for CoordIJK {
     type Output = Self;
     fn sub(self, other: Self) -> Self {
@@ -325,6 +315,16 @@ impl ops::Sub for CoordIJK {
         let j = self.j - other.j;
         let k = self.k - other.k;
 
+        Self { i, j, k }
+    }
+}
+
+impl ops::Mul<i32> for CoordIJK {
+    type Output = Self;
+    fn mul(self, factor: i32) -> Self {
+        let i = self.i * factor;
+        let j = self.j * factor;
+        let k = self.k * factor;
         Self { i, j, k }
     }
 }

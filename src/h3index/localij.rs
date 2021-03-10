@@ -400,7 +400,8 @@ impl H3Index {
             let mut pentagonRotations = 0;
             if originOnPent {
                 let originLeadingDigit = origin._h3LeadingNonZeroDigit();
-                pentagonRotations = PENTAGON_ROTATIONS_REVERSE[originLeadingDigit][dir];
+                pentagonRotations =
+                    PENTAGON_ROTATIONS_REVERSE[originLeadingDigit as usize][dir as usize];
                 for _ in 0..pentagonRotations {
                     dir = _rotate60ccw(dir);
                 }
@@ -420,7 +421,8 @@ impl H3Index {
 
             // Now we can determine the relation between the origin and target base
             // cell.
-            let baseCellRotations = baseCellNeighbor60CCWRots[originBaseCell][dir];
+            let baseCellRotations =
+                baseCellNeighbor60CCWRots[originBaseCell as usize][dir as usize];
             assert!(baseCellRotations >= 0);
 
             // Adjust for pentagon warping within the base cell. The base cell
@@ -440,10 +442,11 @@ impl H3Index {
 
                 let indexLeadingDigit: Direction = out._h3LeadingNonZeroDigit();
                 if baseCell._isBaseCellPolarPentagon() {
-                    pentagonRotations = PENTAGON_ROTATIONS_REVERSE_POLAR[revDir][indexLeadingDigit];
+                    pentagonRotations = PENTAGON_ROTATIONS_REVERSE_POLAR[revDir as usize]
+                        [indexLeadingDigit as usize];
                 } else {
-                    pentagonRotations =
-                        PENTAGON_ROTATIONS_REVERSE_NONPOLAR[revDir][indexLeadingDigit];
+                    pentagonRotations = PENTAGON_ROTATIONS_REVERSE_NONPOLAR[revDir as usize]
+                        [indexLeadingDigit as usize];
                 }
 
                 assert!(pentagonRotations >= 0);
@@ -466,7 +469,7 @@ impl H3Index {
             let indexLeadingDigit = out._h3LeadingNonZeroDigit();
 
             let withinPentagonRotations =
-                PENTAGON_ROTATIONS_REVERSE[originLeadingDigit][indexLeadingDigit];
+                PENTAGON_ROTATIONS_REVERSE[originLeadingDigit as usize][indexLeadingDigit as usize];
             assert!(withinPentagonRotations >= 0);
 
             for _ in 0..withinPentagonRotations {
@@ -484,7 +487,7 @@ impl H3Index {
         }
 
         out.H3_SET_BASE_CELL(baseCell);
-        return (0, out);
+        (0, out)
     }
 
     /**

@@ -1,3 +1,5 @@
+use crate::GeoCoord;
+
 /// A single node in a vertex graph, part of a linked list
 struct VertexNode {
     from: GeoCoord,
@@ -21,7 +23,7 @@ impl VertexGraph {
      * @param  numBuckets Number of buckets to include in the graph
      * @param  res        Resolution of the hexagons whose vertices we're storing
      */
-    fn initVertexGraph(numBuckets: i32, res: i32) -> Self {
+    fn initVertexGraph(numBuckets: i32, res: Resolution) -> Self {
         let buckets = if numBuckets > 0 {
             Some(Vec::with_capacity(numBuckets as usize))
         } else {

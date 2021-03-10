@@ -177,11 +177,11 @@ impl H3Index {
      * @param origin The origin hexagon H3Index to find edges for.
      * @param edges The memory to store all of the edges inside.
      */
-    fn getH3UnidirectionalEdgesFromHexagon(&self) {
+    pub(crate) fn getH3UnidirectionalEdgesFromHexagon(&self) {
         // Determine if the origin is a pentagon and special treatment needed.
         let isPentagon = self.h3IsPentagon();
 
-        let mut edges = [H3Index; 6] = [Self::H3_Null; 6];
+        let mut edges: [H3Index; 6] = [Self::H3_Null; 6];
 
         // This is actually quite simple. Just modify the bits of the origin
         // slightly for each direction, except the 'k' direction in pentagons,

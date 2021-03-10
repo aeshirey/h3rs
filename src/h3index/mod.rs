@@ -2,8 +2,14 @@ mod h3UniEdge;
 mod localij;
 mod vertex;
 
+use crate::constants::*;
+use crate::faceijk::*;
+use crate::GeoBoundary;
+
 #[derive(Copy, Clone, PartialEq, Eq)]
-struct H3Index(u64);
+pub struct H3Index(u64);
+
+type Resolution: usize = impl usize;
 
 // constants and macros for bitwise manipulation of H3Index
 
@@ -120,18 +126,18 @@ impl H3Index {
     }
 
     /// Gets the integer resolution of h3.
-    fn H3_GET_RESOLUTION(&self) -> u64 {
-        (self.0 & H3_RES_MASK) >> H3_RES_OFFSET
+    fn H3_GET_RESOLUTION(&self) -> Resolution {
+        ((self.0 & H3_RES_MASK) >> H3_RES_OFFSET) as Resolution
     }
 
     /// Sets the integer resolution of h3.
-    fn H3_SET_RESOLUTION(&mut self, res: u64) {
+    fn H3_SET_RESOLUTION(&mut self, res: Resolution) {
         //(h3) = (((h3)&H3_RES_MASK_NEGATIVE) | (((uint64_t)(res)) << H3_RES_OFFSET))
-        self.0 = (self.0 & H3_RES_MASK_NEGATIVE) | (res << H3_RES_OFFSET);
+        self.0 = (self.0 & H3_RES_MASK_NEGATIVE) | ((res as u64) << H3_RES_OFFSET);
     }
 
     /// Gets the resolution res integer digit (0-7) of h3.
-    fn H3_GET_INDEX_DIGIT(&self, res: i32) -> Direction {
+    fn H3_GET_INDEX_DIGIT(&self, res: Resolution) -> Direction {
         //((Direction)((((h3) >> ((MAX_H3_RES - (res)) * H3_PER_DIGIT_OFFSET)) & \
         //              H3_DIGIT_MASK)))
         let d = (self.0 >> ((MAX_H3_RES - res) * H3_PER_DIGIT_OFFSET)) & H3_DIGIT_MASK;
@@ -149,7 +155,7 @@ impl H3Index {
     }
 
     /// Sets the resolution res digit of h3 to the integer digit (0-7)
-    fn H3_SET_INDEX_DIGIT(&mut self, res: u64, digit: u64) {
+    fn H3_SET_INDEX_DIGIT(&mut self, res: Resolution, digit: u64) {
         self.0 = (self.0 & !(H3_DIGIT_MASK << ((MAX_H3_RES - res) * H3_PER_DIGIT_OFFSET)))
             | (digit << ((MAX_H3_RES - res) * H3_PER_DIGIT_OFFSET));
     }
@@ -265,7 +271,7 @@ impl H3Index {
      * @param baseCell The H3 base cell to initialize the index to.
      * @param initDigit The H3 digit (0-7) to initialize all of the index digits to.
      */
-    fn setH3Index(res: i32, baseCell: i32, initDigit: Direction) -> Self {
+    fn setH3Index(res: Resolution, baseCell: i32, initDigit: Direction) -> Self {
         let mut h = H3Index::H3_INIT();
 
         h.H3_SET_MODE(H3_HEXAGON_MODE);
@@ -623,7 +629,7 @@ impl H3Index {
         numHexes: i32,
         h3Set: &mut Self,
         maxHexes: i32,
-        res: i32,
+        res: Resolution,
     ) -> i32 {
         let mut outOffset = 0;
         for i in 0..numHexes {
@@ -670,7 +676,7 @@ impl H3Index {
      * @return The number of hexagons to allocate memory for, or a negative
      * number if an error occurs.
      */
-    fn maxUncompactSize(compactedSet: Vec<H3Index>, res: i32) -> i32 {
+    fn maxUncompactSize(compactedSet: Vec<H3Index>, res: Resolution) -> i32 {
         let mut maxNumHexagons = 0;
         for h in compactedSet.iter() {
             if h == 0 {
@@ -1048,7 +1054,7 @@ impl H3Index {
     ///
     ///@param res The resolution to produce pentagons at.
     ///@param out Output array. Must be of size pentagonIndexCount().
-    fn getPentagonIndexes(res: i32) -> Vec<H3Index> {
+    fn getPentagonIndexes(res: Resolution) -> Vec<H3Index> {
         let mut out = Vec::new();
 
         for bc in 0..NUM_BASE_CELLS {
@@ -1068,7 +1074,7 @@ impl H3Index {
      * @return 1 if the resolution is a Class III grid, and 0 if the resolution is
      *         a Class II grid.
      */
-    fn isResClassIII(res: i32) -> bool {
+    pub(crate) fn isResClassIII(res: Resolution) -> bool {
         res % 2 == 1
     }
 
@@ -1120,8 +1126,8 @@ impl H3Index {
         let gb: GeoBoundary = self.getH3UnidirectionalEdgeBoundary();
 
         let mut length = 0.0;
-        for i in 0..(gb.numVerts - 1) {
-            length += gb.verts[i].pointDistRads(&gb.verts[i + 1]);
+        for i in 0..gb.0.len() - 1 {
+            length += gb.0[i].pointDistRads(&gb.0[i + 1]);
         }
 
         length

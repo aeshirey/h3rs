@@ -46,7 +46,9 @@ impl FaceIJK {
     ///
     ///Valid ijk+ lookup coordinates are from (0, 0, 0) to (2, 2, 2).
     fn _faceIjkToBaseCell(&self) -> i32 {
-        faceIjkBaseCells[self.face][self.coord.i][self.coord.j][self.coord.k].baseCell
+        faceIjkBaseCells[self.face as usize][self.coord.i as usize][self.coord.j as usize]
+            [self.coord.k as usize]
+            .baseCell
     }
 
     /// Find base cell given FaceIJK.
@@ -57,12 +59,14 @@ impl FaceIJK {
     ///
     ///Valid ijk+ lookup coordinates are from (0, 0, 0) to (2, 2, 2).
     fn _faceIjkToBaseCellCCWrot60(&self) -> i32 {
-        faceIjkBaseCells[self.face][self.coord.i][self.coord.j][self.coord.k].ccwRot60
+        faceIjkBaseCells[self.face as usize][self.coord.i as usize][self.coord.j as usize]
+            [self.coord.k as usize]
+            .ccwRot60
     }
 
     /// Find the FaceIJK given a base cell.
     fn _baseCellToFaceIjk(baseCell: i32) -> Self {
-        baseCellData[baseCell].homeFijk
+        baseCellData[baseCell as usize].homeFijk
     }
 
     /// Determines the center point in spherical coordinates of a cell given by a FaceIJK address at a specified resolution.
@@ -70,7 +74,7 @@ impl FaceIJK {
     ///@param h The FaceIJK address of the cell.
     ///@param res The H3 resolution of the cell.
     ///@param g The spherical coordinates of the cell center point.
-    pub fn _faceIjkToGeo(&self, res: i32) -> GeoCoord {
+    pub fn _faceIjkToGeo(&self, res: Resolution) -> GeoCoord {
         let v: Vec2d = self.coord._ijkToHex2d();
         v._hex2dToGeo(self.face, res, false)
     }
@@ -84,7 +88,7 @@ impl FaceIJK {
     ///@param g The spherical coordinates of the cell boundary.
     fn _faceIjkPentToGeoBoundary(
         &self, /* h */
-        res: i32,
+        res: Resolution,
         start: i32,
         length: i32,
     ) -> GeoBoundary /* g */ {
@@ -196,7 +200,7 @@ impl FaceIJK {
     ///@param res The H3 resolution of the cell. This may be adjusted if
     ///           necessary for the substrate grid resolution.
     ///@param fijkVerts Output array for the vertices
-    fn _faceIjkPentToVerts(&mut self /*fijk*/, res: &mut i32) -> FaceIJK /*fijkVerts*/ {
+    fn _faceIjkPentToVerts(&mut self /*fijk*/, res: &mut Resolution) -> FaceIJK /*fijkVerts*/ {
         todo!()
         /*
         // the vertexes of an origin-centered pentagon in a Class II resolution on a
@@ -262,8 +266,12 @@ impl FaceIJK {
     ///@param start The first topological vertex to return.
     ///@param length The number of topological vertexes to return.
     ///@param g The spherical coordinates of the cell boundary.
-    fn _faceIjkToGeoBoundary(&self /* h */, res: i32, start: i32, length: i32) -> GeoBoundary /* g */
-    {
+    fn _faceIjkToGeoBoundary(
+        &self, /* h */
+        res: Resolution,
+        start: i32,
+        length: i32,
+    ) -> GeoBoundary /* g */ {
         todo!()
         /*
                    int adjRes = res;
@@ -378,7 +386,7 @@ impl FaceIJK {
     ///        on substrate grids); 2 if overage on new face interior
     fn _adjustOverageClassII(
         &mut self, /*fijk*/
-        res: i32,
+        res: Resolution,
         pentLeading4: bool,
         substrate: bool,
     ) -> Overage {
@@ -386,7 +394,7 @@ impl FaceIJK {
         let mut ijk: CoordIJK = self.coord;
 
         // get the maximum dimension value; scale if a substrate grid
-        let mut maxDim = maxDimByCIIres[res as usize];
+        let mut maxDim = maxDimByCIIres[res];
         if substrate {
             maxDim *= 3;
         }
@@ -431,7 +439,7 @@ impl FaceIJK {
             }
 
             let mut transVec = fijkOrient.translate;
-            let unitScale = unitScaleByCIIres[res as usize];
+            let unitScale = unitScaleByCIIres[res];
             if substrate {
                 unitScale *= 3;
             }
@@ -454,7 +462,7 @@ impl FaceIJK {
     ///
     ///@param fijk The FaceIJK address of the cell.
     ///@param res The H3 resolution of the cell.
-    fn _adjustPentVertOverage(&mut self, res: i32) -> Overage {
+    fn _adjustPentVertOverage(&mut self, res: Resolution) -> Overage {
         let pentLeading4 = false;
         let mut overage = Overage::NEW_FACE;
         while overage == Overage::NEW_FACE {
@@ -470,7 +478,7 @@ impl FaceIJK {
      * @param res The cell resolution.
      * @return The encoded H3Index (or H3_NULL on failure).
      */
-    fn _faceIjkToH3(&self /*fijk*/, res: i32) -> H3Index {
+    fn _faceIjkToH3(&self /*fijk*/, res: Resolution) -> H3Index {
         // initialize the index
         let mut h = H3Index::H3_INIT();
         h.H3_SET_MODE(H3_HEXAGON_MODE);
@@ -571,8 +579,7 @@ impl FaceIJK {
      *            necessary for the substrate grid resolution.
      * @param fijkVerts Output array for the vertices
      */
-    //fn _faceIjkToVerts(FaceIJK* fijk, int* res, FaceIJK* fijkVerts)
-    fn _faceIjkToVerts(&self, res: &mut i32) -> Vec<FaceIJK> {
+    fn _faceIjkToVerts(&self, res: &mut Resolution) -> Vec<FaceIJK> {
         todo!("This function still in-progress");
         // the vertexes of an origin-centered cell in a Class II resolution on a
         // substrate grid with aperture sequence 33r. The aperture 3 gets us the
@@ -640,10 +647,10 @@ const KI: i32 = 2;
 const JK: i32 = 3;
 
 /// Invalid face index */
-const INVALID_FACE: i32 = -1;
+pub(crate) const INVALID_FACE: i32 = -1;
 
 /// icosahedron face centers in lat/lon radians
-const faceCenterGeo: [GeoCoord; NUM_ICOSA_FACES] = [
+pub(crate) const faceCenterGeo: [GeoCoord; NUM_ICOSA_FACES] = [
     GeoCoord::new(0.803582649718989942, 1.248397419617396099), // face  0
     GeoCoord::new(1.307747883455638156, 2.536945009877921159), // face  1
     GeoCoord::new(1.054751253523952054, -1.347517358900396623), // face  2
