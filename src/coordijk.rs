@@ -1,5 +1,7 @@
 use std::{cmp, ops};
 
+use crate::{constants::M_SQRT3_2, coordij::CoordIJ, direction::Direction, vec2d::Vec2d};
+
 #[derive(Copy, Clone, Default)]
 /// IJK hexagon coordinates
 ///Each axis is spaced 120 degrees apart.
@@ -136,7 +138,7 @@ impl CoordIJK {
         let j = self.j - self.k;
 
         let x = i as f64 - 0.5 * j as f64;
-        let y = j * M_SQRT3_2;
+        let y = j as f64 * M_SQRT3_2;
 
         Vec2d { x, y }
     }
@@ -233,8 +235,8 @@ impl CoordIJK {
     }
 
     /// Finds the distance between the two coordinates. Returns result.
-    pub fn ijkDistance(&self, other: &Self) -> i32c {
-        let mut diff = self - other;
+    pub fn ijkDistance(&self, other: &Self) -> i32 {
+        let mut diff = *self - *other;
         diff._ijkNormalize();
 
         let i = diff.i.abs();

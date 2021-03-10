@@ -1,5 +1,10 @@
-use crate::constants::*;
 use crate::Vec3d;
+use crate::{
+    constants::*,
+    faceijk::*,
+    h3index::{H3Index, Resolution, H3_NULL},
+    vec2d::Vec2d,
+};
 
 /// epsilon of ~0.1mm in degrees
 const EPSILON_DEG: f64 = 0.000000001;
@@ -17,6 +22,7 @@ pub(crate) fn _posAngleRads(rads: f64) -> f64 {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct GeoCoord {
     lat: f64, // latitude in radians
     lon: f64, // longitude in radians
@@ -85,7 +91,7 @@ impl GeoCoord {
     /// Computes the point on the sphere a specified azimuth and distance from another point.
     pub fn _geoAzDistanceRads(p1: &GeoCoord, az: f64, distance: f64) -> GeoCoord {
         if distance < EPSILON {
-            return p1;
+            return *p1;
         }
 
         let az = _posAngleRads(az);
@@ -106,7 +112,7 @@ impl GeoCoord {
                 // north pole
                 lat = M_PI_2;
                 lon = 0.0;
-            } else if p2.lat + M_PI_2.abs() < EPSILON {
+            } else if lat + M_PI_2.abs() < EPSILON {
                 // south pole
                 lat = -M_PI_2;
                 lon = 0.0;
@@ -203,10 +209,10 @@ impl GeoCoord {
             6.3,
             0.9,
         ];
-        areas[res]
+        AREAS[res]
     }
 
-    fn edgeLengthKm(res: Resolution) -> f32 {
+    fn edgeLengthKm(res: Resolution) -> f64 {
         const LENS: [f64; 16] = [
             1107.712591,
             418.6760055,
@@ -225,7 +231,7 @@ impl GeoCoord {
             0.001348575,
             0.000509713,
         ];
-        lens[res]
+        LENS[res]
     }
 
     fn edgeLengthM(res: Resolution) -> f64 {
@@ -247,11 +253,11 @@ impl GeoCoord {
             1.348574562,
             0.509713273,
         ];
-        lens[res]
+        LENS[res]
     }
 
     fn numHexagons(res: Resolution) -> i64 {
-        2 + 120 * 7_i32.pow(res)
+        2 + 120 * 7_i64.pow(res as u32)
     }
 
     /// Surface area in radians^2 of spherical triangle on unit sphere.
@@ -272,12 +278,12 @@ impl GeoCoord {
         let c = (s - c) / 2.;
         s = s / 2.;
 
-        4.0 * atan((s.tan() * a.tan() * b.tan() * c.tan()).sqrt())
+        4.0 * f64::atan((s.tan() * a.tan() * b.tan() * c.tan()).sqrt())
     }
 
     /// Compute area in radians^2 of a spherical triangle, given its vertices.
     fn triangleArea(a: &GeoCoord, b: &GeoCoord, c: &GeoCoord) -> f64 {
-        triangleEdgeLengthsToArea(a.pointDistRads(b), b.pointDistRads(c), c.pointDistRads(a))
+        Self::triangleEdgeLengthsToArea(a.pointDistRads(b), b.pointDistRads(c), c.pointDistRads(a))
     }
 
     /// Calculate the 3D coordinate on unit sphere from the latitude and longitude.
@@ -299,7 +305,7 @@ impl GeoCoord {
     /// @return the estimated number of hexagons required to trace the line
     fn lineHexEstimate(&self, destination: &Self, res: Resolution) -> i32 {
         // Get the area of the pentagon as the maximally-distorted area possible
-        let pentagons = getPentagonIndexes(res);
+        let pentagons = H3Index::getPentagonIndexes(res);
         let pentagonRadiusKm = pentagons[0]._hexRadiusKm();
 
         let dist = self.pointDistKm(destination);
@@ -334,7 +340,7 @@ impl GeoCoord {
     ///@param face The icosahedral face containing the spherical coordinates.
     ///@param v The 2D hex coordinates of the cell containing the point.
     fn _geoToHex2d(&self /* g */, res: Resolution) -> (i32, Vec2d) {
-        let v3d = g._geoToVec3d();
+        let v3d = self._geoToVec3d();
 
         // determine the icosahedron face
         let mut face = 0;
@@ -356,11 +362,11 @@ impl GeoCoord {
 
         // now have face and r, now find CCW theta from CII i-axis
         let mut theta = _posAngleRads(
-            faceAxesAzRadsCII[face][0] - _posAngleRads(faceCenterGeo[face]._geoAzimuthRads(&g)),
+            faceAxesAzRadsCII[face][0] - _posAngleRads(faceCenterGeo[face]._geoAzimuthRads(self)),
         );
 
         // adjust theta for Class III (odd resolutions)
-        if isResClassIII(res) {
+        if H3Index::isResClassIII(res) {
             theta = _posAngleRads(theta - M_AP7_ROT_RADS);
         }
 
@@ -395,7 +401,7 @@ impl GeoCoord {
         if res < 0 || res > MAX_H3_RES {
             return H3_NULL;
         }
-        if is_infinite(self.lat) || self.lon.is_infinite() {
+        if self.lat.is_infinite() || self.lon.is_infinite() {
             return H3_NULL;
         }
 

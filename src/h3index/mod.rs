@@ -9,7 +9,9 @@ use crate::GeoBoundary;
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub struct H3Index(u64);
 
-type Resolution: usize = impl usize;
+pub const H3_NULL: H3Index = H3Index(0);
+
+pub type Resolution = usize;
 
 // constants and macros for bitwise manipulation of H3Index
 
@@ -1054,7 +1056,7 @@ impl H3Index {
     ///
     ///@param res The resolution to produce pentagons at.
     ///@param out Output array. Must be of size pentagonIndexCount().
-    fn getPentagonIndexes(res: Resolution) -> Vec<H3Index> {
+    pub fn getPentagonIndexes(res: Resolution) -> Vec<H3Index> {
         let mut out = Vec::new();
 
         for bc in 0..NUM_BASE_CELLS {

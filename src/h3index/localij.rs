@@ -1,4 +1,5 @@
-use crate::Direction;
+use super::H3Index;
+use crate::{constants::*, coordijk::CoordIJK, Direction};
 
 /* localij */
 /**
@@ -99,7 +100,8 @@ impl H3Index {
     fn h3Distance(&self, h3: &Self) -> i32 {
         todo!();
         //CoordIJK originIjk, h3Ijk;
-        if h3ToLocalIjk(self, self, &originIjk) {
+        /*
+        if self.h3ToLocalIjk(self, self, &originIjk) {
             // Currently there are no tests that would cause getting the coordinates
             // for an index the same as the origin to fail.
             return -1; // LCOV_EXCL_LINE
@@ -109,6 +111,7 @@ impl H3Index {
         }
 
         originIjk.ijkDistance(&h3Ijk)
+        */
     }
 
     /**

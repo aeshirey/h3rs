@@ -1,3 +1,5 @@
+use super::H3Index;
+
 /* vertex */
 impl H3Index {
     /**

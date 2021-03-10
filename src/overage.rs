@@ -1,3 +1,4 @@
+#[derive(Clone, Copy, PartialEq)]
 /// Digit representing overage type
 pub enum Overage {
     /// No overage (on original face)

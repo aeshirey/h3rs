@@ -1,3 +1,4 @@
+use crate::h3index::Resolution;
 use crate::GeoCoord;
 
 /// A single node in a vertex graph, part of a linked list

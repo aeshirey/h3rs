@@ -1,3 +1,5 @@
+use crate::{constants::INVALID_BASE_CELL, faceijk::FaceIJK};
+
 /// Base cell related lookup tables and access functions.
 
 /// information on a single base cell
@@ -10,12 +12,18 @@ pub struct BaseCellData {
     cwOffsetPent: [i32; 2],
 }
 
+/// Maximum input for any component to face-to-base-cell lookup functions
+pub const MAX_FACE_COORD: i32 = 2;
+
+/// Invalid number of rotations
+pub const INVALID_ROTATIONS: i32 = -1;
+
 impl BaseCellData {
     pub const fn new(face: i32, coord: [i32; 3], isPentagon: bool, cwOffsetPent: [i32; 2]) -> Self {
         Self {
             homeFijk: FaceIJK::new(face, coord),
             isPentagon,
-            cwOffsentPent,
+            cwOffsetPent,
         }
     }
 }

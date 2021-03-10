@@ -31,7 +31,7 @@ pub const EARTH_RADIUS_KM: f64 = 6371.007180918475;
 pub const RES0_U_GNOMONIC: f64 = 0.38196601125010500003;
 
 // max H3 resolution; H3 version 1 has 16 resolutions, numbered 0 through 15
-pub const MAX_H3_RES: i32 = 15;
+pub const MAX_H3_RES: usize = 15;
 
 // The number of faces on an icosahedron
 pub const NUM_ICOSA_FACES: i32 = 20;
@@ -52,3 +52,5 @@ pub const H3_VERTEX_MODE: i32 = 4;
 
 /// square root of 7
 pub const M_SQRT7: f64 = 2.6457513110645905905016157536392604257102;
+
+pub const INVALID_BASE_CELL: i32 = 127;

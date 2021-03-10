@@ -1,4 +1,4 @@
-use crate::{CoordIJK, Vec3d};
+use crate::{h3index::Resolution, overage::Overage, CoordIJK, Vec3d};
 
 ///Information to transform into an adjacent face IJK system
 pub struct FaceOrientIJK {
@@ -466,7 +466,7 @@ impl FaceIJK {
         let pentLeading4 = false;
         let mut overage = Overage::NEW_FACE;
         while overage == Overage::NEW_FACE {
-            overage = self._adjustOverageClassII(res, pentLeading4, 1);
+            overage = self._adjustOverageClassII(res, pentLeading4, true);
         }
 
         overage
@@ -478,7 +478,7 @@ impl FaceIJK {
      * @param res The cell resolution.
      * @return The encoded H3Index (or H3_NULL on failure).
      */
-    fn _faceIjkToH3(&self /*fijk*/, res: Resolution) -> H3Index {
+    pub fn _faceIjkToH3(&self /*fijk*/, res: Resolution) -> H3Index {
         // initialize the index
         let mut h = H3Index::H3_INIT();
         h.H3_SET_MODE(H3_HEXAGON_MODE);
@@ -674,7 +674,7 @@ pub(crate) const faceCenterGeo: [GeoCoord; NUM_ICOSA_FACES] = [
 ];
 
 /// icosahedron face centers in x/y/z on the unit sphere
-const faceCenterPoint: [Vec3d; NUM_ICOSA_FACES] = [
+pub const faceCenterPoint: [Vec3d; NUM_ICOSA_FACES] = [
     Vec3d::new(0.2199307791404606, 0.6583691780274996, 0.7198475378926182), // face  0
     Vec3d::new(-0.2139234834501421, 0.1478171829550703, 0.9656017935214205), // face  1
     Vec3d::new(0.1092625278784797, -0.4811951572873210, 0.8697775121287253), // face  2
@@ -706,7 +706,7 @@ const faceCenterPoint: [Vec3d; NUM_ICOSA_FACES] = [
 ];
 
 /// icosahedron face ijk axes as azimuth in radians from face center to * vertex 0/1/2 respectively
-const faceAxesAzRadsCII: [[f64; 3]; NUM_ICOSA_FACES] = [
+pub const faceAxesAzRadsCII: [[f64; 3]; NUM_ICOSA_FACES] = [
     [
         5.619958268523939882,
         3.525563166130744542,
@@ -810,7 +810,7 @@ const faceAxesAzRadsCII: [[f64; 3]; NUM_ICOSA_FACES] = [
 ];
 
 /// overage distance table
-const maxDimByCIIres: [i32; 17] = [
+pub const maxDimByCIIres: [i32; 17] = [
     2,        // res  0
     -1,       // res  1
     14,       // res  2
@@ -831,7 +831,7 @@ const maxDimByCIIres: [i32; 17] = [
 ];
 
 /// unit scale distance table
-const unitScaleByCIIres: [i32; 17] = [
+pub const unitScaleByCIIres: [i32; 17] = [
     1,       // res  0
     -1,      // res  1
     7,       // res  2
@@ -852,7 +852,7 @@ const unitScaleByCIIres: [i32; 17] = [
 ];
 
 /// Definition of which faces neighbor each other.
-const faceNeighbors: [[FaceOrientIJK; 4]; NUM_ICOSA_FACES] = [
+pub const faceNeighbors: [[FaceOrientIJK; 4]; NUM_ICOSA_FACES] = [
     [
         // face 0
         FaceOrientIJK::new(0, [0, 0, 0], 0), // central face
@@ -996,7 +996,7 @@ const faceNeighbors: [[FaceOrientIJK; 4]; NUM_ICOSA_FACES] = [
 ];
 
 /// direction from the origin face to the destination face, relative to the origin face's coordinate system, or -1 if not adjacent.
-const adjacentFaceDir: [[i32; NUM_ICOSA_FACES]; NUM_ICOSA_FACES] = [
+pub const adjacentFaceDir: [[i32; NUM_ICOSA_FACES]; NUM_ICOSA_FACES] = [
     [
         0, KI, -1, -1, IJ, JK, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
     ], // face 0

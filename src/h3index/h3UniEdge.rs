@@ -1,5 +1,7 @@
 use crate::Direction;
 
+use super::H3Index;
+
 impl H3Index {
     /**
      * Returns whether or not the provided H3Indexes are neighbors.

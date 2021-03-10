@@ -1,3 +1,5 @@
+use crate::GeoCoord;
+
 #[derive(PartialEq)]
 /// Geographic bounding box with coordinates defined in radians
 pub struct BBox {
