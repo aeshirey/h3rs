@@ -1,4 +1,9 @@
-use crate::{constants::INVALID_BASE_CELL, faceijk::FaceIJK};
+use crate::{
+    constants::{INVALID_BASE_CELL, NUM_BASE_CELLS, NUM_ICOSA_FACES},
+    direction::Direction,
+    faceijk::FaceIJK,
+    h3index::H3Index,
+};
 
 /// Base cell related lookup tables and access functions.
 
@@ -13,10 +18,10 @@ pub struct BaseCellData {
 }
 
 /// Maximum input for any component to face-to-base-cell lookup functions
-pub const MAX_FACE_COORD: i32 = 2;
+pub(crate) const MAX_FACE_COORD: i32 = 2;
 
 /// Invalid number of rotations
-pub const INVALID_ROTATIONS: i32 = -1;
+pub(crate) const INVALID_ROTATIONS: i32 = -1;
 
 impl BaseCellData {
     pub const fn new(face: i32, coord: [i32; 3], isPentagon: bool, cwOffsetPent: [i32; 2]) -> Self {
@@ -46,7 +51,7 @@ impl BaseCellRotation {
 ///
 ///For each base cell, for each direction, the neighboring base
 ///cell ID is given. 127 indicates there is no neighbor in that direction.
-const baseCellNeighbors: [[i32; 7]; 122] = [
+pub(crate) const baseCellNeighbors: [[i32; 7]; 122] = [
     [0, 1, 5, 2, 4, 3, 8],                             // base cell 0
     [1, 7, 6, 9, 0, 3, 2],                             // base cell 1
     [2, 6, 10, 11, 0, 1, 5],                           // base cell 2
@@ -177,7 +182,7 @@ const baseCellNeighbors: [[i32; 7]; 122] = [
  * CCW rotations to the coordinate system of the neighbor is given.
  * -1 indicates there is no neighbor in that direction.
  */
-const baseCellNeighbor60CCWRots: [[i32; 7]; 122] = [
+pub(crate) const baseCellNeighbor60CCWRots: [[i32; 7]; 122] = [
     [0, 5, 0, 0, 1, 5, 1],  // base cell 0
     [0, 0, 1, 0, 1, 0, 1],  // base cell 1
     [0, 0, 0, 0, 0, 5, 0],  // base cell 2
@@ -314,8 +319,7 @@ const baseCellNeighbor60CCWRots: [[i32; 7]; 122] = [
  * This table can be accessed using the functions `_faceIjkToBaseCell` and
  * `_faceIjkToBaseCellCCWrot60`
  */
-//static const BaseCellRotation faceIjkBaseCells[NUM_ICOSA_FACES][3][3][3] = {
-const faceIjkBaseCells: [[[[BaseCellRotation; 3]; 3]; 3]; NUM_ICOSA_FACES] = [
+pub(crate) const faceIjkBaseCells: [[[[BaseCellRotation; 3]; 3]; 3]; NUM_ICOSA_FACES] = [
     [
         // face 0
         [
@@ -1465,7 +1469,7 @@ const faceIjkBaseCells: [[[[BaseCellRotation; 3]; 3]; 3]; NUM_ICOSA_FACES] = [
  * is a pentagon, the two cw offset rotation adjacent faces are given (-1
  * indicates that no cw offset rotation faces exist for this base cell).
  */
-const baseCellData: [BaseCellData; NUM_BASE_CELLS] = [
+pub(crate) const baseCellData: [BaseCellData; NUM_BASE_CELLS] = [
     BaseCellData::new(1, [1, 0, 0], false, [0, 0]), // base cell 0
     BaseCellData::new(2, [1, 1, 0], false, [0, 0]), // base cell 1
     BaseCellData::new(1, [0, 0, 0], false, [0, 0]), // base cell 2
@@ -1591,7 +1595,7 @@ const baseCellData: [BaseCellData; NUM_BASE_CELLS] = [
 ];
 
 /// Return whether or not the indicated base cell is a pentagon.
-fn _isBaseCellPentagon(baseCell: i32) -> bool {
+pub(crate) fn _isBaseCellPentagon(baseCell: usize) -> bool {
     if baseCell < 0 || baseCell >= NUM_BASE_CELLS {
         // LCOV_EXCL_BR_LINE
         // Base cells less than zero can not be represented in an index
@@ -1603,7 +1607,7 @@ fn _isBaseCellPentagon(baseCell: i32) -> bool {
 
 /** @brief Return whether the indicated base cell is a pentagon where all
  * neighbors are oriented towards it. */
-fn _isBaseCellPolarPentagon(baseCell: i32) -> bool {
+pub(crate) fn _isBaseCellPolarPentagon(baseCell: usize) -> bool {
     baseCell == 4 || baseCell == 117
 }
 
@@ -1614,7 +1618,7 @@ fn _isBaseCellPolarPentagon(baseCell: i32) -> bool {
  * @returns The number of rotations, or INVALID_ROTATIONS if the base
  *          cell is not found on the given face
  */
-fn _baseCellToCCWrot60(baseCell: i32, face: i32) -> i32 {
+pub(crate) fn _baseCellToCCWrot60(baseCell: usize, face: usize) -> i32 {
     if face < 0 || face > NUM_ICOSA_FACES {
         return INVALID_ROTATIONS;
     }
@@ -1622,7 +1626,7 @@ fn _baseCellToCCWrot60(baseCell: i32, face: i32) -> i32 {
     for i in 0..3 {
         for j in 0..3 {
             for k in 0..3 {
-                if faceIjkBaseCells[face][i][j][k].baseCell == baseCell {
+                if faceIjkBaseCells[face][i][j][k].baseCell == baseCell as i32 {
                     return faceIjkBaseCells[face][i][j][k].ccwRot60;
                 }
             }
@@ -1633,19 +1637,19 @@ fn _baseCellToCCWrot60(baseCell: i32, face: i32) -> i32 {
 }
 
 /// Return whether or not the tested face is a cw offset face.
-fn _baseCellIsCwOffset(baseCell: i32, testFace: i32) -> bool {
+pub(crate) fn _baseCellIsCwOffset(baseCell: usize, testFace: i32) -> bool {
     baseCellData[baseCell as usize].cwOffsetPent[0] == testFace
         || baseCellData[baseCell as usize].cwOffsetPent[1] == testFace
 }
 
 /// Return the neighboring base cell in the given direction.
-fn _getBaseCellNeighbor(baseCell: i32, dir: Direction) -> i32 {
+pub(crate) fn _getBaseCellNeighbor(baseCell: i32, dir: Direction) -> i32 {
     baseCellNeighbors[baseCell as usize][dir as usize]
 }
 
 /// Return the direction from the origin base cell to the neighbor.
 /// Returns INVALID_DIGIT if the base cells are not neighbors.
-fn _getBaseCellDirection(originBaseCell: i32, neighboringBaseCell: i32) -> Direction {
+pub(crate) fn _getBaseCellDirection(originBaseCell: i32, neighboringBaseCell: i32) -> Direction {
     todo!()
     /*
     for (Direction dir = CENTER_DIGIT; dir < NUM_DIGITS; dir++) {
@@ -1662,7 +1666,7 @@ fn _getBaseCellDirection(originBaseCell: i32, neighboringBaseCell: i32) -> Direc
 /// res0IndexCount returns the number of resolution 0 indexes
 ///
 ///@return int count of resolution 0 indexes
-fn res0IndexCount() -> i32 {
+pub(crate) fn res0IndexCount() -> usize {
     NUM_BASE_CELLS
 }
 
@@ -1672,7 +1676,7 @@ fn res0IndexCount() -> i32 {
  *
  * @param out H3Index* the memory to store the resulting base cells in
  */
-fn getRes0Indexes() -> [H3Index; NUM_BASE_CELLS] {
+pub(crate) fn getRes0Indexes() -> [H3Index; NUM_BASE_CELLS] {
     let mut out: [H3Index; NUM_BASE_CELLS];
     for bc in 0..NUM_BASE_CELLS {
         todo!()

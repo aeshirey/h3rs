@@ -34,21 +34,29 @@ pub const RES0_U_GNOMONIC: f64 = 0.38196601125010500003;
 pub const MAX_H3_RES: usize = 15;
 
 // The number of faces on an icosahedron
-pub const NUM_ICOSA_FACES: i32 = 20;
+pub const NUM_ICOSA_FACES: usize = 20;
 // The number of H3 base cells
-pub const NUM_BASE_CELLS: i32 = 122;
+pub const NUM_BASE_CELLS: usize = 122;
 // The number of vertices in a hexagon
-pub const NUM_HEX_VERTS: i32 = 6;
+pub const NUM_HEX_VERTS: usize = 6;
 // The number of vertices in a pentagon
-pub const NUM_PENT_VERTS: i32 = 5;
+pub const NUM_PENT_VERTS: usize = 5;
 // The number of pentagons per resolution
-pub const NUM_PENTAGONS: i32 = 12;
+pub const NUM_PENTAGONS: usize = 12;
 
 // H3 index modes
 pub const H3_HEXAGON_MODE: i32 = 1;
 pub const H3_UNIEDGE_MODE: i32 = 2;
 pub const H3_EDGE_MODE: i32 = 3;
 pub const H3_VERTEX_MODE: i32 = 4;
+
+#[derive(Copy, Clone, PartialEq)]
+pub enum H3_MODE {
+    HEXAGON,
+    UNIEDGE,
+    EDGE,
+    VERTEX,
+}
 
 /// square root of 7
 pub const M_SQRT7: f64 = 2.6457513110645905905016157536392604257102;

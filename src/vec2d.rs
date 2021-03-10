@@ -156,7 +156,7 @@ impl Vec2d {
     ///@param substrate Indicates whether or not this grid is actually a substrate
     ///       grid relative to the specified resolution.
     ///@param g The spherical coordinates of the cell center point.
-    fn _hex2dToGeo(&self, face: i32, res: Resolution, substrate: bool) -> GeoCoord {
+    pub(crate) fn _hex2dToGeo(&self, face: i32, res: Resolution, substrate: bool) -> GeoCoord {
         // calculate (r, theta) in hex2d
         let mut r: f64 = self._v2dMag();
 

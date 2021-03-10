@@ -1,4 +1,5 @@
-use crate::Direction;
+use crate::constants::H3_MODE;
+use crate::{faceijk::FaceIJK, geoboundary::GeoBoundary, Direction};
 
 use super::H3Index;
 
@@ -11,7 +12,7 @@ impl H3Index {
      */
     fn h3IndexesAreNeighbors(&self, destination: &Self) -> bool {
         // Make sure they're hexagon indexes
-        if self.H3_GET_MODE() != H3_HEXAGON_MODE || destination.H3_GET_MODE() != H3_HEXAGON_MODE {
+        if self.H3_GET_MODE() != H3_MODE::HEXAGON || destination.H3_GET_MODE() != H3_MODE::HEXAGON {
             return false;
         }
 
@@ -34,29 +35,31 @@ impl H3Index {
         if parentRes > 0 && (self.h3ToParent(parentRes) == destination.h3ToParent(parentRes)) {
             let originResDigit: Direction = self.H3_GET_INDEX_DIGIT(parentRes + 1);
             let destinationResDigit: Direction = destination.H3_GET_INDEX_DIGIT(parentRes + 1);
-            if originResDigit == CENTER_DIGIT || destinationResDigit == CENTER_DIGIT {
+            if originResDigit == Direction::CENTER_DIGIT
+                || destinationResDigit == Direction::CENTER_DIGIT
+            {
                 return true;
             }
 
             // These sets are the relevant neighbors in the clockwise
             // and counter-clockwise
             const neighborSetClockwise: [Direction; 7] = [
-                CENTER_DIGIT,
-                JK_AXES_DIGIT,
-                IJ_AXES_DIGIT,
-                J_AXES_DIGIT,
-                IK_AXES_DIGIT,
-                K_AXES_DIGIT,
-                I_AXES_DIGIT,
+                Direction::CENTER_DIGIT,
+                Direction::JK_AXES_DIGIT,
+                Direction::IJ_AXES_DIGIT,
+                Direction::J_AXES_DIGIT,
+                Direction::IK_AXES_DIGIT,
+                Direction::K_AXES_DIGIT,
+                Direction::I_AXES_DIGIT,
             ];
             const neighborSetCounterclockwise: [Direction; 7] = [
-                CENTER_DIGIT,
-                IK_AXES_DIGIT,
-                JK_AXES_DIGIT,
-                K_AXES_DIGIT,
-                IJ_AXES_DIGIT,
-                I_AXES_DIGIT,
-                J_AXES_DIGIT,
+                Direction::CENTER_DIGIT,
+                Direction::IK_AXES_DIGIT,
+                Direction::JK_AXES_DIGIT,
+                Direction::K_AXES_DIGIT,
+                Direction::IJ_AXES_DIGIT,
+                Direction::I_AXES_DIGIT,
+                Direction::J_AXES_DIGIT,
             ];
             if neighborSetClockwise[originResDigit as usize] == destinationResDigit
                 || neighborSetCounterclockwise[originResDigit as usize] == destinationResDigit
@@ -90,13 +93,13 @@ impl H3Index {
         let direction: Direction = self.directionForNeighbor(destination);
 
         // The direction will be invalid if the cells are not neighbors
-        if direction == INVALID_DIGIT {
+        if direction == Direction::INVALID_DIGIT {
             return Self::H3_NULL;
         }
 
         // Create the edge index for the neighbor direction
         let mut output = self.clone();
-        output.H3_SET_MODE(H3_UNIEDGE_MODE);
+        output.H3_SET_MODE(H3_MODE::UNIEDGE);
         output.H3_SET_RESERVED_BITS(direction);
 
         output
@@ -108,11 +111,11 @@ impl H3Index {
      * @return The origin H3 hexagon index, or H3_NULL on failure
      */
     fn getOriginH3IndexFromUnidirectionalEdge(&self) -> Self {
-        if self.H3_GET_MODE() != H3_UNIEDGE_MODE {
+        if self.H3_GET_MODE() != H3_MODE::UNIEDGE {
             return Self::H3_NULL;
         }
         let mut origin = self.clone();
-        origin.H3_SET_MODE(H3_HEXAGON_MODE);
+        origin.H3_SET_MODE(H3_MODE::HEXAGON);
         origin.H3_SET_RESERVED_BITS(0);
         origin
     }
@@ -123,7 +126,7 @@ impl H3Index {
      * @return The destination H3 hexagon index, or H3_NULL on failure
      */
     fn getDestinationH3IndexFromUnidirectionalEdge(&self) -> Self {
-        if self.H3_GET_MODE() != H3_UNIEDGE_MODE {
+        if self.H3_GET_MODE() != H3_MODE::UNIEDGE {
             return Self::H3_NULL;
         }
 
@@ -144,17 +147,19 @@ impl H3Index {
      * @return 1 if it is a unidirectional edge H3Index, otherwise 0.
      */
     fn h3UnidirectionalEdgeIsValid(&self) -> bool {
-        if self.H3_GET_MODE() != H3_UNIEDGE_MODE {
+        if self.H3_GET_MODE() != H3_MODE::UNIEDGE {
             return false;
         }
 
         let neighborDirection: Direction = self.H3_GET_RESERVED_BITS();
-        if neighborDirection <= CENTER_DIGIT || neighborDirection >= NUM_DIGITS {
+        /*
+        if neighborDirection <= Direction::CENTER_DIGIT || neighborDirection >= Direction::NUM_DIGITS {
             return false;
         }
+        */
 
         let origin = self.getOriginH3IndexFromUnidirectionalEdge();
-        if h3IsPentagon(origin) && neighborDirection == K_AXES_DIGIT {
+        if origin.h3IsPentagon() && neighborDirection == Direction::K_AXES_DIGIT {
             return false;
         }
 
@@ -179,22 +184,22 @@ impl H3Index {
      * @param origin The origin hexagon H3Index to find edges for.
      * @param edges The memory to store all of the edges inside.
      */
-    pub(crate) fn getH3UnidirectionalEdgesFromHexagon(&self) {
+    pub(crate) fn getH3UnidirectionalEdgesFromHexagon(&self) -> [H3Index; 6] {
         // Determine if the origin is a pentagon and special treatment needed.
         let isPentagon = self.h3IsPentagon();
 
-        let mut edges: [H3Index; 6] = [Self::H3_Null; 6];
+        let mut edges: [H3Index; 6] = [Self::H3_NULL; 6];
 
         // This is actually quite simple. Just modify the bits of the origin
         // slightly for each direction, except the 'k' direction in pentagons,
         // which is zeroed.
         for i in 0..6 {
             if isPentagon && i == 0 {
-                edges[i] = H3_NULL;
+                edges[i] = Self::H3_NULL;
             } else {
-                edges[i] = origin;
-                edges[i].H3_SET_MODE(H3_UNIEDGE_MODE);
-                edges[i].H3_SET_RESERVED_BITS(i + 1);
+                edges[i] = *self;
+                edges[i].H3_SET_MODE(H3_MODE::UNIEDGE);
+                edges[i].H3_SET_RESERVED_BITS(i as u64 + 1);
             }
         }
 

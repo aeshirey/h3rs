@@ -1,4 +1,5 @@
 use super::H3Index;
+use crate::constants::*;
 
 /* vertex */
 impl H3Index {

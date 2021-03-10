@@ -147,7 +147,7 @@ impl CoordIJK {
     pub fn _neighbor(&mut self, digit: Direction) {
         //if (digit > CENTER_DIGIT && digit < NUM_DIGITS) {
         //_ijkAdd(ijk, &UNIT_VECS[digit], ijk);
-        let ijk = self + digit.unit_vecs();
+        let ijk = *self + digit.unit_vec();
         *self += ijk;
         self._ijkNormalize();
         //}

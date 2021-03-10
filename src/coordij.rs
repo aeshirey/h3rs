@@ -1,3 +1,5 @@
+use crate::coordijk::CoordIJK;
+
 /// IJ hexagon coordinates
 ///
 /// Each axis is spaced 120 degrees apart.

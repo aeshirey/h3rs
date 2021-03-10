@@ -1,4 +1,8 @@
-use crate::GeoCoord;
+use crate::{
+    constants::M_2PI,
+    h3index::{H3Index, Resolution},
+    GeoCoord,
+};
 
 #[derive(PartialEq)]
 /// Geographic bounding box with coordinates defined in radians
@@ -50,7 +54,7 @@ impl BBox {
     /// returns an estimated number of hexagons that fit within the cartesian-projected bounding box
     fn bboxHexEstimate(&self /*bbox*/, res: Resolution) -> i32 {
         // Get the area of the pentagon as the maximally-distorted area possible
-        let pentagons = getPentagonIndexes(res);
+        let pentagons = H3Index::getPentagonIndexes(res);
         let pentagonRadiusKm: f64 = pentagons[0]._hexRadiusKm();
 
         // Area of a regular hexagon is 3/2*sqrt(3) * r * r
@@ -72,7 +76,7 @@ impl BBox {
         let a = d * d / fabs.min(3.0);
 
         // Divide the two to get an estimate of the number of hexagons needed
-        let estimate = ceil(a / pentagonAreaKm2).ceil() as i32;
+        let estimate = (a / pentagonAreaKm2).ceil() as i32;
         if estimate == 0 {
             1
         } else {

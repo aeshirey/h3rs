@@ -1,4 +1,12 @@
-use crate::{h3index::Resolution, overage::Overage, CoordIJK, Vec3d};
+use crate::{
+    baseCells::{baseCellData, faceIjkBaseCells, MAX_FACE_COORD},
+    constants::*,
+    geoboundary::GeoBoundary,
+    h3index::{H3Index, Resolution},
+    overage::Overage,
+    vec2d::Vec2d,
+    CoordIJK, GeoCoord, Vec3d,
+};
 
 ///Information to transform into an adjacent face IJK system
 pub struct FaceOrientIJK {
@@ -32,7 +40,7 @@ pub struct FaceIJK {
 
 impl FaceIJK {
     pub const fn new(face: i32, coord: [i32; 3]) -> Self {
-        FaceIjK {
+        FaceIJK {
             face,
             coord: CoordIJK::new(coord[0], coord[1], coord[2]),
         }
@@ -402,16 +410,16 @@ impl FaceIJK {
         // check for overage
         if substrate && ijk.i + ijk.j + ijk.k == maxDim {
             // on edge
-            overage = FACE_EDGE;
+            overage = Overage::FACE_EDGE;
         } else if ijk.i + ijk.j + ijk.k > maxDim {
             // overage
-            overage = NEW_FACE;
+            overage = Overage::NEW_FACE;
 
             //const FaceOrientIJK* fijkOrient;
             let fijkOrient = if ijk.k > 0 {
                 if ijk.j > 0 {
                     // jk "quadrant"
-                    &faceNeighbors[self.face as usize][JK as usize]
+                    faceNeighbors[self.face as usize][JK as usize]
                 } else {
                     // adjust for the pentagonal missing sequence
                     if pentLeading4 {
@@ -491,7 +499,7 @@ impl FaceIJK {
                 || self.coord.k > MAX_FACE_COORD
             {
                 // out of range input
-                return H3_NULL;
+                return H3Index::H3_NULL;
             }
 
             h.H3_SET_BASE_CELL(self._faceIjkToBaseCell());
@@ -608,21 +616,23 @@ impl FaceIJK {
         ];
 
         // get the correct set of substrate vertices for this resolution
-        let verts = if isResClassIII(res) {
+        let verts = if H3Index::isResClassIII(*res) {
             vertsCIII
         } else {
             vertsCII
         };
 
         // adjust the center point to be in an aperture 33r substrate grid these should be composed for speed
-        _downAp3(self.coord);
-        _downAp3r(self.coord);
+        self.coord._downAp3();
+        self.coord._downAp3r();
 
         // if res is Class III we need to add a cw aperture 7 to get to icosahedral Class II
-        if isResClassIII(*res) {
-            _downAp7r(&self.coord);
+        if H3Index::isResClassIII(*res) {
+            self.coord._downAp7r();
             *res += 1;
         }
+
+        let mut fijkVerts: Vec<FaceIJK> = Vec::with_capacity(NUM_HEX_VERTS);
 
         // The center point is now in the same substrate grid as the origin
         // cell vertices. Add the center point substate coordinates
@@ -634,7 +644,7 @@ impl FaceIJK {
             fijkVerts[v].coord._ijkNormalize();
         }
 
-        todo!()
+        fijkVerts
     }
 }
 

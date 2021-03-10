@@ -158,8 +158,8 @@ impl H3Index {
             return (1, CoordIJK::default());
         }
 
-        let originBaseCell = &self.H3_GET_BASE_CELL();
-        let baseCell = h3.H3_GET_BASE_CELL();
+        let originBaseCell = self.H3_GET_BASE_CELL() as usize;
+        let baseCell = h3.H3_GET_BASE_CELL() as usize;
 
         if originBaseCell < 0 ||  // LCOV_EXCL_BR_LINE
             originBaseCell >= NUM_BASE_CELLS
@@ -178,12 +178,12 @@ impl H3Index {
         let mut revDir = Direction::CENTER_DIGIT;
         if originBaseCell != baseCell {
             dir = _getBaseCellDirection(originBaseCell, baseCell);
-            if dir == INVALID_DIGIT {
+            if dir == Direction::INVALID_DIGIT {
                 // Base cells are not neighbors, can't unfold.
                 return (2, CoordIJK::default());
             }
             revDir = _getBaseCellDirection(baseCell, originBaseCell);
-            assert!(revDir != INVALID_DIGIT);
+            assert!(revDir != Direction::INVALID_DIGIT);
         }
 
         let originOnPent = originBaseCell._isBaseCellPentagon();
@@ -198,7 +198,7 @@ impl H3Index {
                     h3 = _h3RotatePent60cw(h3);
 
                     revDir = _rotate60cw(revDir);
-                    if revDir == K_AXES_DIGIT {
+                    if revDir == Direction::K_AXES_DIGIT {
                         revDir = _rotate60cw(revDir);
                     }
                 }
@@ -212,7 +212,7 @@ impl H3Index {
         // Face is unused. This produces coordinates in base cell coordinate space.
         let indexFijk: FaceIJK = h3._h3ToFaceIjkWithInitializedFijk(&indexFijk);
 
-        if dir != CENTER_DIGIT {
+        if dir != Direction::CENTER_DIGIT {
             assert!(baseCell != originBaseCell);
             assert!(!(originOnPent && indexOnPent));
 
@@ -397,7 +397,7 @@ impl H3Index {
             _isBaseCellPentagon(baseCell)
         };
 
-        if dir != CENTER_DIGIT {
+        if dir != Direction::CENTER_DIGIT {
             // If the index is in a warped direction, we need to unwarp the base
             // cell direction. There may be further need to rotate the index digits.
             let mut pentagonRotations = 0;
@@ -411,7 +411,7 @@ impl H3Index {
                 // The pentagon rotations are being chosen so that dir is not the
                 // deleted direction. If it still happens, it means we're moving
                 // into a deleted subsequence, so there is no index here.
-                if dir == K_AXES_DIGIT {
+                if dir == Direction::K_AXES_DIGIT {
                     return (3, out);
                 }
                 baseCell = _getBaseCellNeighbor(originBaseCell, dir);
@@ -434,7 +434,7 @@ impl H3Index {
             // double mapping.
             if indexOnPent {
                 let revDir: Direction = _getBaseCellDirection(baseCell, originBaseCell);
-                assert!(revDir != INVALID_DIGIT);
+                assert!(revDir != Direction::INVALID_DIGIT);
 
                 // Adjust for the different coordinate space in the two base cells.
                 // This is done first because we need to do the pentagon rotations
@@ -484,7 +484,7 @@ impl H3Index {
             // TODO: There are cases in h3ToLocalIjk which are failed but not
             // accounted for here - instead just fail if the recovered index is
             // invalid.
-            if out._h3LeadingNonZeroDigit() == K_AXES_DIGIT {
+            if out._h3LeadingNonZeroDigit() == Direction::K_AXES_DIGIT {
                 return (4, out);
             }
         }
