@@ -1,4 +1,4 @@
-use crate::constants::H3_MODE;
+use crate::{constants::H3_MODE, vertex::INVALID_VERTEX_NUM};
 use crate::{faceijk::FaceIJK, geoboundary::GeoBoundary, Direction};
 
 use super::H3Index;
@@ -132,11 +132,8 @@ impl H3Index {
 
         let direction: Direction = self.H3_GET_RESERVED_BITS();
         let mut rotations = 0;
-        let destination = h3NeighborRotations(
-            self.getOriginH3IndexFromUnidirectionalEdge(),
-            direction,
-            &mut rotations,
-        );
+        let h = self.getOriginH3IndexFromUnidirectionalEdge();
+        let destination = h.h3NeighborRotations(direction, &mut rotations);
 
         destination
     }

@@ -1,15 +1,15 @@
+mod algos;
 mod h3UniEdge;
 mod localij;
 mod vertex;
 
-use crate::faceijk::*;
-use crate::GeoBoundary;
+use crate::{baseCells::baseCellData, direction::NUM_DIGITS, overage::Overage, GeoCoord};
+use crate::{baseCells::BaseCell, GeoBoundary};
 use crate::{constants::*, direction::Direction};
+use crate::{coordijk::CoordIJK, faceijk::*};
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub struct H3Index(u64);
-
-pub const H3_NULL: H3Index = H3Index(0);
 
 pub type Resolution = usize;
 
@@ -73,15 +73,15 @@ const H3_DIGIT_MASK: u64 = 7;
 const H3_DIGIT_MASK_NEGATIVE: u64 = !H3_DIGIT_MASK;
 
 impl H3Index {
+    /// Invalid index used to indicate an error from geoToH3 and related functions
+    /// or missing data in arrays of h3 indices. Analogous to NaN in floating point.
+    pub const H3_NULL: H3Index = H3Index(0);
+
     // Return codes for compact
     const COMPACT_SUCCESS: i32 = 0;
     const COMPACT_LOOP_EXCEEDED: i32 = -1;
     const COMPACT_DUPLICATE: i32 = -2;
     const COMPACT_ALLOC_FAILED: i32 = -3;
-
-    /// Invalid index used to indicate an error from geoToH3 and related functions
-    /// or missing data in arrays of h3 indices. Analogous to NaN in floating point.
-    const H3_NULL: Self = Self(0);
 
     /**
      * H3 index with mode 0, res 0, base cell 0, and 7 for all index digits.
@@ -140,14 +140,17 @@ impl H3Index {
     }
 
     /// Gets the integer base cell of h3.
-    pub(crate) fn H3_GET_BASE_CELL(&self) -> u64 {
-        (self.0 & H3_BC_MASK) >> H3_BC_OFFSET
+    pub(crate) fn H3_GET_BASE_CELL(&self) -> BaseCell {
+        let v = (self.0 & H3_BC_MASK) >> H3_BC_OFFSET;
+        BaseCell(v as i32)
     }
 
     /// Sets the integer base cell of h3 to bc.
-    pub(crate) fn H3_SET_BASE_CELL(&mut self, bc: u64) {
+    //pub(crate) fn H3_SET_BASE_CELL(&mut self, bc: u64)
+    pub(crate) fn H3_SET_BASE_CELL(&mut self, bc: BaseCell) {
+        let BaseCell(bc) = bc;
         //(h3) = (((h3)&H3_BC_MASK_NEGATIVE) | (((uint64_t)(bc)) << H3_BC_OFFSET))
-        self.0 = (self.0 & H3_BC_MASK_NEGATIVE) | (bc << H3_BC_OFFSET);
+        self.0 = (self.0 & H3_BC_MASK_NEGATIVE) | ((bc as u64) << H3_BC_OFFSET);
     }
 
     /// Gets the integer resolution of h3.
@@ -190,7 +193,7 @@ impl H3Index {
      * @param h The H3 index.
      * @return The resolution of the H3 index argument.
      */
-    pub(crate) fn h3GetResolution(&self) -> u64 {
+    pub(crate) fn h3GetResolution(&self) -> Resolution {
         self.H3_GET_RESOLUTION()
     }
 
@@ -203,7 +206,7 @@ impl H3Index {
      * @param h The H3 cell.
      * @return The base cell "number" of the H3 cell argument.
      */
-    pub(crate) fn h3GetBaseCell(&self) -> u64 {
+    pub(crate) fn h3GetBaseCell(&self) -> BaseCell {
         self.H3_GET_BASE_CELL()
     }
 
@@ -250,7 +253,7 @@ impl H3Index {
         }
 
         let baseCell = self.H3_GET_BASE_CELL();
-        if baseCell < 0 || baseCell >= NUM_BASE_CELLS {
+        if baseCell.0 >= NUM_BASE_CELLS {
             // LCOV_EXCL_BR_LINE
             // Base cells less than zero can not be represented in an index
             return false;
@@ -267,21 +270,21 @@ impl H3Index {
         for r in 1..=res {
             let digit: Direction = self.H3_GET_INDEX_DIGIT(r);
 
-            if !foundFirstNonZeroDigit && digit != CENTER_DIGIT {
+            if !foundFirstNonZeroDigit && digit != Direction::CENTER_DIGIT {
                 foundFirstNonZeroDigit = true;
-                if _isBaseCellPentagon(baseCell) && digit == K_AXES_DIGIT {
+                if baseCell._isBaseCellPentagon() && digit == Direction::K_AXES_DIGIT {
                     return false;
                 }
             }
 
-            if digit < CENTER_DIGIT || digit >= NUM_DIGITS {
+            if digit < Direction::CENTER_DIGIT || digit >= NUM_DIGITS {
                 return false;
             }
         }
 
-        for r in res + 1..=MAX_H3_Res {
-            let digit: Direction = h.H3_GET_INDEX_DIGIT(r);
-            if digit != INVALID_DIGIT {
+        for r in res + 1..=MAX_H3_RES {
+            let digit: Direction = self.H3_GET_INDEX_DIGIT(r);
+            if digit != Direction::INVALID {
                 return false;
             }
         }
@@ -319,18 +322,18 @@ impl H3Index {
      * @return H3Index of the parent, or H3_NULL if you actually asked for a child
      */
     pub(crate) fn h3ToParent(&self, parentRes: i32) -> Self {
-        let childRes: u64 = h.H3_GET_RESOLUTION();
+        let childRes: u64 = self.H3_GET_RESOLUTION();
 
         if parentRes < 0 || parentRes > MAX_H3_RES {
             H3_NULL
         } else if parentRes > childRes {
             H3_NULL
         } else if parentRes == childRes {
-            h
+            *self
         } else {
-            let parentH = H3_SET_RESOLUTION(h, parentRes);
+            let mut parentH = self.H3_SET_RESOLUTION(parentRes);
             for i in parentRes + 1..=childRes {
-                H3_SET_INDEX_DIGIT(parentH, i, H3_DIGIT_MASK);
+                parentH.H3_SET_INDEX_DIGIT(i, H3_DIGIT_MASK);
             }
             parentH
         }
@@ -345,7 +348,7 @@ impl H3Index {
      *
      * @return The validity of the child resolution
      */
-    pub(crate) fn _isValidChildRes(parentRes: i32, childRes: i32) -> bool {
+    pub(crate) fn _isValidChildRes(parentRes: Resolution, childRes: Resolution) -> bool {
         if childRes < parentRes || childRes > MAX_H3_RES {
             false
         } else {
@@ -365,7 +368,7 @@ impl H3Index {
      */
     pub(crate) fn maxH3ToChildrenSize(&self, childRes: i32) -> i64 {
         let parentRes = self.H3_GET_RESOLUTION();
-        if !_isValidChildRes(parentRes, childRes) {
+        if !H3Index::_isValidChildRes(parentRes, childRes) {
             return 0;
         }
 
@@ -383,8 +386,8 @@ impl H3Index {
      * @return The new H3Index for the child
      */
     pub(crate) fn makeDirectChild(&self, cellNumber: i32) -> Self {
-        let childRes = h.H3_GET_RESOLUTION() + 1;
-        let mut childH = h.H3_SET_RESOLUTION(childRes);
+        let childRes = self.H3_GET_RESOLUTION() + 1;
+        let mut childH = self.H3_SET_RESOLUTION(childRes);
         childH.H3_SET_INDEX_DIGIT(childRes, cellNumber);
         childH
     }
@@ -436,15 +439,15 @@ impl H3Index {
      * @return H3Index of the center child, or H3_NULL if you actually asked for a
      * parent
      */
-    pub(crate) fn h3ToCenterChild(&self, childRes: i32) -> Self {
-        let parentRes = h.H3_GET_RESOLUTION();
-        if !_isValidChildRes(parentRes, childRes) {
-            return H3_NULL;
+    pub(crate) fn h3ToCenterChild(&self, childRes: Resolution) -> Self {
+        let parentRes = self.H3_GET_RESOLUTION();
+        if !H3Index::_isValidChildRes(parentRes, childRes) {
+            return H3Index::H3_NULL;
         } else if childRes == parentRes {
-            return h;
+            return *self;
         }
 
-        let mut child = H3_SET_RESOLUTION(h, childRes);
+        let mut child = self.H3_SET_RESOLUTION(childRes);
         for i in parentRes + 1..=childRes {
             child.H3_SET_INDEX_DIGIT(i, 0);
         }
@@ -465,7 +468,7 @@ impl H3Index {
      */
     pub(crate) fn compact(&self /*h3Set*/, compactedSet: &H3Index, numHexes: i32) -> u64 {
         if numHexes == 0 {
-            return COMPACT_SUCCESS;
+            return Self::COMPACT_SUCCESS;
         }
         let res = h3Set[0].H3_GET_RESOLUTION();
         if res == 0 {
@@ -474,7 +477,7 @@ impl H3Index {
                 compactedSet[i] = h3Set[i];
             }
 
-            return COMPACT_SUCCESS;
+            return Self::COMPACT_SUCCESS;
         }
 
         todo!()
@@ -668,7 +671,7 @@ impl H3Index {
             }
 
             let currentRes = compactedSet[i].H3_GET_RESOLUTION();
-            if !_isValidChildRes(currentRes, res) {
+            if !H3Index::_isValidChildRes(currentRes, res) {
                 // Nonsensical. Abort.
                 return -2;
             }
@@ -709,7 +712,7 @@ impl H3Index {
             }
 
             let currentRes = h.H3_GET_RESOLUTION();
-            if !_isValidChildRes(currentRes, res) {
+            if !H3Index::_isValidChildRes(currentRes, res) {
                 // Nonsensical. Abort.
                 return -1;
             }
@@ -734,7 +737,7 @@ impl H3Index {
      * @return Returns 1 if the hexagon is class III, otherwise 0.
      */
     pub(crate) fn h3IsResClassIII(&self) -> bool {
-        h.H3_GET_RESOLUTION() % 2 == 1
+        self.H3_GET_RESOLUTION() % 2 == 1
     }
 
     /**
@@ -744,7 +747,7 @@ impl H3Index {
      * @return Returns 1 if it is a pentagon, otherwise 0.
      */
     pub(crate) fn h3IsPentagon(&self) -> bool {
-        _isBaseCellPentagon(self.H3_GET_BASE_CELL()) && !_h3LeadingNonZeroDigit(h)
+        self.H3_GET_BASE_CELL()._isBaseCellPentagon() && !self._h3LeadingNonZeroDigit()
     }
 
     /**
@@ -760,7 +763,7 @@ impl H3Index {
         }
 
         // if we're here it's all 0's
-        CENTER_DIGIT
+        Direction::CENTER_DIGIT
     }
 
     /**
@@ -777,7 +780,7 @@ impl H3Index {
 
         for r in 1..=res {
             // rotate this digit
-            h.H3_SET_INDEX_DIGIT(r, _rotate60ccw(h.H3_GET_INDEX_DIGIT(r)));
+            h.H3_SET_INDEX_DIGIT(r, h.H3_GET_INDEX_DIGIT(r)._rotate60ccw());
 
             // look for the first non-zero digit so we
             // can adjust for deleted k-axes sequence
@@ -786,7 +789,7 @@ impl H3Index {
                 foundFirstNonZeroDigit = true;
 
                 // adjust for deleted k-axes sequence
-                if _h3LeadingNonZeroDigit(h) == K_AXES_DIGIT {
+                if h._h3LeadingNonZeroDigit() == Direction::K_AXES_DIGIT {
                     h._h3Rotate60ccw();
                 }
             }
@@ -803,11 +806,11 @@ impl H3Index {
         // rotate in place; skips any leading 1 digits (k-axis)
 
         let mut foundFirstNonZeroDigit = false;
-        let res = h.H3_GET_RESOLUTION();
+        let res = self.H3_GET_RESOLUTION();
         let mut h = self.clone();
         for r in 1..=res {
             // rotate this digit
-            h.H3_SET_INDEX_DIGIT(r, _rotate60cw(h.H3_GET_INDEX_DIGIT(r)));
+            h.H3_SET_INDEX_DIGIT(r, h.H3_GET_INDEX_DIGIT(r)._rotate60cw());
 
             // look for the first non-zero digit so we
             // can adjust for deleted k-axes sequence
@@ -816,8 +819,8 @@ impl H3Index {
                 foundFirstNonZeroDigit = true;
 
                 // adjust for deleted k-axes sequence
-                if _h3LeadingNonZeroDigit(h) == K_AXES_DIGIT {
-                    h = _h3Rotate60cw(h);
+                if h._h3LeadingNonZeroDigit() == Direction::K_AXES_DIGIT {
+                    h = h._h3Rotate60cw();
                 }
             }
         }
@@ -835,7 +838,7 @@ impl H3Index {
 
         for r in 1..=res {
             let oldDigit: Direction = h.H3_GET_INDEX_DIGIT(r);
-            h.H3_SET_INDEX_DIGIT(r, _rotate60ccw(oldDigit));
+            h.H3_SET_INDEX_DIGIT(r, oldDigit._rotate60ccw());
         }
 
         h
@@ -846,10 +849,10 @@ impl H3Index {
      * @param h The H3Index.
      */
     pub(crate) fn _h3Rotate60cw(&self) -> Self {
-        let res = h.H3_GET_RESOLUTION();
+        let res = self.H3_GET_RESOLUTION();
         let mut h = self.clone();
         for r in 1..=res {
-            h.H3_SET_INDEX_DIGIT(r, _rotate60cw(h.H3_GET_INDEX_DIGIT(r)));
+            h.H3_SET_INDEX_DIGIT(r, h.H3_GET_INDEX_DIGIT(r)._rotate60cw());
         }
 
         h
@@ -868,19 +871,19 @@ impl H3Index {
 
         // center base cell hierarchy is entirely on this face
         let mut possibleOverage = true;
-        if !_isBaseCellPentagon(self.H3_GET_BASE_CELL())
+        if !self.H3_GET_BASE_CELL()._isBaseCellPentagon()
             && (res == 0 || (fijk.coord.i == 0 && fijk.coord.j == 0 && fijk.coord.k == 0))
         {
             possibleOverage = false;
         }
 
         for r in 1..=res {
-            if isResClassIII(r) {
+            if Self::isResClassIII(r) {
                 // Class III == rotate ccw
-                _downAp7(ijk);
+                ijk._downAp7();
             } else {
                 // Class II == rotate cw
-                _downAp7r(ijk);
+                ijk._downAp7r();
             }
 
             ijk._neighbor(self.H3_GET_INDEX_DIGIT(r));
@@ -895,7 +898,7 @@ impl H3Index {
      * @param fijk The corresponding FaceIJK address.
      */
     pub(crate) fn _h3ToFaceIjk(&self) -> FaceIJK {
-        let baseCell = h.H3_GET_BASE_CELL();
+        let baseCell = self.H3_GET_BASE_CELL();
         if baseCell < 0 || baseCell >= NUM_BASE_CELLS {
             // LCOV_EXCL_BR_LINE
             // Base cells less than zero can not be represented in an index
@@ -905,13 +908,13 @@ impl H3Index {
         }
         // adjust for the pentagonal missing sequence; all of sub-sequence 5 needs
         // to be adjusted (and some of sub-sequence 4 below)
-        if _isBaseCellPentagon(baseCell) && _h3LeadingNonZeroDigit(h) == 5 {
-            h._h3Rotate60cw();
+        if baseCell._isBaseCellPentagon() && self._h3LeadingNonZeroDigit() == 5 {
+            self._h3Rotate60cw();
         }
 
         // start with the "home" face and ijk+ coordinates for the base cell of c
-        let fijk = baseCellData[baseCell].homeFijk;
-        if !_h3ToFaceIjkWithInitializedFijk(h, fijk) {
+        let mut fijk = baseCellData[baseCell.0 as usize].homeFijk;
+        if !self._h3ToFaceIjkWithInitializedFijk(fijk) {
             // no overage is possible; h lies on this face
             return fijk;
         }
@@ -922,29 +925,29 @@ impl H3Index {
         let origIJK: CoordIJK = fijk.coord;
 
         // if we're in Class III, drop into the next finer Class II grid
-        let res = h.H3_GET_RESOLUTION();
-        if isResClassIII(res) {
+        let res = self.H3_GET_RESOLUTION();
+        if Self::isResClassIII(res) {
             // Class III
-            _downAp7r(&fijk.coord);
+            fijk.coord._downAp7r();
             res += 1;
         }
 
         // adjust for overage if needed
         // a pentagon base cell with a leading 4 digit requires special handling
-        let pentLeading4 = _isBaseCellPentagon(baseCell) && _h3LeadingNonZeroDigit(h) == 4;
-        if _adjustOverageClassII(fijk, res, pentLeading4, 0) != NO_OVERAGE {
+        let pentLeading4 = baseCell._isBaseCellPentagon() && self._h3LeadingNonZeroDigit() == 4;
+        if fijk._adjustOverageClassII(res, pentLeading4, 0) != Overage::NO_OVERAGE {
             // if the base cell is a pentagon we have the potential for secondary
             // overages
-            if _isBaseCellPentagon(baseCell) {
-                while _adjustOverageClassII(fijk, res, 0, 0) != NO_OVERAGE {
+            if baseCell._isBaseCellPentagon() {
+                while fijk._adjustOverageClassII(res, 0, 0) != Overage::NO_OVERAGE {
                     continue;
                 }
             }
 
-            if res != h.H3_GET_RESOLUTION() {
-                _upAp7r(&fijk.coord);
+            if res != self.H3_GET_RESOLUTION() {
+                fijk.coord._upAp7r();
             }
-        } else if res != h.H3_GET_RESOLUTION() {
+        } else if res != self.H3_GET_RESOLUTION() {
             fijk.coord = origIJK;
         }
 
@@ -959,7 +962,7 @@ impl H3Index {
      */
     pub(crate) fn h3ToGeo(&self /*h3*/) -> GeoCoord {
         let fijk = self._h3ToFaceIjk();
-        fijk._faceIjkToGeo(h3.H3_GET_RESOLUTION())
+        fijk._faceIjkToGeo(self.H3_GET_RESOLUTION())
     }
 
     /**
@@ -1010,7 +1013,7 @@ impl H3Index {
         // We can't use the vertex-based approach here for class II pentagons,
         // because all their vertices are on the icosahedron edges. Their
         // direct child pentagons cross the same faces, so use those instead.
-        if isPentagon && !isResClassIII(res) {
+        if isPentagon && !Self::isResClassIII(res) {
             // Note that this would not work for res 15, but this is only run on
             // Class II pentagons, it should never be invoked for a res 15 index.
             let childPentagon: H3Index = self.makeDirectChild(0);
@@ -1027,10 +1030,10 @@ impl H3Index {
         let vertexCount;
         if isPentagon {
             vertexCount = NUM_PENT_VERTS;
-            _faceIjkPentToVerts(&fijk, &res, fijkVerts);
+            fijk._faceIjkPentToVerts(&res, fijkVerts);
         } else {
             vertexCount = NUM_HEX_VERTS;
-            _faceIjkToVerts(&fijk, &res, fijkVerts);
+            fijk._faceIjkToVerts(&res, fijkVerts);
         }
 
         // We may not use all of the slots in the output array,
@@ -1048,9 +1051,9 @@ impl H3Index {
             // Adjust overage, determining whether this vertex is
             // on another face
             if isPentagon {
-                _adjustPentVertOverage(vert, res);
+                vert._adjustPentVertOverage(res);
             } else {
-                _adjustOverageClassII(vert, res, 0, 1);
+                vert._adjustOverageClassII(res, 0, 1);
             }
 
             // Save the face to the output array
@@ -1083,7 +1086,7 @@ impl H3Index {
         let mut out = Vec::new();
 
         for bc in 0..NUM_BASE_CELLS {
-            if _isBaseCellPentagon(bc) {
+            if BaseCell(bc)._isBaseCellPentagon() {
                 let pentagon = Self::setH3Index(res, bc, 0);
                 out.push(pentagon);
             }
@@ -1117,7 +1120,7 @@ impl H3Index {
         let mut area = 0.0;
         for i in 0..gb.numVerts {
             let j = (i + 1) % gb.numVerts;
-            area += triangleArea(&gb.verts[i], &gb.verts[j], &c);
+            area += GeoCoord::triangleArea(&gb.verts[i], &gb.verts[j], &c);
         }
 
         area

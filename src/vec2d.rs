@@ -50,7 +50,7 @@ impl Vec2d {
 
         let t = (s2.x * (p0.y - p2.y) - s2.y * (p0.x - p2.x)) / (-s2.x * s1.y + s1.x * s2.y);
 
-        Vec2D::new(p0.x + (t * s1.x), p0.y + (t * s1.y))
+        Vec2d::new(p0.x + (t * s1.x), p0.y + (t * s1.y))
     }
 
     /// Determine the containing hex in ijk+ coordinates for a 2D cartesian coordinate vector (from DGGRID).
@@ -161,7 +161,7 @@ impl Vec2d {
         let mut r: f64 = self._v2dMag();
 
         if r < EPSILON {
-            return faceCenterGeo[face];
+            return faceCenterGeo[face as usize];
         }
 
         let mut theta: f64 = f64::atan2(self.y, self.x);
@@ -191,9 +191,9 @@ impl Vec2d {
         }
 
         // find theta as an azimuth
-        theta = _posAngleRads(faceAxesAzRadsCII[face][0] - theta);
+        theta = _posAngleRads(faceAxesAzRadsCII[face as usize][0] - theta);
 
         // now find the point at (r,theta) from the face center
-        GeoCoord::_geoAzDistanceRads(&faceCenterGeo[face], theta, r)
+        GeoCoord::_geoAzDistanceRads(&faceCenterGeo[face as usize], theta, r)
     }
 }

@@ -35,8 +35,6 @@ pub const MAX_H3_RES: usize = 15;
 
 // The number of faces on an icosahedron
 pub const NUM_ICOSA_FACES: usize = 20;
-// The number of H3 base cells
-pub const NUM_BASE_CELLS: usize = 122;
 // The number of vertices in a hexagon
 pub const NUM_HEX_VERTS: usize = 6;
 // The number of vertices in a pentagon

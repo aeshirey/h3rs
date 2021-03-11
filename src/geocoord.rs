@@ -1,10 +1,5 @@
 use crate::Vec3d;
-use crate::{
-    constants::*,
-    faceijk::*,
-    h3index::{H3Index, Resolution, H3_NULL},
-    vec2d::Vec2d,
-};
+use crate::{constants::*, faceijk::*, h3index::H3Index, vec2d::Vec2d, Resolution};
 
 /// epsilon of ~0.1mm in degrees
 const EPSILON_DEG: f64 = 0.000000001;
@@ -117,7 +112,7 @@ impl GeoCoord {
                 lat = -M_PI_2;
                 lon = 0.0;
             } else {
-                lon = constrainLng(p1.lon);
+                lon = GeoCoord::constrainLng(p1.lon);
             }
         } else {
             // not due north or south
@@ -156,7 +151,7 @@ impl GeoCoord {
                     coslon = -1.0;
                 }
 
-                lon = constrainLng(p1.lon + f64::atan2(sinlon, coslon));
+                lon = GeoCoord::constrainLng(p1.lon + f64::atan2(sinlon, coslon));
             }
         }
 
@@ -365,7 +360,7 @@ impl GeoCoord {
         let r = (1. - sqd / 2.).acos();
 
         if r < EPSILON {
-            return (face, Vec2d::default());
+            return (face as i32, Vec2d::default());
         }
 
         // now have face and r, now find CCW theta from CII i-axis
@@ -392,7 +387,7 @@ impl GeoCoord {
         // convert to local x,y
         let v = Vec2d::new(r * theta.cos(), r * theta.sin());
 
-        (face, v)
+        (face as i32, v)
     }
 
     /**
@@ -407,10 +402,10 @@ impl GeoCoord {
      */
     pub(crate) fn geoToH3(&self, res: Resolution) -> H3Index {
         if res < 0 || res > MAX_H3_RES {
-            return H3_NULL;
+            return H3Index::H3_NULL;
         }
         if self.lat.is_infinite() || self.lon.is_infinite() {
-            return H3_NULL;
+            return H3Index::H3_NULL;
         }
 
         let fijk: FaceIJK = self._geoToFaceIjk(res);
@@ -543,6 +538,6 @@ pub(crate) fn edgeLengthM(res: Resolution) -> f64 {
     LENS[res]
 }
 
-pub(crate) fn numHexagons(res: Resolution) {
-    2 + 120 * 7_usize.pow(res)
+pub(crate) fn numHexagons(res: Resolution) -> usize {
+    2 + 120 * 7_usize.pow(res as u32)
 }

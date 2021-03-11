@@ -18,11 +18,31 @@ pub enum Direction {
     IK_AXES_DIGIT, //= I_AXES_DIGIT | K_AXES_DIGIT, /* 5 */
     /// H3 digit in i == j direction
     IJ_AXES_DIGIT, //= I_AXES_DIGIT | J_AXES_DIGIT, /* 6 */
-    /// H3 digit in the invalid direction
-    INVALID_DIGIT, //= 7,
-    /// Valid digits will be less than this value. Same value as INVALID_DIGIT.
-    NUM_DIGITS, //= INVALID_DIGIT,
+
+    INVALID,
 }
+
+impl std::ops::AddAssign<i32> for Direction {
+    fn add_assign(&mut self, rhs: i32) {
+        use Direction::*;
+        *self = match self {
+            CENTER_DIGIT => K_AXES_DIGIT,
+            K_AXES_DIGIT => J_AXES_DIGIT,
+            J_AXES_DIGIT => JK_AXES_DIGIT,
+            JK_AXES_DIGIT => I_AXES_DIGIT,
+            I_AXES_DIGIT => IK_AXES_DIGIT,
+            IK_AXES_DIGIT => IJ_AXES_DIGIT,
+            IJ_AXES_DIGIT => INVALID,
+            INVALID => INVALID,
+        };
+    }
+}
+
+/// H3 digit in the invalid direction
+pub(crate) const INVALID_DIGIT: usize = 7;
+
+/// Valid digits will be less than this value. Same value as INVALID_DIGIT.
+pub(crate) const NUM_DIGITS: usize = 7; //= INVALID_DIGIT
 
 /// CoordIJK unit vectors corresponding to the 7 H3 digits.
 const UNIT_VECS: [CoordIJK; 7] = [

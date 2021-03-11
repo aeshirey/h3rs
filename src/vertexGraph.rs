@@ -14,7 +14,7 @@ struct VertexGraph {
     buckets: Option<Vec<VertexNode>>,
     numBuckets: i32,
     size: i32,
-    res: i32,
+    res: Resolution,
 }
 
 impl VertexGraph {
