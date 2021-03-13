@@ -23,8 +23,6 @@ impl Vec3d {
     }
 }
 
-
-
 /*
 /// Calculate the 3D coordinate on unit sphere from the latitude and longitude.
 ///
@@ -52,13 +50,27 @@ mod tests {
         let v4 = Vec3d::new(1., 1., 1.);
         let v5 = Vec3d::new(1., 1., 2.);
 
-        assert!((v1._pointSquareDist(&v1)).abs() < f64::EPSILON, "distance to self is 0");
-        assert!((v1._pointSquareDist(&v2) - 1.).abs() < f64::EPSILON, "distance to <1,0,0> is 1");
-        assert!((v1._pointSquareDist(&v3) - 2.).abs() < f64::EPSILON, "distance to <0,1,1> is 2");
-        assert!((v1._pointSquareDist(&v4) - 3.).abs() < f64::EPSILON, "distance to <1,1,1> is 3");
-        assert!((v1._pointSquareDist(&v5) - 6.).abs() < f64::EPSILON, "distance to <1,1,2> is 6");
+        assert!(
+            (v1._pointSquareDist(&v1)).abs() < f64::EPSILON,
+            "distance to self is 0"
+        );
+        assert!(
+            (v1._pointSquareDist(&v2) - 1.).abs() < f64::EPSILON,
+            "distance to <1,0,0> is 1"
+        );
+        assert!(
+            (v1._pointSquareDist(&v3) - 2.).abs() < f64::EPSILON,
+            "distance to <0,1,1> is 2"
+        );
+        assert!(
+            (v1._pointSquareDist(&v4) - 3.).abs() < f64::EPSILON,
+            "distance to <1,1,1> is 3"
+        );
+        assert!(
+            (v1._pointSquareDist(&v5) - 6.).abs() < f64::EPSILON,
+            "distance to <1,1,2> is 6"
+        );
     }
-
 
     /*
     #[test]

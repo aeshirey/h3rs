@@ -1,3 +1,5 @@
+use crate::{constants::M_SQRT3_2, coordijk::CoordIJK};
+
 #[derive(PartialEq, Default, Debug)]
 pub struct Vec2d {
     /// x component,
@@ -49,8 +51,20 @@ impl Vec2d {
     */
 }
 
+impl From<CoordIJK> for Vec2d {
+    ///Find the center point in 2D cartesian coordinates of a hex.
+    ///
+    ///@param h The ijk coordinates of the hex.
+    ///@param v The 2D cartesian coordinates of the hex center point.
+    fn from(h: CoordIJK) -> Self {
+        let i = (h.i - h.k) as f64;
+        let j = (h.j - h.k) as f64;
 
-
+        let x = i - 0.5 * j;
+        let y = j * M_SQRT3_2;
+        Vec2d { x, y }
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -61,7 +75,10 @@ mod tests {
         let v = Vec2d::new(3.0, 4.0);
         let expected = 5.0;
         let mag = v._v2dMag();
-        assert!((mag - expected).abs() < f64::EPSILON, "magnitude as expected");
+        assert!(
+            (mag - expected).abs() < f64::EPSILON,
+            "magnitude as expected"
+        );
     }
 
     #[test]
@@ -76,8 +93,14 @@ mod tests {
         let expectedX = 4.0;
         let expectedY = 4.0;
 
-        assert!((intersection.x - expectedX).abs() < f64::EPSILON, "X coord as expected");
-        assert!((intersection.y - expectedY).abs() < f64::EPSILON, "Y coord as expected");
+        assert!(
+            (intersection.x - expectedX).abs() < f64::EPSILON,
+            "X coord as expected"
+        );
+        assert!(
+            (intersection.y - expectedY).abs() < f64::EPSILON,
+            "Y coord as expected"
+        );
     }
 
     #[test]

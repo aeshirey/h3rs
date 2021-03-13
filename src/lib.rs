@@ -4,6 +4,9 @@ use bbox::*;
 mod constants;
 use constants::*;
 
+mod direction;
+pub use direction::Direction;
+
 mod resolution;
 pub use resolution::*;
 
@@ -15,3 +18,6 @@ use vec3d::*;
 
 mod coordijk;
 use coordijk::*;
+
+mod geocoord;
+pub use geocoord::*;

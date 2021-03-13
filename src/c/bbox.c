@@ -1,30 +1,3 @@
-/**
- * Get the center of a bounding box
- * @param bbox   Input bounding box
- * @param center Output center coordinate
- */
-void bboxCenter(const BBox* bbox, GeoCoord* center) {
-    center->lat = (bbox->north + bbox->south) / 2.0;
-    // If the bbox crosses the antimeridian, shift east 360 degrees
-    double east = bboxIsTransmeridian(bbox) ? bbox->east + M_2PI : bbox->east;
-    center->lon = constrainLng((east + bbox->west) / 2.0);
-}
-
-/**
- * Whether the bounding box contains a given point
- * @param  bbox  Bounding box
- * @param  point Point to test
- * @return       Whether the point is contained
- */
-bool bboxContains(const BBox* bbox, const GeoCoord* point) {
-    return point->lat >= bbox->south && point->lat <= bbox->north &&
-           (bboxIsTransmeridian(bbox) ?
-                                      // transmeridian case
-                (point->lon >= bbox->west || point->lon <= bbox->east)
-                                      :
-                                      // standard case
-                (point->lon >= bbox->west && point->lon <= bbox->east));
-}
 
 /**
  * Whether two bounding boxes are strictly equal
