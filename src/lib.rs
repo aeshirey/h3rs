@@ -5,7 +5,7 @@ mod constants;
 use constants::*;
 
 mod resolution;
-use resolution::*;
+pub use resolution::*;
 
 mod vec2d;
 use vec2d::*;

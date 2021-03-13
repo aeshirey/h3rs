@@ -77,13 +77,6 @@ typedef uint64_t H3Index;
  */
 #define MAX_CELL_BNDRY_VERTS 10
 
-/** @struct GeoCoord
-    @brief latitude/longitude in radians
-*/
-typedef struct {
-    double lat;  ///< latitude in radians
-    double lon;  ///< longitude in radians
-} GeoCoord;
 
 /** @struct GeoBoundary
     @brief cell boundary in latitude/longitude
