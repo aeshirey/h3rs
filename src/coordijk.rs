@@ -1,40 +1,53 @@
-use std::{cmp, ops};
+use std::ops;
 
-use crate::{constants::M_SQRT3_2, coordij::CoordIJ, direction::Direction, vec2d::Vec2d};
+use crate::{constants::M_SIN60, vec2d::Vec2d};
 
-#[derive(Copy, Clone, Default)]
 /// IJK hexagon coordinates
-///Each axis is spaced 120 degrees apart.
+///
+/// Each axis is spaced 120 degrees apart.
 pub struct CoordIJK {
-    /// i component
-    pub(crate) i: i32,
-    /// j component
-    pub(crate) j: i32,
-    /// k component
-    pub(crate) k: i32,
+    pub i: i32,
+    pub j: i32,
+    pub k: i32,
 }
 
+/// @brief CoordIJK unit vectors corresponding to the 7 H3 digits.
+const UNIT_VECS: [CoordIJK; 7] = [
+    CoordIJK::new(0, 0, 0), // direction 0
+    CoordIJK::new(0, 0, 1), // direction 1
+    CoordIJK::new(0, 1, 0), // direction 2
+    CoordIJK::new(0, 1, 1), // direction 3
+    CoordIJK::new(1, 0, 0), // direction 4
+    CoordIJK::new(1, 0, 1), // direction 5
+    CoordIJK::new(1, 1, 0), // direction 6
+];
+
 impl CoordIJK {
+    pub const ZERO: CoordIJK = CoordIJK::new(0, 0, 0);
+
     pub const fn new(i: i32, j: i32, k: i32) -> Self {
         Self { i, j, k }
     }
 
-    /// Sets an IJK coordinate to the specified component values.
-    pub fn _setIJK(&mut self, i: i32, j: i32, k: i32) {
-        self.i = i;
-        self.j = j;
-        self.k = k;
+    /**
+     * Returns whether or not two ijk coordinates contain exactly the same
+     * component values.
+     *
+     * @param c1 The first set of ijk coordinates.
+     * @param c2 The second set of ijk coordinates.
+     * @return 1 if the two addresses match, 0 if they do not.
+     */
+    pub fn _ijkMatches(c1: &Self, c2: &Self) -> bool {
+        todo!("Replace all invocations of _ijkMatches with ==")
     }
 
-    /// Uniformly scale ijk coordinates by a scalar. Works in place.
-    pub fn _ijkScale(&mut self, factor: i32) {
-        self.i *= factor;
-        self.j *= factor;
-        self.k *= factor;
-    }
-
-    /// Normalizes ijk coordinates by setting the components to the smallest possible values. Works in place.
-    pub fn _ijkNormalize(&mut self) {
+    /**
+     * Normalizes ijk coordinates by setting the components to the smallest possible
+     * values. Works in place.
+     *
+     * @param c The ijk coordinates to normalize.
+     */
+    pub fn normalize(&mut self) {
         // remove any negative values
         if self.i < 0 {
             self.j -= self.i;
@@ -55,7 +68,7 @@ impl CoordIJK {
         }
 
         // remove the min value if needed
-        let min = self.i;
+        let mut min = self.i;
         if self.j < min {
             min = self.j;
         }
@@ -68,234 +81,200 @@ impl CoordIJK {
             self.k -= min;
         }
     }
+}
 
-    /// Returns whether or not two ijk coordinates contain exactly the same component values.
-    pub fn _ijkMatches(&self, other: &Self) -> bool {
-        self.i == other.i && self.j == other.j && self.k == other.k
-    }
-
-    /// Add two ijk coordinates.
-    pub fn _ijkAdd(&self, other: &Self) -> Self {
-        let i = self.i + other.i;
-        let j = self.j + other.j;
-        let k = self.k + other.k;
-
-        Self { i, j, k }
-    }
-
-    /// Subtract two ijk coordinates.
-    pub fn _ijkSub(&self, other: &Self) -> Self {
-        let i = self.i - other.i;
-        let j = self.j - other.j;
-        let k = self.k - other.k;
-
-        Self { i, j, k }
-    }
-
-    /// Determines the H3 digit corresponding to a unit vector in ijk coordinates.
-    ///
-    ///@param ijk The ijk coordinates; must be a unit vector.
-    ///@return The H3 digit (0-6) corresponding to the ijk unit vector, or
-    ///INVALID_DIGIT on failure.
-    pub fn _unitIjkToDigit(&self) -> Direction {
-        let mut c = self.clone();
-        c._ijkNormalize();
-
-        todo!();
-
+impl From<Vec2d> for CoordIJK {
+    /**
+     * Determine the containing hex in ijk+ coordinates for a 2D cartesian
+     * coordinate vector (from DGGRID).
+     *
+     * @param v The 2D cartesian coordinate vector.
+     * @param h The ijk+ coordinates of the containing hex.
+     */
+    fn from(v: Vec2d) -> Self {
         /*
-        let digit = Direction ::INVALID_DIGIT;
-        for (Direction i = CENTER_DIGIT; i < NUM_DIGITS; i++) {
-            if c._ijkMatches(&UNIT_VECS[i]) {
-                digit = i;
-                break;
+        double a1, a2;
+        double x1, x2;
+        int m1, m2;
+        double r1, r2;
+
+        // quantize into the ij system and then normalize
+        let k = 0;
+
+        let a1 = v.x.abs();
+        let a2 = v.y.abs();
+
+        // first do a reverse conversion
+        x2 = a2 / M_SIN60;
+        x1 = a1 + x2 / 2.0L;
+
+        // check if we have the center of a hex
+        m1 = x1;
+        m2 = x2;
+
+        // otherwise round correctly
+        r1 = x1 - m1;
+        r2 = x2 - m2;
+
+        if (r1 < 0.5L) {
+            if (r1 < 1.0L / 3.0L) {
+                if (r2 < (1.0L + r1) / 2.0L) {
+                    h.i = m1;
+                    h.j = m2;
+                } else {
+                    h.i = m1;
+                    h.j = m2 + 1;
+                }
+            } else {
+                if (r2 < (1.0L - r1)) {
+                    h.j = m2;
+                } else {
+                    h.j = m2 + 1;
+                }
+
+                if ((1.0L - r1) <= r2 && r2 < (2.0 * r1)) {
+                    h.i = m1 + 1;
+                } else {
+                    h.i = m1;
+                }
+            }
+        } else {
+            if (r1 < 2.0L / 3.0L) {
+                if (r2 < (1.0L - r1)) {
+                    h.j = m2;
+                } else {
+                    h.j = m2 + 1;
+                }
+
+                if ((2.0L * r1 - 1.0L) < r2 && r2 < (1.0L - r1)) {
+                    h.i = m1;
+                } else {
+                    h.i = m1 + 1;
+                }
+            } else {
+                if (r2 < (r1 / 2.0L)) {
+                    h.i = m1 + 1;
+                    h.j = m2;
+                } else {
+                    h.i = m1 + 1;
+                    h.j = m2 + 1;
+                }
             }
         }
 
-        digit
-        */
-    }
+        // now fold across the axes if necessary
 
-    /// Find the normalized ijk coordinates of the indexing parent of a cell in a counter-clockwise aperture 7 grid. Works in place.
-    pub fn _upAp7(&mut self) {
-        // convert to CoordIJ
-        let i = self.i - self.k;
-        let j = self.j - self.k;
-
-        // TODO: confirm that Rust's rounding matches CPP's lroundl
-        todo!()
-        /*
-            self.i = (int)lroundl((3 * i - j) / 7.0);
-        self.j = (int)lroundl((i + 2 * j) / 7.0);
-        self.k = 0;
-        self._ijkNormalize();
-        */
-    }
-
-    /// Find the center point in 2D cartesian coordinates of a hex.
-    pub fn _ijkToHex2d(&self) -> Vec2d {
-        let i = self.i - self.k;
-        let j = self.j - self.k;
-
-        let x = i as f64 - 0.5 * j as f64;
-        let y = j as f64 * M_SQRT3_2;
-
-        Vec2d { x, y }
-    }
-
-    /// Find the normalized ijk coordinates of the hex in the specified digit direction from the specified ijk coordinates. Works in place.
-    pub fn _neighbor(&mut self, digit: Direction) {
-        //if (digit > CENTER_DIGIT && digit < NUM_DIGITS) {
-        //_ijkAdd(ijk, &UNIT_VECS[digit], ijk);
-        let ijk = *self + digit.unit_vec();
-        *self += ijk;
-        self._ijkNormalize();
-        //}
-    }
-
-    /// Find the normalized ijk coordinates of the hex centered on the indicated hex at the next finer aperture 7 clockwise resolution. Works in place.
-    pub fn _downAp7r(&mut self) {
-        // res r unit vectors in res r+1
-        let iVec = CoordIJK { i: 3, j: 1, k: 0 } * self.i;
-        let jVec = CoordIJK { i: 0, j: 3, k: 1 } * self.j;
-        let kVec = CoordIJK { i: 1, j: 0, k: 3 } * self.k;
-
-        *self = iVec + jVec + kVec;
-        self._ijkNormalize();
-    }
-
-    /// Find the normalized ijk coordinates of the hex centered on the indicated hex at the next finer aperture 7 counter-clockwise resolution. Works in place.
-    pub fn _downAp7(&mut self) {
-        // res r unit vectors in res r+1
-        let iVec = CoordIJK { i: 3, j: 0, k: 1 } * self.i;
-        let jVec = CoordIJK { i: 1, j: 3, k: 0 } * self.j;
-        let kVec = CoordIJK { i: 0, j: 1, k: 3 } * self.k;
-
-        *self = iVec + jVec + kVec;
-        self._ijkNormalize();
-    }
-
-    /// Find the normalized ijk coordinates of the hex centered on the indicated hex at the next finer aperture 3 counter-clockwise resolution. Works in place.
-    pub fn _downAp3(&mut self) {
-        // res r unit vectors in res r+1
-        let iVec = CoordIJK { i: 2, j: 0, k: 1 } * self.i;
-        let jVec = CoordIJK { i: 1, j: 2, k: 0 } * self.j;
-        let kVec = CoordIJK { i: 0, j: 1, k: 2 } * self.k;
-
-        *self = iVec + jVec + kVec;
-        self._ijkNormalize();
-    }
-
-    /// Find the normalized ijk coordinates of the hex centered on the indicated hex at the next finer aperture 3 clockwise resolution. Works in place.
-    pub fn _downAp3r(&mut self) {
-        // res r unit vectors in res r+1
-        let iVec = CoordIJK { i: 2, j: 1, k: 0 } * self.i;
-        let jVec = CoordIJK { i: 0, j: 2, k: 1 } * self.j;
-        let kVec = CoordIJK { i: 1, j: 0, k: 2 } * self.k;
-
-        *self = iVec + jVec + kVec;
-        self._ijkNormalize();
-    }
-
-    /// Find the normalized ijk coordinates of the indexing parent of a cell in a clockwise aperture 7 grid. Works in place.
-    pub fn _upAp7r(&mut self) {
-        // convert to CoordIJ
-        let i = self.i - self.k;
-        let j = self.j - self.k;
-
-        todo!()
-        /*
-        self.i = (int)lroundl((2 * i + j) / 7.0);
-        self.j = (int)lroundl((3 * j - i) / 7.0);
-        self.k = 0;
-        self._ijkNormalize();
-        */
-    }
-
-    /// Rotates ijk coordinates 60 degrees counter-clockwise. Works in place.
-    pub fn _ijkRotate60ccw(&mut self) {
-        // unit vector rotations
-        let mut iVec = CoordIJK { i: 1, j: 1, k: 0 } * self.i;
-        let mut jVec = CoordIJK { i: 0, j: 1, k: 1 } * self.j;
-        let mut kVec = CoordIJK { i: 1, j: 0, k: 1 } * self.k;
-
-        *self = iVec + jVec + kVec;
-        self._ijkNormalize();
-    }
-
-    /// Rotates ijk coordinates 60 degrees clockwise. Works in place.
-    pub fn _ijkRotate60cw(&mut self) {
-        // unit vector rotations
-        let iVec = CoordIJK { i: 1, j: 0, k: 1 } * self.i;
-        let jVec = CoordIJK { i: 1, j: 1, k: 0 } * self.j;
-        let kVec = CoordIJK { i: 0, j: 1, k: 1 } * self.k;
-
-        *self = iVec + jVec + kVec;
-        self._ijkNormalize();
-    }
-
-    /// Finds the distance between the two coordinates. Returns result.
-    pub fn ijkDistance(&self, other: &Self) -> i32 {
-        let mut diff = *self - *other;
-        diff._ijkNormalize();
-
-        let i = diff.i.abs();
-        let j = diff.j.abs();
-        let k = diff.k.abs();
-
-        cmp::max(i, cmp::max(j, k))
-    }
-
-    /// Transforms coordinates from the IJK+ coordinate system to the IJ coordinate system.
-    pub fn ijkToIj(&self) -> CoordIJ {
-        let i = self.i - self.k;
-        let j = self.j - self.k;
-        CoordIJ { i, j }
-    }
-
-    /// Convert IJK coordinates to cube coordinates, in place
-    pub fn ijkToCube(&mut self) {
-        self.i = -self.i + self.k;
-        self.j = self.j - self.k;
-        self.k = -self.i - self.j;
-    }
-
-    /// Convert cube coordinates to IJK coordinates, in place
-    pub fn cubeToIjk(&mut self) {
-        self.i = -self.i;
-        self.k = 0;
-        self._ijkNormalize();
-    }
-
-    /**
-     * Given cube coords as doubles, round to valid integer coordinates. Algorithm
-     * from https://www.redblobgames.com/grids/hexagons/#rounding
-     * @param i   Floating-point I coord
-     * @param j   Floating-point J coord
-     * @param k   Floating-point K coord
-     * @param ijk IJK coord struct, modified in place
-     */
-    fn cubeRound(&mut self, i: f64, j: f64, k: f64) {
-        let mut ri = i.round(); // as i32;
-        let mut rj = j.round(); // as i32;
-        let mut rk = k.round(); // as i32;
-
-        let iDiff = (ri - i).abs();
-        let jDiff = (rj - j).abs();
-        let kDiff = (rk - k).abs();
-
-        // Round, maintaining valid cube coords
-        if iDiff > jDiff && iDiff > kDiff {
-            ri = -rj - rk;
-        } else if jDiff > kDiff {
-            rj = -ri - rk;
-        } else {
-            rk = -ri - rj;
+        if (v.x < 0.0L) {
+            if ((h.j % 2) == 0)  // even
+            {
+                long long int axisi = h.j / 2;
+                long long int diff = h.i - axisi;
+                h.i = h.i - 2.0 * diff;
+            } else {
+                long long int axisi = (h.j + 1) / 2;
+                long long int diff = h.i - axisi;
+                h.i = h.i - (2.0 * diff + 1);
+            }
         }
 
-        self.i = ri as i32;
-        self.j = rj as i32;
-        self.k = rk as i32;
+        if (v.y < 0.0L) {
+            h.i = h.i - (2 * h.j + 1) / 2;
+            h.j = -1 * h.j;
+        }
+
+        h._ijkNormalize()
+            */
+
+        // quantize into the ij system and then normalize
+        let k = 0;
+
+        let a1: f64 = v.x.abs();
+        let a2: f64 = v.y.abs();
+
+        // first do a reverse conversion
+        let x2: f64 = a2 / M_SIN60;
+        let x1: f64 = a1 + x2 / 2.0;
+
+        // check if we have the center of a hex
+        let m1 = x1 as i32;
+        let m2 = x2 as i32;
+
+        // otherwise round correctly
+        let r1: f64 = x1 - m1 as f64;
+        let r2: f64 = x2 - m2 as f64;
+
+        let mut i: i32;
+        let mut j: i32;
+
+        if r1 < 0.5 {
+            if r1 < 1.0 / 3.0 {
+                if r2 < (1.0 + r1) / 2.0 {
+                    i = m1;
+                    j = m2;
+                } else {
+                    i = m1;
+                    j = m2 + 1;
+                }
+            } else {
+                if r2 < (1.0 - r1) {
+                    j = m2;
+                } else {
+                    j = m2 + 1;
+                }
+
+                if 1.0 - r1 <= r2 && r2 < (2.0 * r1) {
+                    i = m1 + 1;
+                } else {
+                    i = m1;
+                }
+            }
+        } else {
+            if r1 < 2.0 / 3.0 {
+                if r2 < (1.0 - r1) {
+                    j = m2;
+                } else {
+                    j = m2 + 1;
+                }
+
+                if 2.0 * r1 - 1.0 < r2 && r2 < (1.0 - r1) {
+                    i = m1;
+                } else {
+                    i = m1 + 1;
+                }
+            } else {
+                if r2 < (r1 / 2.0) {
+                    i = m1 + 1;
+                    j = m2;
+                } else {
+                    i = m1 + 1;
+                    j = m2 + 1;
+                }
+            }
+        }
+
+        // now fold across the axes if necessary
+
+        if v.x < 0.0 {
+            if j % 2 == 0 {
+                // even
+                let axisi = j / 2;
+                let diff = i - axisi;
+                i = i - 2 * diff;
+            } else {
+                let axisi = (j + 1) / 2;
+                let diff = i - axisi;
+                i = i - (2 * diff + 1);
+            }
+        }
+
+        if v.y < 0.0 {
+            i = i - (2 * j + 1) / 2;
+            j = -1 * j;
+        }
+
+        let mut h = CoordIJK { i, j, k };
+        h.normalize();
+        h
     }
 }
 
@@ -344,5 +323,38 @@ impl ops::MulAssign<i32> for CoordIJK {
         self.i *= factor;
         self.j *= factor;
         self.k *= factor;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_unitIjkToDigit() {
+        let zero = CoordIJK::ZERO;
+        let i = CoordIJK::new(1, 0, 0);
+        let outOfRange = CoordIJK::new(2, 0, 0);
+        let unnormalizedZero = CoordIJK::new(2, 2, 2);
+
+        //assert!(_unitIjkToDigit(&zero) == CENTER_DIGIT, "Unit IJK to zero");
+        //assert!(_unitIjkToDigit(&i) == I_AXES_DIGIT, "Unit IJK to I axis");
+        //assert!(_unitIjkToDigit(&outOfRange) == INVALID_DIGIT, "Unit IJK out of range");
+        //assert!(_unitIjkToDigit(&unnormalizedZero) == CENTER_DIGIT, "Unnormalized unit IJK to zero");
+    }
+
+    #[test]
+    fn test_neighbor() {
+        let ijk = CoordIJK::ZERO;
+
+        let zero = CoordIJK::ZERO;
+        let i = CoordIJK::new(1, 0, 0);
+
+        //_neighbor(&ijk, CENTER_DIGIT);
+        //assert!(_ijkMatches(&ijk, &zero), "Center neighbor is self");
+        //_neighbor(&ijk, I_AXES_DIGIT);
+        //assert!(_ijkMatches(&ijk, &i), "I neighbor as expected");
+        //_neighbor(&ijk, INVALID_DIGIT);
+        //assert!(_ijkMatches(&ijk, &i), "Invalid neighbor is self");
     }
 }
