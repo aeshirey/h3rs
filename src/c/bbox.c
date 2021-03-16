@@ -1,14 +1,4 @@
 
-/**
- * Whether two bounding boxes are strictly equal
- * @param  b1 Bounding box 1
- * @param  b2 Bounding box 2
- * @return    Whether the boxes are equal
- */
-bool bboxEquals(const BBox* b1, const BBox* b2) {
-    return b1->north == b2->north && b1->south == b2->south &&
-           b1->east == b2->east && b1->west == b2->west;
-}
 
 /**
  * _hexRadiusKm returns the radius of a given hexagon in Km

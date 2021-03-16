@@ -72,44 +72,8 @@ typedef uint64_t H3Index;
 #define H3_VERSION_PATCH @H3_VERSION_PATCH@
 // clang-format on
 
-/** Maximum number of cell boundary vertices; worst case is pentagon:
- *  5 original verts + 5 edge crossings
- */
-#define MAX_CELL_BNDRY_VERTS 10
 
 
-/** @struct GeoBoundary
-    @brief cell boundary in latitude/longitude
-*/
-typedef struct {
-    int numVerts;                          ///< number of vertices
-    GeoCoord verts[MAX_CELL_BNDRY_VERTS];  ///< vertices in ccw order
-} GeoBoundary;
-
-/** @struct Geofence
- *  @brief similar to GeoBoundary, but requires more alloc work
- */
-typedef struct {
-    int numVerts;
-    GeoCoord *verts;
-} Geofence;
-
-/** @struct GeoPolygon
- *  @brief Simplified core of GeoJSON Polygon coordinates definition
- */
-typedef struct {
-    Geofence geofence;  ///< exterior boundary of the polygon
-    int numHoles;       ///< number of elements in the array pointed to by holes
-    Geofence *holes;    ///< interior boundaries (holes) in the polygon
-} GeoPolygon;
-
-/** @struct GeoMultiPolygon
- *  @brief Simplified core of GeoJSON MultiPolygon coordinates definition
- */
-typedef struct {
-    int numPolygons;
-    GeoPolygon *polygons;
-} GeoMultiPolygon;
 
 /** @struct LinkedGeoCoord
  *  @brief A coordinate node in a linked geo structure, part of a linked list

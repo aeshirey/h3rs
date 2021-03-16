@@ -35,13 +35,9 @@ pub const EARTH_RADIUS_KM: f64 = 6371.007180918475;
 /// scaling factor from hex2d resolution 0 unit length (or distance between adjacent cell center points on the plane) to gnomonic unit length.
 pub const RES0_U_GNOMONIC: f64 = 0.38196601125010500003;
 
-/// max H3 resolution; H3 version 1 has 16 resolutions, numbered 0 through 15
-pub const MAX_H3_RES: i32 = 15;
-
 /// The number of faces on an icosahedron
-pub const NUM_ICOSA_FACES: i32 = 20;
-/// The number of H3 base cells
-pub const NUM_BASE_CELLS: i32 = 122;
+pub const NUM_ICOSA_FACES: usize = 20;
+
 /// The number of vertices in a hexagon
 pub const NUM_HEX_VERTS: i32 = 6;
 /// The number of vertices in a pentagon

@@ -21,3 +21,15 @@ use coordijk::*;
 
 mod geocoord;
 pub use geocoord::*;
+
+mod basecell;
+use basecell::{BaseCell, BaseCellData};
+
+mod basecellrotation;
+use basecellrotation::BaseCellRotation;
+
+mod faceijk;
+use faceijk::{FaceIJK, FaceOrientIJK};
+
+mod geopolygon;
+use geopolygon::{GeoBoundary, GeoMultiPolygon, GeoPolygon, Geofence};

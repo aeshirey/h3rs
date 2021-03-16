@@ -163,21 +163,6 @@ H3Index H3_EXPORT(h3ToParent)(H3Index h, int parentRes) {
     return parentH;
 }
 
-/**
- * Determines whether one resolution is a valid child resolution of another.
- * Each resolution is considered a valid child resolution of itself.
- *
- * @param parentRes int resolution of the parent
- * @param childRes int resolution of the child
- *
- * @return The validity of the child resolution
- */
-static bool _isValidChildRes(int parentRes, int childRes) {
-    if (childRes < parentRes || childRes > MAX_H3_RES) {
-        return false;
-    }
-    return true;
-}
 
 /**
  * maxH3ToChildrenSize returns the maximum number of children possible for a
@@ -978,11 +963,3 @@ void H3_EXPORT(getPentagonIndexes)(int res, H3Index* out) {
     }
 }
 
-/**
- * Returns whether or not a resolution is a Class III grid. Note that odd
- * resolutions are Class III and even resolutions are Class II.
- * @param res The H3 resolution.
- * @return 1 if the resolution is a Class III grid, and 0 if the resolution is
- *         a Class II grid.
- */
-int isResClassIII(int res) { return res % 2; }

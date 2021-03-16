@@ -28,24 +28,6 @@
 #include "geoCoord.h"
 #include "vec2d.h"
 
-/** @struct FaceIJK
- * @brief Face number and ijk coordinates on that face-centered coordinate
- * system
- */
-typedef struct {
-    int face;        ///< face number
-    CoordIJK coord;  ///< ijk coordinates on that face
-} FaceIJK;
-
-/** @struct FaceOrientIJK
- * @brief Information to transform into an adjacent face IJK system
- */
-typedef struct {
-    int face;            ///< face number
-    CoordIJK translate;  ///< res 0 translation relative to primary face
-    int ccwRot60;  ///< number of 60 degree ccw rotations relative to primary
-                   /// face
-} FaceOrientIJK;
 
 extern const GeoCoord faceCenterGeo[NUM_ICOSA_FACES];
 

@@ -19,6 +19,9 @@ pub enum Resolution {
 }
 
 impl Resolution {
+    /// max H3 resolution; H3 version 1 has 16 resolutions, numbered 0 through 15
+    pub const MAX_H3_RES: usize = 15;
+
     pub fn areaKm2(&self) -> f64 {
         match self {
             Resolution::R0 => 4250546.848,
@@ -106,6 +109,37 @@ impl Resolution {
     pub fn numHexagons(&self) -> usize {
         let n = *self as usize;
         2 + 120 * 7_usize.pow(n as u32)
+    }
+
+    /**
+     * Returns whether or not a resolution is a Class III grid. Note that odd
+     * resolutions are Class III and even resolutions are Class II.
+     * @param res The H3 resolution.
+     * @return 1 if the resolution is a Class III grid, and 0 if the resolution is
+     *         a Class II grid.
+     */
+    pub(crate) fn isResClassIII(&self) -> bool {
+        let res = usize::from(*self);
+        res % 2 == 1
+    }
+
+    /**
+     * Determines whether one resolution is a valid child resolution of another.
+     * Each resolution is considered a valid child resolution of itself.
+     *
+     * @param parentRes int resolution of the parent
+     * @param childRes int resolution of the child
+     *
+     * @return The validity of the child resolution
+     */
+    pub(crate) fn _isValidChildRes(&self, childRes: &Self) -> bool {
+        let childRes = usize::from(*childRes);
+        let parentRes = usize::from(*self);
+        if childRes < parentRes || childRes > Resolution::MAX_H3_RES {
+            false
+        } else {
+            true
+        }
     }
 }
 

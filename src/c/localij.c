@@ -572,36 +572,6 @@ int H3_EXPORT(h3LineSize)(H3Index start, H3Index end) {
     return distance >= 0 ? distance + 1 : distance;
 }
 
-/**
- * Given cube coords as doubles, round to valid integer coordinates. Algorithm
- * from https://www.redblobgames.com/grids/hexagons/#rounding
- * @param i   Floating-point I coord
- * @param j   Floating-point J coord
- * @param k   Floating-point K coord
- * @param ijk IJK coord struct, modified in place
- */
-static void cubeRound(double i, double j, double k, CoordIJK* ijk) {
-    int ri = round(i);
-    int rj = round(j);
-    int rk = round(k);
-
-    double iDiff = fabs((double)ri - i);
-    double jDiff = fabs((double)rj - j);
-    double kDiff = fabs((double)rk - k);
-
-    // Round, maintaining valid cube coords
-    if (iDiff > jDiff && iDiff > kDiff) {
-        ri = -rj - rk;
-    } else if (jDiff > kDiff) {
-        rj = -ri - rk;
-    } else {
-        rk = -ri - rj;
-    }
-
-    ijk->i = ri;
-    ijk->j = rj;
-    ijk->k = rk;
-}
 
 /**
  * Given two H3 indexes, return the line of indexes between them (inclusive).
