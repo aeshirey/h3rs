@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_imports)]
+
 mod bbox;
 use bbox::*;
 
@@ -33,3 +35,6 @@ use faceijk::{FaceIJK, FaceOrientIJK};
 
 mod geopolygon;
 use geopolygon::{GeoBoundary, GeoMultiPolygon, GeoPolygon, Geofence};
+
+mod h3index;
+pub use h3index::H3Index;

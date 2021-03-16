@@ -62,8 +62,6 @@
 extern "C" {
 #endif
 
-/** @brief the H3Index fits within a 64-bit unsigned integer */
-typedef uint64_t H3Index;
 
 /* library version numbers generated from VERSION file */
 // clang-format off
@@ -104,15 +102,6 @@ struct LinkedGeoPolygon {
     LinkedGeoPolygon *next;
 };
 
-/** @struct CoordIJ
- * @brief IJ hexagon coordinates
- *
- * Each axis is spaced 120 degrees apart.
- */
-typedef struct {
-    int i;  ///< i component
-    int j;  ///< j component
-} CoordIJ;
 
 /** @defgroup geoToH3 geoToH3
  * Functions for geoToH3

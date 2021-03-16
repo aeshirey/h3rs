@@ -1,4 +1,4 @@
-use crate::constants::*;
+use crate::{constants::*, Resolution};
 
 /// epsilon of ~0.1mm in degrees
 const EPSILON_DEG: f64 = 0.000000001;
@@ -285,7 +285,7 @@ impl GeoCoord {
      *
      * @return     area of triangle on unit sphere, in radians^2
      */
-    fn triangleArea(a: &Self, b: &Self, c: &Self) -> f64 {
+    pub(crate) fn triangleArea(a: &Self, b: &Self, c: &Self) -> f64 {
         Self::triangleEdgeLengthsToArea(
             Self::pointDistRads(a, b),
             Self::pointDistRads(b, c),
@@ -303,5 +303,9 @@ impl GeoCoord {
     //        of each other.
     fn geoAlmostEqualThreshold(p1: &Self, p2: &Self, threshold: f64) -> bool {
         (p1.lat - p2.lat).abs() < threshold && (p1.lon - p2.lon).abs() < threshold
+    }
+
+    pub(crate) fn _faceIjkToGeo(&self, res: Resolution) -> GeoCoord {
+        todo!()
     }
 }

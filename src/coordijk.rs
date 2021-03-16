@@ -1,6 +1,10 @@
 use std::ops;
 
-use crate::{constants::M_SIN60, vec2d::Vec2d, Direction};
+use crate::{
+    constants::{M_SIN60, M_SQRT3_2},
+    vec2d::Vec2d,
+    Direction,
+};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 /// IJK hexagon coordinates
@@ -213,9 +217,9 @@ impl CoordIJK {
         let kDiff = (rk as f64 - k).abs();
 
         // Round, maintaining valid cube coords
-        if (iDiff > jDiff && iDiff > kDiff) {
+        if iDiff > jDiff && iDiff > kDiff {
             ri = -rj - rk;
-        } else if (jDiff > kDiff) {
+        } else if jDiff > kDiff {
             rj = -ri - rk;
         } else {
             rk = -ri - rj;
@@ -226,6 +230,21 @@ impl CoordIJK {
             j: rj,
             k: rk,
         }
+    }
+
+    /**
+     * Find the center point in 2D cartesian coordinates of a hex.
+     *
+     * @param h The ijk coordinates of the hex.
+     * @param v The 2D cartesian coordinates of the hex center point.
+     */
+    pub(crate) fn _ijkToHex2d(&self) -> Vec2d {
+        let i = (self.i - self.k) as f64;
+        let j = (self.j - self.k) as f64;
+
+        let x = i - 0.5 * j;
+        let y = j * M_SQRT3_2;
+        Vec2d { x, y }
     }
 }
 

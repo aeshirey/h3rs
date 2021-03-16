@@ -523,29 +523,7 @@ int H3_EXPORT(maxUncompactSize)(const H3Index* compactedSet, const int numHexes,
  */
 int H3_EXPORT(h3IsResClassIII)(H3Index h) { return H3_GET_RESOLUTION(h) % 2; }
 
-/**
- * h3IsPentagon takes an H3Index and determines if it is actually a
- * pentagon.
- * @param h The H3Index to check.
- * @return Returns 1 if it is a pentagon, otherwise 0.
- */
-int H3_EXPORT(h3IsPentagon)(H3Index h) {
-    return _isBaseCellPentagon(H3_GET_BASE_CELL(h)) &&
-           !_h3LeadingNonZeroDigit(h);
-}
 
-/**
- * Returns the highest resolution non-zero digit in an H3Index.
- * @param h The H3Index.
- * @return The highest resolution non-zero digit in the H3Index.
- */
-Direction _h3LeadingNonZeroDigit(H3Index h) {
-    for (int r = 1; r <= H3_GET_RESOLUTION(h); r++)
-        if (H3_GET_INDEX_DIGIT(h, r)) return H3_GET_INDEX_DIGIT(h, r);
-
-    // if we're here it's all 0's
-    return CENTER_DIGIT;
-}
 
 /**
  * Rotate an H3Index 60 degrees counter-clockwise about a pentagonal center.
@@ -771,103 +749,7 @@ int _h3ToFaceIjkWithInitializedFijk(H3Index h, FaceIJK* fijk) {
     return possibleOverage;
 }
 
-/**
- * Convert an H3Index to a FaceIJK address.
- * @param h The H3Index.
- * @param fijk The corresponding FaceIJK address.
- */
-void _h3ToFaceIjk(H3Index h, FaceIJK* fijk) {
-    int baseCell = H3_GET_BASE_CELL(h);
-    if (baseCell < 0 || baseCell >= NUM_BASE_CELLS) {  // LCOV_EXCL_BR_LINE
-        // Base cells less than zero can not be represented in an index
-        // TODO: Indicate an error to the caller
-        // To prevent reading uninitialized memory, we zero the output.
-        fijk->face = 0;
-        fijk->coord.i = fijk->coord.j = fijk->coord.k = 0;
-        return;
-    }
-    // adjust for the pentagonal missing sequence; all of sub-sequence 5 needs
-    // to be adjusted (and some of sub-sequence 4 below)
-    if (_isBaseCellPentagon(baseCell) && _h3LeadingNonZeroDigit(h) == 5)
-        h = _h3Rotate60cw(h);
 
-    // start with the "home" face and ijk+ coordinates for the base cell of c
-    *fijk = baseCellData[baseCell].homeFijk;
-    if (!_h3ToFaceIjkWithInitializedFijk(h, fijk))
-        return;  // no overage is possible; h lies on this face
-
-    // if we're here we have the potential for an "overage"; i.e., it is
-    // possible that c lies on an adjacent face
-
-    CoordIJK origIJK = fijk->coord;
-
-    // if we're in Class III, drop into the next finer Class II grid
-    int res = H3_GET_RESOLUTION(h);
-    if (isResClassIII(res)) {
-        // Class III
-        _downAp7r(&fijk->coord);
-        res++;
-    }
-
-    // adjust for overage if needed
-    // a pentagon base cell with a leading 4 digit requires special handling
-    int pentLeading4 =
-        (_isBaseCellPentagon(baseCell) && _h3LeadingNonZeroDigit(h) == 4);
-    if (_adjustOverageClassII(fijk, res, pentLeading4, 0) != NO_OVERAGE) {
-        // if the base cell is a pentagon we have the potential for secondary
-        // overages
-        if (_isBaseCellPentagon(baseCell)) {
-            while (_adjustOverageClassII(fijk, res, 0, 0) != NO_OVERAGE)
-                continue;
-        }
-
-        if (res != H3_GET_RESOLUTION(h)) _upAp7r(&fijk->coord);
-    } else if (res != H3_GET_RESOLUTION(h)) {
-        fijk->coord = origIJK;
-    }
-}
-
-/**
- * Determines the spherical coordinates of the center point of an H3 index.
- *
- * @param h3 The H3 index.
- * @param g The spherical coordinates of the H3 cell center.
- */
-void H3_EXPORT(h3ToGeo)(H3Index h3, GeoCoord* g) {
-    FaceIJK fijk;
-    _h3ToFaceIjk(h3, &fijk);
-    _faceIjkToGeo(&fijk, H3_GET_RESOLUTION(h3), g);
-}
-
-/**
- * Determines the cell boundary in spherical coordinates for an H3 index.
- *
- * @param h3 The H3 index.
- * @param gb The boundary of the H3 cell in spherical coordinates.
- */
-void H3_EXPORT(h3ToGeoBoundary)(H3Index h3, GeoBoundary* gb) {
-    FaceIJK fijk;
-    _h3ToFaceIjk(h3, &fijk);
-    if (H3_EXPORT(h3IsPentagon)(h3)) {
-        _faceIjkPentToGeoBoundary(&fijk, H3_GET_RESOLUTION(h3), 0,
-                                  NUM_PENT_VERTS, gb);
-    } else {
-        _faceIjkToGeoBoundary(&fijk, H3_GET_RESOLUTION(h3), 0, NUM_HEX_VERTS,
-                              gb);
-    }
-}
-
-/**
- * Returns the max number of possible icosahedron faces an H3 index
- * may intersect.
- *
- * @return int count of faces
- */
-int H3_EXPORT(maxFaceCount)(H3Index h3) {
-    // a pentagon always intersects 5 faces, a hexagon never intersects more
-    // than 2 (but may only intersect 1)
-    return H3_EXPORT(h3IsPentagon)(h3) ? 5 : 2;
-}
 
 /**
  * Find all icosahedron faces intersected by a given H3 index, represented
