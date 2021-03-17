@@ -141,6 +141,52 @@ impl Resolution {
             true
         }
     }
+
+    /** @brief overage distance table */
+    pub(crate) fn maxDimByCIIres(&self) -> i32 {
+        match self {
+            Resolution::R0 => 2,        // res  0
+            Resolution::R1 => -1,       // res  1
+            Resolution::R2 => 14,       // res  2
+            Resolution::R3 => -1,       // res  3
+            Resolution::R4 => 98,       // res  4
+            Resolution::R5 => -1,       // res  5
+            Resolution::R6 => 686,      // res  6
+            Resolution::R7 => -1,       // res  7
+            Resolution::R8 => 4802,     // res  8
+            Resolution::R9 => -1,       // res  9
+            Resolution::R10 => 33614,   // res 10
+            Resolution::R11 => -1,      // res 11
+            Resolution::R12 => 235298,  // res 12
+            Resolution::R13 => -1,      // res 13
+            Resolution::R14 => 1647086, // res 14
+            Resolution::R15 => -1,      // res 15
+                                         //Resolution::R16 => 11529602  // res 16
+        }
+    }
+
+    /// unit scale distance table
+    pub(crate) fn unitScaleByCIIres(&self) -> i32 {
+        match self {
+            Resolution::R0 => 1,       // res  0
+            Resolution::R1 => -1,      // res  1
+            Resolution::R2 => 7,       // res  2
+            Resolution::R3 => -1,      // res  3
+            Resolution::R4 => 49,      // res  4
+            Resolution::R5 => -1,      // res  5
+            Resolution::R6 => 343,     // res  6
+            Resolution::R7 => -1,      // res  7
+            Resolution::R8 => 2401,    // res  8
+            Resolution::R9 => -1,      // res  9
+            Resolution::R10 => 16807,  // res 10
+            Resolution::R11 => -1,     // res 11
+            Resolution::R12 => 117649, // res 12
+            Resolution::R13 => -1,     // res 13
+            Resolution::R14 => 823543, // res 14
+            Resolution::R15 => -1,     // res 15
+                                        //Resolution::R16 => 5764801  // res 16
+        }
+    }
 }
 
 impl From<Resolution> for usize {

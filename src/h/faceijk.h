@@ -31,26 +31,7 @@
 
 extern const GeoCoord faceCenterGeo[NUM_ICOSA_FACES];
 
-// indexes for faceNeighbors table
-/** IJ quadrant faceNeighbors table direction */
-#define IJ 1
-/** KI quadrant faceNeighbors table direction */
-#define KI 2
-/** JK quadrant faceNeighbors table direction */
-#define JK 3
 
-/** Invalid face index */
-#define INVALID_FACE -1
-
-/** Digit representing overage type */
-typedef enum {
-    /** No overage (on original face) */
-    NO_OVERAGE = 0,
-    /** On face edge (only occurs on substrate grids) */
-    FACE_EDGE = 1,
-    /** Overage on new face interior */
-    NEW_FACE = 2
-} Overage;
 
 // Internal functions
 
