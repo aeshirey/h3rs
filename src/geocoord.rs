@@ -309,3 +309,11 @@ impl GeoCoord {
         todo!()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn foo() {}
+}

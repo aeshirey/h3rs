@@ -44,9 +44,3 @@ pub const NUM_HEX_VERTS: i32 = 6;
 pub const NUM_PENT_VERTS: i32 = 5;
 /// The number of pentagons per resolution *
 pub const NUM_PENTAGONS: i32 = 12;
-
-/// H3 index modes
-pub const H3_HEXAGON_MODE: i32 = 1;
-pub const H3_UNIEDGE_MODE: i32 = 2;
-pub const H3_EDGE_MODE: i32 = 3;
-pub const H3_VERTEX_MODE: i32 = 4;

@@ -31,8 +31,8 @@ impl BaseCell {
 
     /// Return the neighboring base cell in the given direction.
     fn _getBaseCellNeighbor(&self, dir: &Direction) -> BaseCell {
-        let d: usize = dir.into();
-        baseCellNeighbors[self.0 as usize][d]
+        let d: u64 = dir.into();
+        baseCellNeighbors[self.0 as usize][d as usize]
     }
 
     /// Return the direction from the origin base cell to the neighbor.

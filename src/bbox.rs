@@ -1,5 +1,5 @@
 use crate::{
-    constants::{M_2PI, M_PI},
+    constants::{M_2PI, M_PI, M_PI_2},
     resolution::Resolution,
     GeoCoord,
 };
@@ -36,7 +36,7 @@ impl BBox {
     }
 
     /// Get the center of a bounding box
-    pub(crate) fn bboxCenter(&self) -> GeoCoord {
+    pub(crate) fn center(&self) -> GeoCoord {
         let lat = (self.north + self.south) / 2.0;
         // If the bbox crosses the antimeridian, shift east 360 degrees
         let east: f64 = if self.bboxIsTransmeridian() {
@@ -269,27 +269,27 @@ mod tests {
     fn test_bboxCenterBasicQuandrants() {
         let bbox1 = BBox::new(1.0, 0.8, 1.0, 0.8);
         let expected1 = GeoCoord::new(0.9, 0.9);
-        let center = bbox1.bboxCenter();
+        let center = bbox1.center();
         assert_eq!(center, expected1, "pos/pos as expected");
 
         let bbox2 = BBox::new(-0.8, -1.0, 1.0, 0.8);
         let expected2 = GeoCoord::new(-0.9, 0.9);
-        let center = bbox2.bboxCenter();
+        let center = bbox2.center();
         assert_eq!(center, expected2, "neg/pos as expected");
 
         let bbox3 = BBox::new(1.0, 0.8, -0.8, -1.0);
         let expected3 = GeoCoord::new(0.9, -0.9);
-        let center = bbox3.bboxCenter();
+        let center = bbox3.center();
         assert_eq!(center, expected3, "pos/neg as expected");
 
         let bbox4 = BBox::new(-0.8, -1.0, -0.8, -1.0);
         let expected4 = GeoCoord::new(-0.9, -0.9);
-        let center = bbox4.bboxCenter();
+        let center = bbox4.center();
         assert_eq!(center, expected4, "neg/neg as expected");
 
         let bbox5 = BBox::new(0.8, -0.8, 1.0, -1.0);
         let expected5 = GeoCoord::new(0.0, 0.0);
-        let center = bbox5.bboxCenter();
+        let center = bbox5.center();
         assert_eq!(center, expected5, "around origin as expected");
     }
 
@@ -297,17 +297,17 @@ mod tests {
     fn test_bboxCenterTransmeridian() {
         let bbox1 = BBox::new(1.0, 0.8, -M_PI + 0.3, M_PI - 0.1);
         let expected1 = GeoCoord::new(0.9, -M_PI + 0.1);
-        let center = bbox1.bboxCenter();
+        let center = bbox1.center();
         assert_eq!(center, expected1, "skew east as expected");
 
         let bbox2 = BBox::new(1.0, 0.8, -M_PI + 0.1, M_PI - 0.3);
         let expected2 = GeoCoord::new(0.9, M_PI - 0.1);
-        let center = bbox2.bboxCenter();
+        let center = bbox2.center();
         assert_eq!(center, expected2, "skew west as expected");
 
         let bbox3 = BBox::new(1.0, 0.8, -M_PI + 0.1, M_PI - 0.1);
         let expected3 = GeoCoord::new(0.9, M_PI);
-        let center = bbox3.bboxCenter();
+        let center = bbox3.center();
         assert_eq!(center, expected3, "on antimeridian as expected");
     }
 
@@ -344,4 +344,46 @@ mod tests {
         assert_ne!(bbox, east, "Not equals different east");
         assert_ne!(bbox, west, "Not equals different west");
     }
+
+    //#[test]
+    fn test_edgeOnNorthPole() {
+        let verts = vec![
+            GeoCoord::new(M_PI_2 - 0.1, 0.1),
+            GeoCoord::new(M_PI_2 - 0.1, 0.8),
+            GeoCoord::new(M_PI_2, 0.8),
+            GeoCoord::new(M_PI_2, 0.1),
+        ];
+        //const Geofence geofence = {.numVerts = 4, .verts = verts};
+        let expected = BBox::new(M_PI_2, M_PI_2 - 0.1, 0.8, 0.1);
+        let inside = GeoCoord::new(M_PI_2 - 0.01, 0.4);
+        let outside = GeoCoord::new(M_PI_2, 0.9);
+        //assertBBox(&geofence, &expected, &inside, &outside);
+    }
+
+    //#[test]
+    fn test_edgeOnSouthPole() {
+        let verts = vec![
+            GeoCoord::new(-M_PI_2 + 0.1, 0.1),
+            GeoCoord::new(-M_PI_2 + 0.1, 0.8),
+            GeoCoord::new(-M_PI_2, 0.8),
+            GeoCoord::new(-M_PI_2, 0.1),
+        ];
+        //const Geofence geofence = {.numVerts = 4, .verts = verts};
+        let expected = BBox::new(-M_PI_2 + 0.1, -M_PI_2, 0.8, 0.1);
+        let inside = GeoCoord::new(-M_PI_2 + 0.01, 0.4);
+        let outside = GeoCoord::new(-M_PI_2, 0.9);
+        //assertBBox(&geofence, &expected, &inside, &outside);
+    }
+
+    /*
+    #[test]
+    fn test_posLatPosLon() {
+        GeoCoord verts[] = {{0.8, 0.3}, {0.7, 0.6}, {1.1, 0.7}, {1.0, 0.2}};
+        const Geofence geofence = {.numVerts = 4, .verts = verts};
+        const BBox expected = {1.1, 0.7, 0.7, 0.2};
+        const GeoCoord inside = {0.9, 0.4};
+        const GeoCoord outside = {0.0, 0.0};
+        assertBBox(&geofence, &expected, &inside, &outside);
+    }
+    */
 }

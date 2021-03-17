@@ -1,4 +1,4 @@
-#![allow(dead_code, unused_imports)]
+#![allow(dead_code, unused_imports, non_camel_case_types)]
 
 mod bbox;
 use bbox::*;
@@ -17,6 +17,9 @@ use vec2d::*;
 
 mod vec3d;
 use vec3d::*;
+
+mod coordij;
+use coordij::*;
 
 mod coordijk;
 use coordijk::*;

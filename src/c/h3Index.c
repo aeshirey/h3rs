@@ -139,48 +139,7 @@ void setH3Index(H3Index* hp, int res, int baseCell, Direction initDigit) {
     *hp = h;
 }
 
-/**
- * h3ToParent produces the parent index for a given H3 index
- *
- * @param h H3Index to find parent of
- * @param parentRes The resolution to switch to (parent, grandparent, etc)
- *
- * @return H3Index of the parent, or H3_NULL if you actually asked for a child
- */
-H3Index H3_EXPORT(h3ToParent)(H3Index h, int parentRes) {
-    int childRes = H3_GET_RESOLUTION(h);
-    if (parentRes < 0 || parentRes > MAX_H3_RES) {
-        return H3_NULL;
-    } else if (parentRes > childRes) {
-        return H3_NULL;
-    } else if (parentRes == childRes) {
-        return h;
-    }
-    H3Index parentH = H3_SET_RESOLUTION(h, parentRes);
-    for (int i = parentRes + 1; i <= childRes; i++) {
-        H3_SET_INDEX_DIGIT(parentH, i, H3_DIGIT_MASK);
-    }
-    return parentH;
-}
 
-
-/**
- * maxH3ToChildrenSize returns the maximum number of children possible for a
- * given child level.
- *
- * @param h H3Index to find the number of children of
- * @param childRes The resolution of the child level you're interested in
- *
- * @return int count of maximum number of children (equal for hexagons, less for
- * pentagons
- */
-int64_t H3_EXPORT(maxH3ToChildrenSize)(H3Index h, int childRes) {
-    int parentRes = H3_GET_RESOLUTION(h);
-    if (!_isValidChildRes(parentRes, childRes)) {
-        return 0;
-    }
-    return _ipow(7, (childRes - parentRes));
-}
 
 /**
  * makeDirectChild takes an index and immediately returns the immediate child
@@ -233,29 +192,6 @@ void H3_EXPORT(h3ToChildren)(H3Index h, int childRes, H3Index* children) {
     }
 }
 
-/**
- * h3ToCenterChild produces the center child index for a given H3 index at
- * the specified resolution
- *
- * @param h H3Index to find center child of
- * @param childRes The resolution to switch to
- *
- * @return H3Index of the center child, or H3_NULL if you actually asked for a
- * parent
- */
-H3Index H3_EXPORT(h3ToCenterChild)(H3Index h, int childRes) {
-    int parentRes = H3_GET_RESOLUTION(h);
-    if (!_isValidChildRes(parentRes, childRes)) {
-        return H3_NULL;
-    } else if (childRes == parentRes) {
-        return h;
-    }
-    H3Index child = H3_SET_RESOLUTION(h, childRes);
-    for (int i = parentRes + 1; i <= childRes; i++) {
-        H3_SET_INDEX_DIGIT(child, i, 0);
-    }
-    return child;
-}
 
 /**
  * compact takes a set of hexagons all at the same resolution and compresses
@@ -514,18 +450,6 @@ int H3_EXPORT(maxUncompactSize)(const H3Index* compactedSet, const int numHexes,
 }
 
 /**
- * h3IsResClassIII takes a hexagon ID and determines if it is in a
- * Class III resolution (rotated versus the icosahedron and subject
- * to shape distortion adding extra points on icosahedron edges, making
- * them not true hexagons).
- * @param h The H3Index to check.
- * @return Returns 1 if the hexagon is class III, otherwise 0.
- */
-int H3_EXPORT(h3IsResClassIII)(H3Index h) { return H3_GET_RESOLUTION(h) % 2; }
-
-
-
-/**
  * Rotate an H3Index 60 degrees counter-clockwise about a pentagonal center.
  * @param h The H3Index.
  */
@@ -576,18 +500,6 @@ H3Index _h3RotatePent60cw(H3Index h) {
     return h;
 }
 
-/**
- * Rotate an H3Index 60 degrees counter-clockwise.
- * @param h The H3Index.
- */
-H3Index _h3Rotate60ccw(H3Index h) {
-    for (int r = 1, res = H3_GET_RESOLUTION(h); r <= res; r++) {
-        Direction oldDigit = H3_GET_INDEX_DIGIT(h, r);
-        H3_SET_INDEX_DIGIT(h, r, _rotate60ccw(oldDigit));
-    }
-
-    return h;
-}
 
 /**
  * Rotate an H3Index 60 degrees clockwise.

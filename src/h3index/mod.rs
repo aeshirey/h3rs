@@ -4,11 +4,16 @@ pub use geocoord::*;
 use crate::{basecell::BaseCell, Direction, GeoCoord, Resolution};
 
 mod h3UniEdge;
+mod localij;
 
+#[derive(Clone, Copy, PartialEq, Debug)]
 /// The H3Index fits within a 64-bit unsigned integer
 pub struct H3Index(u64);
 
 impl H3Index {
+    /// Invalid index used to indicate an error from geoToH3 and related functions or missing data in arrays of h3 indices. Analogous to NaN in floating point.
+    pub(crate) const H3_NULL: H3Index = H3Index(0);
+
     // define's of constants and macros for bitwise manipulation of H3Index's.
 
     /// The number of bits in an H3 index.
@@ -83,14 +88,15 @@ impl H3Index {
     }
 
     /// Gets the integer mode of h3.
-    pub(crate) fn get_mode(&self) -> u64 {
-        (self.0 & Self::H3_MODE_MASK) >> Self::H3_MODE_OFFSET
+    pub(crate) fn get_mode(&self) -> H3Mode {
+        let m = (self.0 & Self::H3_MODE_MASK) >> Self::H3_MODE_OFFSET;
+        m.into()
     }
 
     /// Sets the integer mode of h3 to v.
-    pub(crate) fn set_mode(&mut self, v: u64) {
-        //(h3) = (((h3)&H3_MODE_MASK_NEGATIVE) | (((uint64_t)(v)) << H3_MODE_OFFSET))
-        todo!()
+    pub(crate) fn set_mode(&mut self, mode: H3Mode) {
+        let v = mode as u64;
+        self.0 = (self.0 & Self::H3_MODE_MASK_NEGATIVE) | (v << Self::H3_MODE_OFFSET);
     }
 
     /// Gets the integer base cell of h3.
@@ -115,6 +121,39 @@ impl H3Index {
     pub(crate) fn set_resolution(&mut self, res: Resolution) {
         //(self.0 & H3_RES_MASK_NEGATIVE) | (((uint64_t)(res)) << Self::H3_RES_OFFSET)
         todo!()
+    }
+
+    /// Sets a value in the reserved space. Setting to non-zero may produce invalid indexes.
+    pub(crate) fn set_reserved_bits(&mut self, v: u64) {
+        self.0 = (self.0 & Self::H3_RESERVED_MASK_NEGATIVE) | (v << Self::H3_RESERVED_OFFSET);
+    }
+
+    /// Gets a value in the reserved space. Should always be zero for valid indexes.
+    pub(crate) fn get_reserved_bits(&self) -> u64 {
+        (self.0 & Self::H3_RESERVED_MASK) >> Self::H3_RESERVED_OFFSET
+    }
+
+    /// Sets the highest bit of the h3 to v.
+    pub(crate) fn set_high_bit(&mut self, v: u64) {
+        self.0 = (self.0 & Self::H3_HIGH_BIT_MASK_NEGATIVE) | (v << Self::H3_MAX_OFFSET);
+    }
+
+    /// Gets the resolution res integer digit (0-7) of h3.
+    pub(crate) fn get_index_digit(&self, res: Resolution) -> Direction {
+        let r = usize::from(res) as u64;
+        let d = (self.0 >> ((Resolution::MAX_H3_RES as u64 - r) * Self::H3_PER_DIGIT_OFFSET))
+            & Self::H3_DIGIT_MASK;
+
+        (d as usize).into()
+    }
+
+    /// Sets the resolution res digit of h3 to the integer digit (0-7)
+    pub(crate) fn set_index_digit(&mut self, res: Resolution, digit: u64) {
+        let r = usize::from(res) as u64;
+        self.0 = (self.0
+            & !(Self::H3_DIGIT_MASK
+                << ((Resolution::MAX_H3_RES as u64 - r) * Self::H3_PER_DIGIT_OFFSET)))
+            | (digit << ((Resolution::MAX_H3_RES as u64 - r) * Self::H3_PER_DIGIT_OFFSET))
     }
 
     /**
@@ -152,5 +191,144 @@ impl H3Index {
 
         // if we're here it's all 0's
         //Direction::CENTER_DIGIT
+    }
+
+    /**
+     * h3ToParent produces the parent index for a given H3 index
+     *
+     * @param h H3Index to find parent of
+     * @param parentRes The resolution to switch to (parent, grandparent, etc)
+     *
+     * @return H3Index of the parent, or H3_NULL if you actually asked for a child
+     */
+    pub fn h3ToParent(&mut self, parentRes: Resolution) -> Self {
+        let childRes = self.get_resolution();
+        if parentRes > childRes {
+            return Self::H3_NULL;
+        } else if parentRes == childRes {
+            return *self;
+        }
+
+        self.set_resolution(parentRes);
+        let mut parentH = *self;
+        for i in parentRes as u64 + 1..=childRes as u64 {
+            parentH.set_index_digit(i.into(), Self::H3_DIGIT_MASK);
+        }
+
+        parentH
+    }
+
+    /**
+     * maxH3ToChildrenSize returns the maximum number of children possible for a
+     * given child level.
+     *
+     * @param h H3Index to find the number of children of
+     * @param childRes The resolution of the child level you're interested in
+     *
+     * @return int count of maximum number of children (equal for hexagons, less for
+     * pentagons
+     */
+    pub fn maxH3ToChildrenSize(&self, childRes: Resolution) -> u64 {
+        let parentRes = self.get_resolution();
+        if !parentRes._isValidChildRes(&childRes) {
+            0
+        } else {
+            //_ipow(7, (childRes - parentRes));
+            let c = (childRes as u64) as u32;
+            let p = (parentRes as u64) as u32;
+            7u64.pow(c - p)
+        }
+    }
+
+    /**
+     * h3ToCenterChild produces the center child index for a given H3 index at
+     * the specified resolution
+     *
+     * @param h H3Index to find center child of
+     * @param childRes The resolution to switch to
+     *
+     * @return H3Index of the center child, or H3_NULL if you actually asked for a
+     * parent
+     */
+    pub fn h3ToCenterChild(&mut self, childRes: Resolution) -> Self {
+        let parentRes = self.get_resolution();
+        if !parentRes._isValidChildRes(&childRes) {
+            return Self::H3_NULL;
+        } else if childRes == parentRes {
+            return *self;
+        }
+
+        self.set_resolution(childRes);
+        let mut child = *self;
+        for i in parentRes as u64 + 1..=childRes as u64 {
+            child.set_index_digit(i.into(), 0);
+        }
+
+        child
+    }
+
+    /**
+     * h3IsResClassIII takes a hexagon ID and determines if it is in a
+     * Class III resolution (rotated versus the icosahedron and subject
+     * to shape distortion adding extra points on icosahedron edges, making
+     * them not true hexagons).
+     * @param h The H3Index to check.
+     * @return Returns 1 if the hexagon is class III, otherwise 0.
+     */
+    pub fn h3IsResClassIII(&self) -> bool {
+        self.get_resolution() as u64 % 2 == 1
+    }
+
+    /**
+     * Rotate an H3Index 60 degrees counter-clockwise.
+     * @param h The H3Index.
+     */
+    pub(crate) fn _h3Rotate60ccw(&self) -> Self {
+        let res = self.get_resolution() as u64;
+        let mut h = *self;
+        for r in 1..=res {
+            let old_digit = self.get_index_digit(r.into());
+            let old_digit = old_digit.rotate60ccw() as u64;
+            h.set_index_digit(r.into(), old_digit);
+        }
+
+        *self
+    }
+
+    /**
+     * Rotate an H3Index 60 degrees clockwise.
+     * @param h The H3Index.
+     */
+    pub(crate) fn _h3Rotate60cw(&self) -> Self {
+        let res = self.get_resolution() as u64;
+        let mut h = *self;
+        for r in 1..=res {
+            let old_digit = self.get_index_digit(r.into());
+            let old_digit = old_digit.rotate60cw() as u64;
+            h.set_index_digit(r.into(), old_digit);
+        }
+
+        *self
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+/// H3 index modes
+pub(crate) enum H3Mode {
+    H3_HEXAGON_MODE, // 1;
+    H3_UNIEDGE_MODE, // 2;
+    H3_EDGE_MODE,    // 3;
+    H3_VERTEX_MODE,  // 4;
+}
+
+impl From<u64> for H3Mode {
+    fn from(v: u64) -> Self {
+        match v {
+            1 => H3Mode::H3_HEXAGON_MODE,
+            2 => H3Mode::H3_UNIEDGE_MODE,
+            3 => H3Mode::H3_EDGE_MODE,
+            4 => H3Mode::H3_VERTEX_MODE,
+            _ => panic!("Unexpected value {} for H3Mode", v),
+        }
     }
 }

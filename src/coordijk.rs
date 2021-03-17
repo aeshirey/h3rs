@@ -246,6 +246,42 @@ impl CoordIJK {
         let y = j * M_SQRT3_2;
         Vec2d { x, y }
     }
+
+    /**
+     * Finds the distance between the two coordinates. Returns result.
+     *
+     * @param c1 The first set of ijk coordinates.
+     * @param c2 The second set of ijk coordinates.
+     */
+    pub(crate) fn ijkDistance(&self, other: &Self) -> i32 {
+        let mut diff = *self - *other;
+        diff.normalize();
+
+        let i = diff.i.abs();
+        let j = diff.j.abs();
+        let k = diff.k.abs();
+        i.max(j).max(k)
+    }
+}
+
+impl From<&crate::coordij::CoordIJ> for CoordIJK {
+    /**
+     * Transforms coordinates from the IJ coordinate system to the IJK+ coordinate
+     * system.
+     *
+     * @param ij The input IJ coordinates
+     * @param ijk The output IJK+ coordinates
+     */
+    fn from(ij: &crate::coordij::CoordIJ) -> Self {
+        let mut ijk = Self {
+            i: ij.i,
+            j: ij.j,
+            k: 0,
+        };
+
+        ijk.normalize();
+        ijk
+    }
 }
 
 impl From<Vec2d> for CoordIJK {

@@ -118,20 +118,6 @@ H3Index H3_EXPORT(getH3UnidirectionalEdge)(H3Index origin,
     return output;
 }
 
-/**
- * Returns the origin hexagon from the unidirectional edge H3Index
- * @param edge The edge H3 index
- * @return The origin H3 hexagon index, or H3_NULL on failure
- */
-H3Index H3_EXPORT(getOriginH3IndexFromUnidirectionalEdge)(H3Index edge) {
-    if (H3_GET_MODE(edge) != H3_UNIEDGE_MODE) {
-        return H3_NULL;
-    }
-    H3Index origin = edge;
-    H3_SET_MODE(origin, H3_HEXAGON_MODE);
-    H3_SET_RESERVED_BITS(origin, 0);
-    return origin;
-}
 
 /**
  * Returns the destination hexagon from the unidirectional edge H3Index
@@ -211,37 +197,3 @@ void H3_EXPORT(getH3UnidirectionalEdgesFromHexagon)(H3Index origin,
     }
 }
 
-/**
- * Provides the coordinates defining the unidirectional edge.
- * @param edge The unidirectional edge H3Index
- * @param gb The geoboundary object to store the edge coordinates.
- */
-void H3_EXPORT(getH3UnidirectionalEdgeBoundary)(H3Index edge, GeoBoundary* gb) {
-    // Get the origin and neighbor direction from the edge
-    Direction direction = H3_GET_RESERVED_BITS(edge);
-    H3Index origin = H3_EXPORT(getOriginH3IndexFromUnidirectionalEdge)(edge);
-
-    // Get the start vertex for the edge
-    int startVertex = vertexNumForDirection(origin, direction);
-    if (startVertex == INVALID_VERTEX_NUM) {
-        // This is not actually an edge (i.e. no valid direction),
-        // so return no vertices.
-        gb->numVerts = 0;
-        return;
-    }
-
-    // Get the geo boundary for the appropriate vertexes of the origin. Note
-    // that while there are always 2 topological vertexes per edge, the
-    // resulting edge boundary may have an additional distortion vertex if it
-    // crosses an edge of the icosahedron.
-    FaceIJK fijk;
-    _h3ToFaceIjk(origin, &fijk);
-    int res = H3_GET_RESOLUTION(origin);
-    int isPentagon = H3_EXPORT(h3IsPentagon)(origin);
-
-    if (isPentagon) {
-        _faceIjkPentToGeoBoundary(&fijk, res, startVertex, 2, gb);
-    } else {
-        _faceIjkToGeoBoundary(&fijk, res, startVertex, 2, gb);
-    }
-}

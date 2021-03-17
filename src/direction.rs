@@ -67,8 +67,23 @@ impl Direction {
     }
 }
 
-impl Into<usize> for &Direction {
-    fn into(self) -> usize {
+impl From<usize> for Direction {
+    fn from(v: usize) -> Self {
+        match v {
+            0 => Direction::CENTER_DIGIT,
+            1 => Direction::K_AXES_DIGIT,
+            2 => Direction::J_AXES_DIGIT,
+            3 => Direction::JK_AXES_DIGIT,
+            4 => Direction::I_AXES_DIGIT,
+            5 => Direction::IK_AXES_DIGIT,
+            6 => Direction::IJ_AXES_DIGIT,
+            _ => Direction::INVALID_DIGIT,
+        }
+    }
+}
+
+impl Into<u64> for &Direction {
+    fn into(self) -> u64 {
         match self {
             Direction::CENTER_DIGIT => 0,
             Direction::K_AXES_DIGIT => 1,
