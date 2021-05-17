@@ -6,7 +6,7 @@ use crate::{
     Direction,
 };
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Default)]
 /// IJK hexagon coordinates
 ///
 /// Each axis is spaced 120 degrees apart.
@@ -103,7 +103,7 @@ impl CoordIJK {
      * @return The H3 digit (0-6) corresponding to the ijk unit vector, or
      * INVALID_DIGIT on failure.
      */
-    fn _unitIjkToDigit(&self) -> Direction {
+    pub(crate) fn _unitIjkToDigit(&self) -> Direction {
         let mut c = *self;
         c.normalize();
 
@@ -184,13 +184,46 @@ impl CoordIJK {
     }
 
     /**
+     * Find the normalized ijk coordinates of the hex centered on the indicated
+     * hex at the next finer aperture 3 counter-clockwise resolution. Works in
+     * place.
+     *
+     * @param ijk The ijk coordinates.
+     */
+    pub(crate) fn _downAp3(&mut self) {
+        // res r unit vectors in res r+1
+        let iVec = CoordIJK::new(2, 0, 1) * self.i;
+        let jVec = CoordIJK::new(1, 2, 0) * self.j;
+        let kVec = CoordIJK::new(0, 1, 2) * self.k;
+
+        *self = iVec + jVec + kVec;
+        self.normalize();
+    }
+
+    /**
+     * Find the normalized ijk coordinates of the hex centered on the indicated
+     * hex at the next finer aperture 3 clockwise resolution. Works in place.
+     *
+     * @param ijk The ijk coordinates.
+     */
+    pub(crate) fn _downAp3r(&mut self) {
+        // res r unit vectors in res r+1
+        let iVec = CoordIJK::new(2, 1, 0) * self.i;
+        let jVec = CoordIJK::new(0, 2, 1) * self.j;
+        let kVec = CoordIJK::new(1, 0, 2) * self.k;
+
+        *self = iVec + jVec + kVec;
+        self.normalize();
+    }
+
+    /**
      * Find the normalized ijk coordinates of the hex in the specified digit
      * direction from the specified ijk coordinates. Works in place.
      *
      * @param ijk The ijk coordinates.
      * @param digit The digit direction from the original ijk coordinates.
      */
-    fn _neighbor(&mut self, digit: Direction) {
+    pub(crate) fn _neighbor(&mut self, digit: Direction) {
         if digit != Direction::CENTER_DIGIT && digit != Direction::INVALID_DIGIT {
             let unit = Self::UNIT_VECS.iter().find(|(_, d)| *d == digit).unwrap().0;
 
@@ -261,6 +294,27 @@ impl CoordIJK {
         let j = diff.j.abs();
         let k = diff.k.abs();
         i.max(j).max(k)
+    }
+
+    /// Rotates ijk coordinates 60 degrees counter-clockwise. Works in place.
+    pub(crate) fn _ijkRotate60ccw(&mut self) {
+        // unit vector rotations
+        let iVec = CoordIJK::new(1, 1, 0) * self.i;
+        let jVec = CoordIJK::new(0, 1, 1) * self.j;
+        let kVec = CoordIJK::new(1, 0, 1) * self.k;
+
+        *self = iVec + jVec + kVec;
+        self.normalize();
+    }
+
+    pub(crate) fn _ijkRotate60cw(&mut self) {
+        // unit vector rotations
+        let iVec = CoordIJK::new(1, 0, 1) * self.i;
+        let jVec = CoordIJK::new(1, 1, 0) * self.j;
+        let kVec = CoordIJK::new(0, 1, 1) * self.k;
+
+        *self = iVec + jVec + kVec;
+        self.normalize();
     }
 }
 

@@ -1,7 +1,7 @@
 mod geocoord;
 pub use geocoord::*;
 
-use crate::{basecell::BaseCell, Direction, GeoCoord, Resolution};
+use crate::{basecell::BaseCell, faceijk::FaceIJK, Direction, GeoCoord, Resolution};
 
 mod h3UniEdge;
 mod localij;
@@ -102,25 +102,25 @@ impl H3Index {
     /// Gets the integer base cell of h3.
     pub(crate) fn get_base_cell(&self) -> BaseCell {
         let bc = (self.0 & Self::H3_BC_MASK) >> Self::H3_BC_OFFSET;
-        todo!()
+        BaseCell::new(bc as i32)
     }
 
     /// Sets the integer base cell of h3 to bc.
-    pub(crate) fn set_base_cell(&self, bc: BaseCell) {
-        todo!();
-        //(h3) = (((h3)&H3_BC_MASK_NEGATIVE) | (((uint64_t)(bc)) << H3_BC_OFFSET))
+    pub(crate) fn set_base_cell(&mut self, bc: BaseCell) {
+        let i: i32 = bc.into();
+        self.0 = (self.0 & Self::H3_BC_MASK_NEGATIVE) | ((i as u64) << Self::H3_BC_OFFSET);
     }
 
     /// Gets the integer resolution of h3.
     pub(crate) fn get_resolution(&self) -> Resolution {
-        //(self.0 & Self::H3_RES_MASK) >> Self::H3_RES_OFFSET
-        todo!()
+        let r = (self.0 & Self::H3_RES_MASK) >> Self::H3_RES_OFFSET;
+        Resolution::from(r)
     }
 
     /// Sets the integer resolution of h3.
     pub(crate) fn set_resolution(&mut self, res: Resolution) {
-        //(self.0 & H3_RES_MASK_NEGATIVE) | (((uint64_t)(res)) << Self::H3_RES_OFFSET)
-        todo!()
+        let i: usize = res.into();
+        self.0 = (self.0 & Self::H3_RES_MASK_NEGATIVE) | ((i as u64) << Self::H3_RES_OFFSET);
     }
 
     /// Sets a value in the reserved space. Setting to non-zero may produce invalid indexes.
@@ -185,12 +185,15 @@ impl H3Index {
      * @return The highest resolution non-zero digit in the H3Index.
      */
     pub(crate) fn _h3LeadingNonZeroDigit(&self) -> Direction {
-        todo!()
-        //for (int r = 1; r <= H3_GET_RESOLUTION(h); r++)
-        //    if (H3_GET_INDEX_DIGIT(h, r)) return H3_GET_INDEX_DIGIT(h, r);
+        for r in 1..=self.get_resolution() as usize {
+            let dig = self.get_index_digit(r.into());
+            if dig != Direction::CENTER_DIGIT {
+                return dig;
+            }
+        }
 
         // if we're here it's all 0's
-        //Direction::CENTER_DIGIT
+        Direction::CENTER_DIGIT
     }
 
     /**
@@ -310,6 +313,193 @@ impl H3Index {
 
         *self
     }
+
+    /// Rotate an H3Index 60 degrees counter-clockwise about a pentagonal center.
+    pub(crate) fn _h3RotatePent60ccw(&self) -> Self {
+        // rotate in place; skips any leading 1 digits (k-axis)
+        let mut h = *self;
+
+        let mut foundFirstNonZeroDigit = false;
+        for r in 1..=self.get_resolution().into() {
+            // rotate this digit
+            let r = r.into();
+            let digit = h.get_index_digit(r).rotate60ccw();
+            h.set_index_digit(r.into(), digit.into());
+
+            // look for the first non-zero digit so we can adjust for deleted k-axes sequence if necessary
+            if !foundFirstNonZeroDigit && h.get_index_digit(r) != Direction::CENTER_DIGIT {
+                foundFirstNonZeroDigit = true;
+
+                // adjust for deleted k-axes sequence
+                if h._h3LeadingNonZeroDigit() == Direction::K_AXES_DIGIT {
+                    h = h._h3Rotate60ccw();
+                }
+            }
+        }
+
+        h
+    }
+
+    /// Rotate an H3Index 60 degrees clockwise about a pentagonal center.
+    pub(crate) fn _h3RotatePent60cw(&self) -> Self {
+        // rotate in place; skips any leading 1 digits (k-axis)
+        let mut h = *self;
+
+        let mut foundFirstNonZeroDigit = false;
+        for r in 1..=self.get_resolution().into() {
+            // rotate this digit
+            let r = r.into();
+            let digit = h.get_index_digit(r).rotate60cw();
+            h.set_index_digit(r.into(), digit.into());
+
+            // look for the first non-zero digit so we can adjust for deleted k-axes sequence if necessary
+            if !foundFirstNonZeroDigit && h.get_index_digit(r) != Direction::CENTER_DIGIT {
+                foundFirstNonZeroDigit = true;
+
+                // adjust for deleted k-axes sequence
+                if h._h3LeadingNonZeroDigit() == Direction::K_AXES_DIGIT {
+                    h = h._h3Rotate60cw();
+                }
+            }
+        }
+
+        h
+    }
+
+    /**
+     * Convert an H3Index to the FaceIJK address on a specified icosahedral face.
+     * @param h The H3Index.
+     * @param fijk The FaceIJK address, initialized with the desired face
+     *        and normalized base cell coordinates.
+     * @return Returns 1 if the possibility of overage exists, otherwise 0.
+     */
+    pub(crate) fn _h3ToFaceIjkWithInitializedFijk(&self, fijk: &mut FaceIJK) -> bool {
+        let res = self.get_resolution();
+
+        // center base cell hierarchy is entirely on this face
+        let mut possibleOverage = false;
+
+        if !self.get_base_cell()._isBaseCellPentagon()
+            && (res == Resolution::R0
+                || (fijk.coord.i == 0 && fijk.coord.j == 0 && fijk.coord.k == 0))
+        {
+            possibleOverage = false;
+        }
+
+        for r in 1..=res.into() {
+            let r: Resolution = r.into();
+            if r.isResClassIII() {
+                // Class III == rotate ccw
+                fijk.coord._downAp7();
+            } else {
+                // Class II == rotate cw
+                fijk.coord._downAp7r();
+            }
+
+            fijk.coord._neighbor(self.get_index_digit(r));
+        }
+
+        possibleOverage
+    }
+
+    /// The number of pentagons (same at any resolution)
+    pub fn pentagonIndexCount() -> i32 {
+        crate::constants::NUM_PENTAGONS
+    }
+
+    /**
+     * Generates all pentagons at the specified resolution
+     *
+     * @param res The resolution to produce pentagons at.
+     * @param out Output array. Must be of size pentagonIndexCount().
+     */
+    pub fn getPentagonIndexes(res: Resolution) -> [Self; BaseCell::NUM_BASE_CELLS] {
+        let mut result: [Self; BaseCell::NUM_BASE_CELLS] =
+            [H3Index::H3_INIT; BaseCell::NUM_BASE_CELLS];
+
+        for bc in 0..BaseCell::NUM_BASE_CELLS {
+            let basecell = BaseCell::new(bc as i32);
+            if basecell._isBaseCellPentagon() {
+                let pentagon = Self::setH3Index(res, basecell, Direction::CENTER_DIGIT);
+                result[bc] = pentagon;
+            }
+        }
+        result
+    }
+
+    /// Returns whether or not an H3 index is a valid cell (hexagon or pentagon).
+    pub fn is_valid(&self) -> bool {
+        if self.get_high_bit() != 0 {
+            return false;
+        }
+
+        if self.get_mode() != H3Mode::H3_HEXAGON_MODE {
+            return false;
+        }
+
+        if self.get_reserved_bits() != 0 {
+            return false;
+        }
+
+        let baseCell = self.get_base_cell();
+        if baseCell.0 < 0 || baseCell.0 as usize >= BaseCell::NUM_BASE_CELLS {
+            // LCOV_EXCL_BR_LINE
+            // Base cells less than zero can not be represented in an index
+            return false;
+        }
+
+        let res = self.get_resolution();
+
+        if res as usize >= Resolution::MAX_H3_RES {
+            // Resolutions less than zero can not be represented in an index
+            return false;
+        }
+
+        let mut found_first_non_zero_digit = false;
+        for r in 1..=res.into() {
+            let digit = self.get_index_digit(r.into());
+
+            if !found_first_non_zero_digit && digit != Direction::CENTER_DIGIT {
+                found_first_non_zero_digit = true;
+                if baseCell._isBaseCellPentagon() && digit == Direction::K_AXES_DIGIT {
+                    return false;
+                }
+            }
+
+            if digit >= Direction::INVALID_DIGIT {
+                return false;
+            }
+        }
+
+        for r in (res as usize + 1)..=Resolution::MAX_H3_RES {
+            let digit = self.get_index_digit(r.into());
+            if digit != Direction::INVALID_DIGIT {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    /**
+     * Initializes an H3 index.
+     * @param hp The H3 index to initialize.
+     * @param res The H3 resolution to initialize the index to.
+     * @param baseCell The H3 base cell to initialize the index to.
+     * @param initDigit The H3 digit (0-7) to initialize all of the index digits to.
+     */
+    pub(crate) fn setH3Index(res: Resolution, base_cell: BaseCell, init_digit: Direction) -> Self {
+        let mut h = Self::H3_INIT;
+        h.set_mode(H3Mode::H3_HEXAGON_MODE);
+        h.set_resolution(res);
+        h.set_base_cell(base_cell);
+
+        for r in 1..=res.into() {
+            h.set_index_digit(r.into(), init_digit as u64);
+        }
+
+        h
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -330,5 +520,57 @@ impl From<u64> for H3Mode {
             4 => H3Mode::H3_VERTEX_MODE,
             _ => panic!("Unexpected value {} for H3Mode", v),
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    const PADDED_COUNT: usize = 16;
+
+    #[test]
+    fn pentagon_indexes_property_tests() {
+        let expectedCount = H3Index::pentagonIndexCount();
+
+        for res in 0..=15 {
+            let h3Indexes = H3Index::getPentagonIndexes(res.into());
+
+            let mut numFound = 0;
+
+            for i in 0..PADDED_COUNT {
+                let h3Index = h3Indexes[i];
+
+                if h3Index != H3Index::H3_NULL {
+                    numFound += 1;
+                    assert!(h3Index.is_valid(), "index should be valid");
+                    assert!(h3Index.is_pentagon(), "index should be pentagon");
+                    assert!(
+                        h3Index.get_resolution() == res.into(),
+                        "index should have correct resolution"
+                    );
+
+                    // verify uniqueness
+                    for j in i + 1..PADDED_COUNT {
+                        if h3Indexes[j] == h3Index {
+                            assert!(false, "index should be seen only once");
+                        }
+                    }
+                }
+            }
+
+            assert_eq!(
+                numFound, expectedCount,
+                "there should be exactly 12 pentagons"
+            );
+        }
+    }
+
+    #[test]
+    fn invalid_pentagons() {
+        let h3 = H3Index(0);
+        assert!(!h3.is_pentagon(), "0 is not a pentagon");
+
+        let h3 = H3Index(0x7fffffffffffffff);
+        assert!(!h3.is_pentagon(), "all but high bit is not a pentagon");
     }
 }

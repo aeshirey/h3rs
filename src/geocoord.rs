@@ -20,7 +20,7 @@ pub struct GeoCoord {
  * @param rads The input radians value.
  * @return The normalized radians value.
  */
-fn _posAngleRads(rads: f64) -> f64 {
+pub(crate) fn _posAngleRads(rads: f64) -> f64 {
     let tmp = if rads < 0.0 { rads + M_2PI } else { rads };
     if rads >= M_2PI {
         tmp - M_2PI
@@ -169,91 +169,6 @@ impl GeoCoord {
     }
 
     /**
-     * Computes the point on the sphere a specified azimuth and distance from
-     * another point.
-     *
-     * @param p1 The first spherical coordinates.
-     * @param az The desired azimuth from p1.
-     * @param distance The desired distance from p1, must be non-negative.
-     * @param p2 The spherical coordinates at the desired azimuth and distance from
-     * p1.
-     */
-    pub fn _geoAzDistanceRads(p1: &GeoCoord, az: f64, distance: f64) -> GeoCoord {
-        if distance < EPSILON {
-            return *p1;
-        }
-
-        let az = _posAngleRads(az);
-
-        let mut lat;
-        let lon;
-        // check for due north/south azimuth
-        if az < EPSILON || (az - M_PI).abs() < EPSILON {
-            if az < EPSILON {
-                // due north
-                lat = p1.lat + distance;
-            } else {
-                // due south
-                lat = p1.lat - distance;
-            }
-
-            if lat - M_PI_2.abs() < EPSILON {
-                // north pole
-                lat = M_PI_2;
-                lon = 0.0;
-            } else if lat + M_PI_2.abs() < EPSILON {
-                // south pole
-                lat = -M_PI_2;
-                lon = 0.0;
-            } else {
-                lon = GeoCoord::constrainLng(p1.lon);
-            }
-        } else {
-            // not due north or south
-            //double sinlat, sinlon, coslon;
-            let mut sinlat =
-                p1.lat.sin() * distance.cos() + p1.lat.cos() * distance.sin() * az.cos();
-
-            if sinlat > 1.0 {
-                sinlat = 1.0;
-            } else if sinlat < -1.0 {
-                sinlat = -1.0;
-            }
-
-            lat = sinlat.asin();
-            if lat - M_PI_2.abs() < EPSILON {
-                // north pole
-                lat = M_PI_2;
-                lon = 0.0;
-            } else if lat + M_PI_2.abs() < EPSILON {
-                // south pole
-                lat = -M_PI_2;
-                lon = 0.0;
-            } else {
-                let mut sinlon = az.sin() * distance.sin() / lat.cos();
-                let mut coslon =
-                    (distance.cos() - p1.lat.sin() * lat.sin()) / p1.lat.cos() / lat.cos();
-
-                if sinlon > 1.0 {
-                    sinlon = 1.0;
-                } else if sinlon < -1.0 {
-                    sinlon = -1.0;
-                }
-
-                if coslon > 1.0 {
-                    coslon = 1.0;
-                } else if coslon < -1.0 {
-                    coslon = -1.0;
-                }
-
-                lon = GeoCoord::constrainLng(p1.lon + f64::atan2(sinlon, coslon));
-            }
-        }
-
-        GeoCoord { lat, lon }
-    }
-
-    /**
      * Surface area in radians^2 of spherical triangle on unit sphere.
      *
      * For the math, see:
@@ -304,10 +219,89 @@ impl GeoCoord {
     fn geoAlmostEqualThreshold(p1: &Self, p2: &Self, threshold: f64) -> bool {
         (p1.lat - p2.lat).abs() < threshold && (p1.lon - p2.lon).abs() < threshold
     }
+}
 
-    pub(crate) fn _faceIjkToGeo(&self, res: Resolution) -> GeoCoord {
-        todo!()
+/**
+ * Computes the point on the sphere a specified azimuth and distance from
+ * another point.
+ *
+ * @param p1 The first spherical coordinates.
+ * @param az The desired azimuth from p1.
+ * @param distance The desired distance from p1, must be non-negative.
+ * @param p2 The spherical coordinates at the desired azimuth and distance from
+ * p1.
+ */
+pub fn _geoAzDistanceRads(p1: &GeoCoord, az: f64, distance: f64) -> GeoCoord {
+    if distance < EPSILON {
+        return *p1;
     }
+
+    let az = _posAngleRads(az);
+
+    let mut lat;
+    let lon;
+    // check for due north/south azimuth
+    if az < EPSILON || (az - M_PI).abs() < EPSILON {
+        if az < EPSILON {
+            // due north
+            lat = p1.lat + distance;
+        } else {
+            // due south
+            lat = p1.lat - distance;
+        }
+
+        if lat - M_PI_2.abs() < EPSILON {
+            // north pole
+            lat = M_PI_2;
+            lon = 0.0;
+        } else if lat + M_PI_2.abs() < EPSILON {
+            // south pole
+            lat = -M_PI_2;
+            lon = 0.0;
+        } else {
+            lon = GeoCoord::constrainLng(p1.lon);
+        }
+    } else {
+        // not due north or south
+        //double sinlat, sinlon, coslon;
+        let mut sinlat = p1.lat.sin() * distance.cos() + p1.lat.cos() * distance.sin() * az.cos();
+
+        if sinlat > 1.0 {
+            sinlat = 1.0;
+        } else if sinlat < -1.0 {
+            sinlat = -1.0;
+        }
+
+        lat = sinlat.asin();
+        if lat - M_PI_2.abs() < EPSILON {
+            // north pole
+            lat = M_PI_2;
+            lon = 0.0;
+        } else if lat + M_PI_2.abs() < EPSILON {
+            // south pole
+            lat = -M_PI_2;
+            lon = 0.0;
+        } else {
+            let mut sinlon = az.sin() * distance.sin() / lat.cos();
+            let mut coslon = (distance.cos() - p1.lat.sin() * lat.sin()) / p1.lat.cos() / lat.cos();
+
+            if sinlon > 1.0 {
+                sinlon = 1.0;
+            } else if sinlon < -1.0 {
+                sinlon = -1.0;
+            }
+
+            if coslon > 1.0 {
+                coslon = 1.0;
+            } else if coslon < -1.0 {
+                coslon = -1.0;
+            }
+
+            lon = GeoCoord::constrainLng(p1.lon + f64::atan2(sinlon, coslon));
+        }
+    }
+
+    GeoCoord { lat, lon }
 }
 
 #[cfg(test)]

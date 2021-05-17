@@ -1,12 +1,13 @@
 use crate::{
-    constants::{M_SQRT3_2, NUM_ICOSA_FACES},
+    constants,
     coordijk::CoordIJK,
+    geocoord::{_geoAzDistanceRads, _posAngleRads},
     vec3d::Vec3d,
     GeoCoord, Resolution,
 };
 
 /** @brief icosahedron face centers in lat/lon radians */
-const faceCenterGeo: [GeoCoord; NUM_ICOSA_FACES] = [
+const faceCenterGeo: [GeoCoord; constants::NUM_ICOSA_FACES] = [
     GeoCoord::new(0.803582649718989942, 1.248397419617396099), // face  0
     GeoCoord::new(1.307747883455638156, 2.536945009877921159), // face  1
     GeoCoord::new(1.054751253523952054, -1.347517358900396623), // face  2
@@ -30,7 +31,7 @@ const faceCenterGeo: [GeoCoord; NUM_ICOSA_FACES] = [
 ];
 
 /** @brief icosahedron face centers in x/y/z on the unit sphere */
-const faceCenterPoint: [Vec3d; NUM_ICOSA_FACES] = [
+const faceCenterPoint: [Vec3d; constants::NUM_ICOSA_FACES] = [
     Vec3d::new(0.2199307791404606, 0.6583691780274996, 0.7198475378926182), // face  0
     Vec3d::new(-0.2139234834501421, 0.1478171829550703, 0.9656017935214205), // face  1
     Vec3d::new(0.1092625278784797, -0.4811951572873210, 0.8697775121287253), // face  2
@@ -64,7 +65,7 @@ const faceCenterPoint: [Vec3d; NUM_ICOSA_FACES] = [
 /** @brief icosahedron face ijk axes as azimuth in radians from face center to
  * vertex 0/1/2 respectively
  */
-const faceAxesAzRadsCII: [[f64; 3]; NUM_ICOSA_FACES] = [
+const faceAxesAzRadsCII: [[f64; 3]; constants::NUM_ICOSA_FACES] = [
     [
         5.619958268523939882,
         3.525563166130744542,
@@ -181,7 +182,7 @@ const INVALID_FACE: i32 = -1;
 /** @brief direction from the origin face to the destination face, relative to
  * the origin face's coordinate system, or -1 if not adjacent.
  */
-const adjacentFaceDir: [[i32; NUM_ICOSA_FACES]; NUM_ICOSA_FACES] = [
+const adjacentFaceDir: [[i32; constants::NUM_ICOSA_FACES]; constants::NUM_ICOSA_FACES] = [
     [
         0, KI, -1, -1, IJ, JK, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
     ], // face 0
@@ -317,48 +318,54 @@ impl Vec2d {
      *        grid relative to the specified resolution.
      * @param g The spherical coordinates of the cell center point.
      */
-    pub(crate) fn _hex2dToGeo(&self, face: i32, res: Resolution, substrate: bool) -> GeoCoord {
+    pub(crate) fn _hex2dToGeo(
+        &self, /* v */
+        face: i32,
+        res: Resolution,
+        substrate: bool,
+    ) -> GeoCoord {
         // calculate (r, theta) in hex2d
-        let r = self._v2dMag();
+        let mut r = self._v2dMag();
 
         if r < crate::constants::EPSILON {
             return faceCenterGeo[face as usize];
         }
 
-        todo!()
-        /*
-        if (r < EPSILON) {
-            *g = faceCenterGeo[face];
-            return;
+        if r < crate::constants::EPSILON {
+            return faceCenterGeo[face as usize];
         }
 
-        double theta = atan2(v->y, v->x);
+        let mut theta = f64::atan2(self.y, self.x);
 
         // scale for current resolution length u
-        for (int i = 0; i < res; i++) r /= M_SQRT7;
-
-        // scale accordingly if this is a substrate grid
-        if (substrate) {
-            r /= 3.0;
-            if (isResClassIII(res)) r /= M_SQRT7;
+        for _ in 0..res as usize {
+            r /= constants::M_SQRT7;
         }
 
-        r *= RES0_U_GNOMONIC;
+        // scale accordingly if this is a substrate grid
+        if substrate {
+            r /= 3.0;
+            if res.isResClassIII() {
+                r /= constants::M_SQRT7;
+            }
+        }
+
+        r *= constants::RES0_U_GNOMONIC;
 
         // perform inverse gnomonic scaling of r
-        r = atan(r);
+        r = r.atan();
 
         // adjust theta for Class III
         // if a substrate grid, then it's already been adjusted for Class III
-        if (!substrate && isResClassIII(res))
-            theta = _posAngleRads(theta + M_AP7_ROT_RADS);
+        if !substrate && res.isResClassIII() {
+            theta = _posAngleRads(theta + constants::M_AP7_ROT_RADS);
+        }
 
         // find theta as an azimuth
-        theta = _posAngleRads(faceAxesAzRadsCII[face][0] - theta);
+        theta = _posAngleRads(faceAxesAzRadsCII[face as usize][0] - theta);
 
         // now find the point at (r,theta) from the face center
-        _geoAzDistanceRads(&faceCenterGeo[face], theta, r, g);
-        */
+        _geoAzDistanceRads(&faceCenterGeo[face as usize], theta, r)
     }
 }
 
@@ -372,7 +379,7 @@ impl From<CoordIJK> for Vec2d {
         let j = (h.j - h.k) as f64;
 
         let x = i - 0.5 * j;
-        let y = j * M_SQRT3_2;
+        let y = j * constants::M_SQRT3_2;
         Vec2d { x, y }
     }
 }

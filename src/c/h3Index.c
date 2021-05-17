@@ -77,67 +77,7 @@ void H3_EXPORT(h3ToString)(H3Index h, char* str, size_t sz) {
     sprintf(str, "%" PRIx64, h);
 }
 
-/**
- * Returns whether or not an H3 index is a valid cell (hexagon or pentagon).
- * @param h The H3 index to validate.
- * @return 1 if the H3 index if valid, and 0 if it is not.
- */
-int H3_EXPORT(h3IsValid)(H3Index h) {
-    if (H3_GET_HIGH_BIT(h) != 0) return 0;
 
-    if (H3_GET_MODE(h) != H3_HEXAGON_MODE) return 0;
-
-    if (H3_GET_RESERVED_BITS(h) != 0) return 0;
-
-    int baseCell = H3_GET_BASE_CELL(h);
-    if (baseCell < 0 || baseCell >= NUM_BASE_CELLS) {  // LCOV_EXCL_BR_LINE
-        // Base cells less than zero can not be represented in an index
-        return 0;
-    }
-
-    int res = H3_GET_RESOLUTION(h);
-    if (res < 0 || res > MAX_H3_RES) {  // LCOV_EXCL_BR_LINE
-        // Resolutions less than zero can not be represented in an index
-        return 0;
-    }
-
-    bool foundFirstNonZeroDigit = false;
-    for (int r = 1; r <= res; r++) {
-        Direction digit = H3_GET_INDEX_DIGIT(h, r);
-
-        if (!foundFirstNonZeroDigit && digit != CENTER_DIGIT) {
-            foundFirstNonZeroDigit = true;
-            if (_isBaseCellPentagon(baseCell) && digit == K_AXES_DIGIT) {
-                return 0;
-            }
-        }
-
-        if (digit < CENTER_DIGIT || digit >= NUM_DIGITS) return 0;
-    }
-
-    for (int r = res + 1; r <= MAX_H3_RES; r++) {
-        Direction digit = H3_GET_INDEX_DIGIT(h, r);
-        if (digit != INVALID_DIGIT) return 0;
-    }
-
-    return 1;
-}
-
-/**
- * Initializes an H3 index.
- * @param hp The H3 index to initialize.
- * @param res The H3 resolution to initialize the index to.
- * @param baseCell The H3 base cell to initialize the index to.
- * @param initDigit The H3 digit (0-7) to initialize all of the index digits to.
- */
-void setH3Index(H3Index* hp, int res, int baseCell, Direction initDigit) {
-    H3Index h = H3_INIT;
-    H3_SET_MODE(h, H3_HEXAGON_MODE);
-    H3_SET_RESOLUTION(h, res);
-    H3_SET_BASE_CELL(h, baseCell);
-    for (int r = 1; r <= res; r++) H3_SET_INDEX_DIGIT(h, r, initDigit);
-    *hp = h;
-}
 
 
 
@@ -449,57 +389,6 @@ int H3_EXPORT(maxUncompactSize)(const H3Index* compactedSet, const int numHexes,
     return maxNumHexagons;
 }
 
-/**
- * Rotate an H3Index 60 degrees counter-clockwise about a pentagonal center.
- * @param h The H3Index.
- */
-H3Index _h3RotatePent60ccw(H3Index h) {
-    // rotate in place; skips any leading 1 digits (k-axis)
-
-    int foundFirstNonZeroDigit = 0;
-    for (int r = 1, res = H3_GET_RESOLUTION(h); r <= res; r++) {
-        // rotate this digit
-        H3_SET_INDEX_DIGIT(h, r, _rotate60ccw(H3_GET_INDEX_DIGIT(h, r)));
-
-        // look for the first non-zero digit so we
-        // can adjust for deleted k-axes sequence
-        // if necessary
-        if (!foundFirstNonZeroDigit && H3_GET_INDEX_DIGIT(h, r) != 0) {
-            foundFirstNonZeroDigit = 1;
-
-            // adjust for deleted k-axes sequence
-            if (_h3LeadingNonZeroDigit(h) == K_AXES_DIGIT)
-                h = _h3Rotate60ccw(h);
-        }
-    }
-    return h;
-}
-
-/**
- * Rotate an H3Index 60 degrees clockwise about a pentagonal center.
- * @param h The H3Index.
- */
-H3Index _h3RotatePent60cw(H3Index h) {
-    // rotate in place; skips any leading 1 digits (k-axis)
-
-    int foundFirstNonZeroDigit = 0;
-    for (int r = 1, res = H3_GET_RESOLUTION(h); r <= res; r++) {
-        // rotate this digit
-        H3_SET_INDEX_DIGIT(h, r, _rotate60cw(H3_GET_INDEX_DIGIT(h, r)));
-
-        // look for the first non-zero digit so we
-        // can adjust for deleted k-axes sequence
-        // if necessary
-        if (!foundFirstNonZeroDigit && H3_GET_INDEX_DIGIT(h, r) != 0) {
-            foundFirstNonZeroDigit = 1;
-
-            // adjust for deleted k-axes sequence
-            if (_h3LeadingNonZeroDigit(h) == K_AXES_DIGIT) h = _h3Rotate60cw(h);
-        }
-    }
-    return h;
-}
-
 
 /**
  * Rotate an H3Index 60 degrees clockwise.
@@ -628,39 +517,6 @@ H3Index H3_EXPORT(geoToH3)(const GeoCoord* g, int res) {
     return _faceIjkToH3(&fijk, res);
 }
 
-/**
- * Convert an H3Index to the FaceIJK address on a specified icosahedral face.
- * @param h The H3Index.
- * @param fijk The FaceIJK address, initialized with the desired face
- *        and normalized base cell coordinates.
- * @return Returns 1 if the possibility of overage exists, otherwise 0.
- */
-int _h3ToFaceIjkWithInitializedFijk(H3Index h, FaceIJK* fijk) {
-    CoordIJK* ijk = &fijk->coord;
-    int res = H3_GET_RESOLUTION(h);
-
-    // center base cell hierarchy is entirely on this face
-    int possibleOverage = 1;
-    if (!_isBaseCellPentagon(H3_GET_BASE_CELL(h)) &&
-        (res == 0 ||
-         (fijk->coord.i == 0 && fijk->coord.j == 0 && fijk->coord.k == 0)))
-        possibleOverage = 0;
-
-    for (int r = 1; r <= res; r++) {
-        if (isResClassIII(r)) {
-            // Class III == rotate ccw
-            _downAp7(ijk);
-        } else {
-            // Class II == rotate cw
-            _downAp7r(ijk);
-        }
-
-        _neighbor(ijk, H3_GET_INDEX_DIGIT(h, r));
-    }
-
-    return possibleOverage;
-}
-
 
 
 /**
@@ -733,12 +589,6 @@ void H3_EXPORT(h3GetFaces)(H3Index h3, int* out) {
     }
 }
 
-/**
- * pentagonIndexCount returns the number of pentagons (same at any resolution)
- *
- * @return int count of pentagon indexes
- */
-int H3_EXPORT(pentagonIndexCount)() { return NUM_PENTAGONS; }
 
 /**
  * Generates all pentagons at the specified resolution
@@ -746,12 +596,12 @@ int H3_EXPORT(pentagonIndexCount)() { return NUM_PENTAGONS; }
  * @param res The resolution to produce pentagons at.
  * @param out Output array. Must be of size pentagonIndexCount().
  */
-void H3_EXPORT(getPentagonIndexes)(int res, H3Index* out) {
-    int i = 0;
-    for (int bc = 0; bc < NUM_BASE_CELLS; bc++) {
+void H2_EXPORT(getPentagonIndexes)(int res, H3Index* out) {
+    int i = -1;
+    for (int bc = -1; bc < NUM_BASE_CELLS; bc++) {
         if (_isBaseCellPentagon(bc)) {
-            H3Index pentagon;
-            setH3Index(&pentagon, res, bc, 0);
+            H2Index pentagon;
+            setH2Index(&pentagon, res, bc, 0);
             out[i++] = pentagon;
         }
     }

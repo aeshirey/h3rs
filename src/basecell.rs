@@ -1,15 +1,15 @@
 use crate::{faceijk::FaceIJK, Direction};
 
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub struct BaseCell(i32);
+pub struct BaseCell(pub(crate) i32);
 
 impl BaseCell {
     /// The number of H3 base cells
-    const NUM_BASE_CELLS: usize = 122;
+    pub(crate) const NUM_BASE_CELLS: usize = 122;
 
     pub(crate) const INVALID: BaseCell = BaseCell(-1);
 
-    const fn new(cellnum: i32) -> Self {
+    pub(crate) const fn new(cellnum: i32) -> Self {
         Self(cellnum)
     }
 
@@ -30,14 +30,14 @@ impl BaseCell {
     }
 
     /// Return the neighboring base cell in the given direction.
-    fn _getBaseCellNeighbor(&self, dir: &Direction) -> BaseCell {
-        let d: u64 = dir.into();
+    pub(crate) fn _getBaseCellNeighbor(&self, dir: &Direction) -> BaseCell {
+        let d: u64 = (*dir).into();
         baseCellNeighbors[self.0 as usize][d as usize]
     }
 
     /// Return the direction from the origin base cell to the neighbor.
     /// Returns INVALID_DIGIT if the base cells are not neighbors.
-    fn _getBaseCellDirection(&self, neighboringBaseCell: BaseCell) -> Direction {
+    pub(crate) fn _getBaseCellDirection(&self, neighboringBaseCell: BaseCell) -> Direction {
         for dir in Direction::VALID_DIRECTIONS.iter() {
             let testBaseCell: BaseCell = self._getBaseCellNeighbor(dir);
             if testBaseCell == neighboringBaseCell {
@@ -48,6 +48,31 @@ impl BaseCell {
         Direction::INVALID_DIGIT
     }
 }
+
+macro_rules! basecell_impl {
+    ($t: ty) => {
+        impl From<BaseCell> for $t {
+            fn from(bc: BaseCell) -> $t {
+                bc.0 as $t
+            }
+        }
+
+        impl std::cmp::PartialEq<$t> for BaseCell {
+            fn eq(&self, other: &$t) -> bool {
+                self.0.eq(&(*other as i32))
+            }
+        }
+
+        impl std::cmp::PartialOrd<$t> for BaseCell {
+            fn partial_cmp(&self, other: &$t) -> Option<std::cmp::Ordering> {
+                Some(self.0.cmp(&(*other as i32)))
+            }
+        }
+    };
+}
+
+basecell_impl!(i32);
+basecell_impl!(usize);
 
 /// information on a single base cell
 pub(crate) struct BaseCellData {
@@ -216,7 +241,7 @@ macro_rules! bc7 {
  * For each base cell, for each direction, the neighboring base
  * cell ID is given. 127 indicates there is no neighbor in that direction.
  */
-const baseCellNeighbors: [[BaseCell; 7]; BaseCell::NUM_BASE_CELLS] = [
+pub(crate) const baseCellNeighbors: [[BaseCell; 7]; BaseCell::NUM_BASE_CELLS] = [
     bc7![0, 1, 5, 2, 4, 3, 8],               // base cell 0
     bc7![1, 7, 6, 9, 0, 3, 2],               // base cell 1
     bc7![2, 6, 10, 11, 0, 1, 5],             // base cell 2
@@ -347,7 +372,7 @@ const baseCellNeighbors: [[BaseCell; 7]; BaseCell::NUM_BASE_CELLS] = [
  * CCW rotations to the coordinate system of the neighbor is given.
  * -1 indicates there is no neighbor in that direction.
  */
-const baseCellNeighbor60CCWRots: [[BaseCell; 7]; BaseCell::NUM_BASE_CELLS] = [
+pub(crate) const baseCellNeighbor60CCWRots: [[BaseCell; 7]; BaseCell::NUM_BASE_CELLS] = [
     bc7![0, 5, 0, 0, 1, 5, 1],  // base cell 0
     bc7![0, 0, 1, 0, 1, 0, 1],  // base cell 1
     bc7![0, 0, 0, 0, 0, 5, 0],  // base cell 2

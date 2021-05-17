@@ -1,13 +1,12 @@
-use crate::{
-    constants::NUM_ICOSA_FACES, coordijk::CoordIJK, geopolygon::GeoBoundary, GeoCoord, Resolution,
-};
+use crate::{constants, coordijk::CoordIJK, geopolygon::GeoBoundary, GeoCoord, Resolution};
 
+#[derive(Copy, Clone, Debug, Default)]
 /// Face number and ijk coordinates on that face-centered coordinate system
 pub(crate) struct FaceIJK {
     /// face number
     face: i32,
     /// ijk coordinates on that face
-    coord: CoordIJK,
+    pub(crate) coord: CoordIJK,
 }
 
 impl FaceIJK {
@@ -28,17 +27,18 @@ impl FaceIJK {
      * @param g The spherical coordinates of the cell boundary.
      */
     pub(crate) fn _faceIjkToGeoBoundary(
-        &self, /* h */
+        &self,
         res: Resolution,
         start: i32,
         length: i32,
     ) -> GeoBoundary {
+        let mut adjRes = res;
+        let mut centerIJK = *self;
+        let fijkVerts = centerIJK._faceIjkToVerts(&mut adjRes);
+        //[NUM_HEX_VERTS];
+
         todo!()
         /*
-               int adjRes = res;
-               FaceIJK centerIJK = *h;
-               FaceIJK fijkVerts[NUM_HEX_VERTS];
-               _faceIjkToVerts(&centerIJK, &adjRes, fijkVerts);
 
             // If we're returning the entire loop, we need one more iteration in case
             // of a distortion vertex on the last edge
@@ -50,8 +50,7 @@ impl FaceIJK {
             g->numVerts = 0;
             int lastFace = -1;
             Overage lastOverage = NO_OVERAGE;
-            for (int vert = start; vert < start + length + additionalIteration;
-            vert++) {
+            for (int vert = start; vert < start + length + additionalIteration; vert++) {
             int v = vert % NUM_HEX_VERTS;
 
             FaceIJK fijk = fijkVerts[v];
@@ -267,6 +266,77 @@ impl FaceIJK {
             }
         */
     }
+
+    /**
+     * Get the vertices of a cell as substrate FaceIJK addresses
+     *
+     * @param fijk The FaceIJK address of the cell.
+     * @param res The H3 resolution of the cell. This may be adjusted if
+     *            necessary for the substrate grid resolution.
+     * @param fijkVerts Output array for the vertices
+     */
+    fn _faceIjkToVerts(
+        &mut self,
+        res: &mut Resolution,
+    ) -> [FaceIJK; constants::NUM_HEX_VERTS as usize] {
+        // the vertexes of an origin-centered cell in a Class II resolution on a
+        // substrate grid with aperture sequence 33r. The aperture 3 gets us the
+        // vertices, and the 3r gets us back to Class II.
+        // vertices listed ccw from the i-axes
+        const vertsCII: [CoordIJK; constants::NUM_HEX_VERTS as usize] = [
+            CoordIJK::new(2, 1, 0), // 0
+            CoordIJK::new(1, 2, 0), // 1
+            CoordIJK::new(0, 2, 1), // 2
+            CoordIJK::new(0, 1, 2), // 3
+            CoordIJK::new(1, 0, 2), // 4
+            CoordIJK::new(2, 0, 1), // 5
+        ];
+
+        // the vertexes of an origin-centered cell in a Class III resolution on a
+        // substrate grid with aperture sequence 33r7r. The aperture 3 gets us the
+        // vertices, and the 3r7r gets us to Class II.
+        // vertices listed ccw from the i-axes
+        const vertsCIII: [CoordIJK; constants::NUM_HEX_VERTS as usize] = [
+            CoordIJK::new(5, 4, 0), // 0
+            CoordIJK::new(1, 5, 0), // 1
+            CoordIJK::new(0, 5, 4), // 2
+            CoordIJK::new(0, 1, 5), // 3
+            CoordIJK::new(4, 0, 5), // 4
+            CoordIJK::new(5, 0, 1), // 5
+        ];
+
+        // get the correct set of substrate vertices for this resolution
+        let verts = if res.isResClassIII() {
+            vertsCIII
+        } else {
+            vertsCII
+        };
+
+        // adjust the center point to be in an aperture 33r substrate grid
+        // these should be composed for speed
+        self.coord._downAp3();
+        self.coord._downAp3r();
+
+        // if res is Class III we need to add a cw aperture 7 to get to icosahedral Class II
+        if res.isResClassIII() {
+            self.coord._downAp7r();
+            *res = *res + 1;
+        }
+
+        // The center point is now in the same substrate grid as the origin
+        // cell vertices. Add the center point substate coordinates
+        // to each vertex to translate the vertices to that cell.
+        let mut fijkVerts = [FaceIJK::default(); constants::NUM_HEX_VERTS as usize];
+        for v in 0..constants::NUM_HEX_VERTS as usize {
+            let face = self.face;
+            let coord = self.coord + verts[v];
+
+            fijkVerts[v] = FaceIJK { face, coord };
+            fijkVerts[v].coord.normalize();
+        }
+
+        fijkVerts
+    }
 }
 
 /// Information to transform into an adjacent face IJK system
@@ -294,7 +364,7 @@ impl FaceOrientIJK {
 }
 
 /// Definition of which faces neighbor each other.
-const faceNeighbors: [[FaceOrientIJK; 4]; NUM_ICOSA_FACES] = [
+const faceNeighbors: [[FaceOrientIJK; 4]; constants::NUM_ICOSA_FACES] = [
     [
         // face 0
         FaceOrientIJK::new(0, (0, 0, 0), 0), // central face

@@ -189,50 +189,68 @@ impl Resolution {
     }
 }
 
-impl From<Resolution> for usize {
-    fn from(res: Resolution) -> usize {
-        match res {
-            Resolution::R0 => 0,
-            Resolution::R1 => 1,
-            Resolution::R2 => 2,
-            Resolution::R3 => 3,
-            Resolution::R4 => 4,
-            Resolution::R5 => 5,
-            Resolution::R6 => 6,
-            Resolution::R7 => 7,
-            Resolution::R8 => 8,
-            Resolution::R9 => 9,
-            Resolution::R10 => 10,
-            Resolution::R11 => 11,
-            Resolution::R12 => 12,
-            Resolution::R13 => 13,
-            Resolution::R14 => 14,
-            Resolution::R15 => 15,
+macro_rules! from_res {
+    ($t : ty) => {
+        impl From<$t> for Resolution {
+            fn from(v: $t) -> Self {
+                match v {
+                    0 => Resolution::R0,
+                    1 => Resolution::R1,
+                    2 => Resolution::R2,
+                    3 => Resolution::R3,
+                    4 => Resolution::R4,
+                    5 => Resolution::R5,
+                    6 => Resolution::R6,
+                    7 => Resolution::R7,
+                    8 => Resolution::R8,
+                    9 => Resolution::R9,
+                    10 => Resolution::R10,
+                    11 => Resolution::R11,
+                    12 => Resolution::R12,
+                    13 => Resolution::R13,
+                    14 => Resolution::R14,
+                    15 => Resolution::R15,
+                    _ => panic!("Failed to convert {} to Resolution", v),
+                }
+            }
         }
-    }
+
+        impl From<Resolution> for $t {
+            fn from(res: Resolution) -> $t {
+                match res {
+                    Resolution::R0 => 0,
+                    Resolution::R1 => 1,
+                    Resolution::R2 => 2,
+                    Resolution::R3 => 3,
+                    Resolution::R4 => 4,
+                    Resolution::R5 => 5,
+                    Resolution::R6 => 6,
+                    Resolution::R7 => 7,
+                    Resolution::R8 => 8,
+                    Resolution::R9 => 9,
+                    Resolution::R10 => 10,
+                    Resolution::R11 => 11,
+                    Resolution::R12 => 12,
+                    Resolution::R13 => 13,
+                    Resolution::R14 => 14,
+                    Resolution::R15 => 15,
+                }
+            }
+        }
+    };
 }
 
-impl From<u64> for Resolution {
-    fn from(v: u64) -> Self {
-        match v {
-            0 => Resolution::R0,
-            1 => Resolution::R1,
-            2 => Resolution::R2,
-            3 => Resolution::R3,
-            4 => Resolution::R4,
-            5 => Resolution::R5,
-            6 => Resolution::R6,
-            7 => Resolution::R7,
-            8 => Resolution::R8,
-            9 => Resolution::R9,
-            10 => Resolution::R10,
-            11 => Resolution::R11,
-            12 => Resolution::R12,
-            13 => Resolution::R13,
-            14 => Resolution::R14,
-            15 => Resolution::R15,
-            _ => panic!("Failed to convert {} to Resolution", v),
-        }
+from_res!(u64);
+from_res!(i64);
+from_res!(usize);
+from_res!(u32);
+from_res!(i32);
+
+impl std::ops::Add<i32> for Resolution {
+    type Output = Self;
+
+    fn add(self, rhs: i32) -> Self::Output {
+        (i32::from(self) + rhs).into()
     }
 }
 

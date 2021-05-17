@@ -12,6 +12,7 @@ fn _square(x: f64) -> f64 {
     x * x
 }
 
+
 impl Vec3d {
     pub const fn new(x: f64, y: f64, z: f64) -> Self {
         Vec3d { x, y, z }
