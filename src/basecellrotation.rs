@@ -3,9 +3,9 @@ use crate::constants::NUM_ICOSA_FACES;
 /// base cell at a given ijk and required rotations into its system
 pub(crate) struct BaseCellRotation {
     /// base cell number
-    baseCell: i32,
+    pub(crate) baseCell: i32,
     /// number of ccw 60 degree rotations relative to current face
-    ccwRot60: i32,
+    pub(crate) ccwRot60: i32,
 }
 
 impl BaseCellRotation {
@@ -26,7 +26,7 @@ impl BaseCellRotation {
  * This table can be accessed using the functions `_faceIjkToBaseCell` and
  * `_faceIjkToBaseCellCCWrot60`
  */
-const faceIjkBaseCells: [[[[BaseCellRotation; 3]; 3]; 3]; NUM_ICOSA_FACES] = [
+pub(crate) const faceIjkBaseCells: [[[[BaseCellRotation; 3]; 3]; 3]; NUM_ICOSA_FACES] = [
     [
         // face 0
         [

@@ -1,4 +1,4 @@
-#[derive(Copy, Clone, PartialEq, PartialOrd)]
+#[derive(Copy, Clone, PartialEq, PartialOrd, Debug)]
 pub enum Resolution {
     R0,
     R1,

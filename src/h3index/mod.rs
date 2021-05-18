@@ -3,6 +3,7 @@ pub use geocoord::*;
 
 use crate::{basecell::BaseCell, faceijk::FaceIJK, Direction, GeoCoord, Resolution};
 
+mod basecell;
 mod h3UniEdge;
 mod localij;
 
@@ -75,11 +76,9 @@ impl H3Index {
     /// 0's in the 7 base cell bits, 1's everywhere else.
     const H3_DIGIT_MASK_NEGATIVE: u64 = !Self::H3_DIGIT_MASK;
 
-    /**
-     * H3 index with mode 0, res 0, base cell 0, and 7 for all index digits.
-     * Typically used to initialize the creation of an H3 cell index, which
-     * expects all direction digits to be 7 beyond the cell's resolution.
-     */
+    /// H3 index with mode 0, res 0, base cell 0, and 7 for all index digits.
+    /// Typically used to initialize the creation of an H3 cell index, which
+    /// expects all direction digits to be 7 beyond the cell's resolution.
     const H3_INIT: H3Index = H3Index(35184372088831);
 
     /// Gets the highest bit of the H3 index.
@@ -90,6 +89,7 @@ impl H3Index {
     /// Gets the integer mode of h3.
     pub(crate) fn get_mode(&self) -> H3Mode {
         let m = (self.0 & Self::H3_MODE_MASK) >> Self::H3_MODE_OFFSET;
+        println!("Getting mode for {:?}: {}", self, m);
         m.into()
     }
 
@@ -414,8 +414,7 @@ impl H3Index {
      * @param out Output array. Must be of size pentagonIndexCount().
      */
     pub fn getPentagonIndexes(res: Resolution) -> [Self; BaseCell::NUM_BASE_CELLS] {
-        let mut result: [Self; BaseCell::NUM_BASE_CELLS] =
-            [H3Index::H3_INIT; BaseCell::NUM_BASE_CELLS];
+        let mut result = [H3Index::H3_NULL; BaseCell::NUM_BASE_CELLS];
 
         for bc in 0..BaseCell::NUM_BASE_CELLS {
             let basecell = BaseCell::new(bc as i32);
@@ -502,13 +501,19 @@ impl H3Index {
     }
 }
 
+impl From<H3Index> for u64 {
+    fn from(h3: H3Index) -> Self {
+        h3.0
+    }
+}
+
 #[derive(Copy, Clone, Debug, PartialEq)]
 /// H3 index modes
 pub(crate) enum H3Mode {
-    H3_HEXAGON_MODE, // 1;
-    H3_UNIEDGE_MODE, // 2;
-    H3_EDGE_MODE,    // 3;
-    H3_VERTEX_MODE,  // 4;
+    H3_HEXAGON_MODE = 1,
+    H3_UNIEDGE_MODE = 2,
+    H3_EDGE_MODE = 3,
+    H3_VERTEX_MODE = 4,
 }
 
 impl From<u64> for H3Mode {
@@ -541,6 +546,8 @@ mod test {
                 let h3Index = h3Indexes[i];
 
                 if h3Index != H3Index::H3_NULL {
+                    eprintln!("h3Index = {:?}", h3Index);
+
                     numFound += 1;
                     assert!(h3Index.is_valid(), "index should be valid");
                     assert!(h3Index.is_pentagon(), "index should be pentagon");
@@ -572,5 +579,22 @@ mod test {
 
         let h3 = H3Index(0x7fffffffffffffff);
         assert!(!h3.is_pentagon(), "all but high bit is not a pentagon");
+    }
+
+    #[test]
+    fn bit_twiddling() {
+        assert_eq!(H3Index::H3_MODE_OFFSET, 59);
+        assert_eq!(H3Index::H3_MODE_MASK, 8646911284551352320);
+        assert_eq!(H3Index::H3_MODE_MASK_NEGATIVE, 9799832789158199295);
+
+        let mut h = H3Index::H3_NULL;
+        h.set_mode(H3Mode::H3_EDGE_MODE);
+        assert_eq!(h.0, 3 << 59); // edge mode is 3, placement is 59 bits shifted left
+
+        let mode = h.get_mode();
+        assert_eq!(mode, H3Mode::H3_EDGE_MODE);
+
+        h.set_resolution(Resolution::R13);
+        assert_eq!(h.get_resolution(), Resolution::R13);
     }
 }

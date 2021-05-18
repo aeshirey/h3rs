@@ -56,26 +56,6 @@ void _baseCellToFaceIjk(int baseCell, FaceIJK* h) {
     *h = baseCellData[baseCell].homeFijk;
 }
 
-/**
- * @brief Given a base cell and the face it appears on, return
- *        the number of 60' ccw rotations for that base cell's
- *        coordinate system.
- * @returns The number of rotations, or INVALID_ROTATIONS if the base
- *          cell is not found on the given face
- */
-int _baseCellToCCWrot60(int baseCell, int face) {
-    if (face < 0 || face > NUM_ICOSA_FACES) return INVALID_ROTATIONS;
-    for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < 3; j++) {
-            for (int k = 0; k < 3; k++) {
-                if (faceIjkBaseCells[face][i][j][k].baseCell == baseCell) {
-                    return faceIjkBaseCells[face][i][j][k].ccwRot60;
-                }
-            }
-        }
-    }
-    return INVALID_ROTATIONS;
-}
 
 /** @brief Return whether or not the tested face is a cw offset face.
  */
@@ -84,25 +64,3 @@ bool _baseCellIsCwOffset(int baseCell, int testFace) {
            baseCellData[baseCell].cwOffsetPent[1] == testFace;
 }
 
-
-/**
- * res0IndexCount returns the number of resolution 0 indexes
- *
- * @return int count of resolution 0 indexes
- */
-int H3_EXPORT(res0IndexCount)() { return NUM_BASE_CELLS; }
-
-/**
- * getRes0Indexes generates all base cells storing them into the provided
- * memory pointer. Buffer must be of size NUM_BASE_CELLS * sizeof(H3Index).
- *
- * @param out H3Index* the memory to store the resulting base cells in
- */
-void H3_EXPORT(getRes0Indexes)(H3Index* out) {
-    for (int bc = 0; bc < NUM_BASE_CELLS; bc++) {
-        H3Index baseCell = H3_INIT;
-        H3_SET_MODE(baseCell, H3_HEXAGON_MODE);
-        H3_SET_BASE_CELL(baseCell, bc);
-        out[bc] = baseCell;
-    }
-}

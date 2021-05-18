@@ -1,7 +1,11 @@
-use crate::{faceijk::FaceIJK, Direction};
+use crate::{
+    basecellrotation::faceIjkBaseCells, constants::NUM_ICOSA_FACES, faceijk::FaceIJK, Direction,
+};
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct BaseCell(pub(crate) i32);
+
+const INVALID_ROTATIONS: i32 = -1;
 
 impl BaseCell {
     /// The number of H3 base cells
@@ -47,6 +51,31 @@ impl BaseCell {
 
         Direction::INVALID_DIGIT
     }
+
+    /**
+     * @brief Given a base cell and the face it appears on, return
+     *        the number of 60' ccw rotations for that base cell's
+     *        coordinate system.
+     * @returns The number of rotations, or INVALID_ROTATIONS if the base
+     *          cell is not found on the given face
+     */
+    pub(crate) fn _baseCellToCCWrot60(&self, face: usize) -> i32 {
+        if face > NUM_ICOSA_FACES {
+            return INVALID_ROTATIONS;
+        }
+
+        for i in 0..3 {
+            for j in 0..3 {
+                for k in 0..3 {
+                    if faceIjkBaseCells[face][i][j][k].baseCell == self.0 {
+                        return faceIjkBaseCells[face][i][j][k].ccwRot60;
+                    }
+                }
+            }
+        }
+
+        INVALID_ROTATIONS
+    }
 }
 
 macro_rules! basecell_impl {
@@ -54,6 +83,12 @@ macro_rules! basecell_impl {
         impl From<BaseCell> for $t {
             fn from(bc: BaseCell) -> $t {
                 bc.0 as $t
+            }
+        }
+
+        impl From<$t> for BaseCell {
+            fn from(n: $t) -> Self {
+                BaseCell(n as i32)
             }
         }
 
@@ -496,3 +531,49 @@ pub(crate) const baseCellNeighbor60CCWRots: [[BaseCell; 7]; BaseCell::NUM_BASE_C
     bc7![0, 5, 0, 0, 5, 5, 0],  // base cell 120
     bc7![0, 0, 1, 0, 1, 5, 1],  // base cell 121
 ];
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn baseCellToCCWrot60() {
+        // a few random spot-checks
+        assert_eq!(
+            BaseCell::from(16)._baseCellToCCWrot60(0),
+            0,
+            "got expected rotation"
+        );
+        assert_eq!(
+            BaseCell::from(32)._baseCellToCCWrot60(0),
+            3,
+            "got expected rotation"
+        );
+        assert_eq!(
+            BaseCell::from(7)._baseCellToCCWrot60(3),
+            1,
+            "got expected rotation"
+        );
+    }
+
+    #[test]
+    fn baseCellToCCWrot60_invalid() {
+        assert_eq!(
+            BaseCell::from(16)._baseCellToCCWrot60(42),
+            INVALID_ROTATIONS,
+            "should return invalid rotation for invalid face"
+        );
+        /*
+        assert_eq!(
+            BaseCell::from(16)._baseCellToCCWrot60(-1),
+            INVALID_ROTATIONS,
+            "should return invalid rotation for invalid face (negative)"
+        );
+        */
+        assert_eq!(
+            BaseCell::from(1)._baseCellToCCWrot60(0),
+            INVALID_ROTATIONS,
+            "should return invalid rotation for base cell not appearing on face"
+        );
+    }
+}
