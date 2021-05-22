@@ -22,6 +22,25 @@ impl Resolution {
     /// max H3 resolution; H3 version 1 has 16 resolutions, numbered 0 through 15
     pub const MAX_H3_RES: usize = 15;
 
+    pub const RESOLUTIONS: [Resolution; 16] = [
+        Resolution::R0,
+        Resolution::R1,
+        Resolution::R2,
+        Resolution::R3,
+        Resolution::R4,
+        Resolution::R5,
+        Resolution::R6,
+        Resolution::R7,
+        Resolution::R8,
+        Resolution::R9,
+        Resolution::R10,
+        Resolution::R11,
+        Resolution::R12,
+        Resolution::R13,
+        Resolution::R14,
+        Resolution::R15,
+    ];
+
     pub fn areaKm2(&self) -> f64 {
         match self {
             Resolution::R0 => 4250546.848,

@@ -42,6 +42,7 @@ SUITE(h3Index) {
         H3_EXPORT(geoToH3)(&g4, 0);
     }
 
+    /*
     TEST(faceIjkToH3ExtremeCoordinates) {
         FaceIJK fijk0I = {0, {3, 0, 0}};
         t_assert(_faceIjkToH3(&fijk0I, 0) == 0, "i out of bounds at res 0");
@@ -64,6 +65,7 @@ SUITE(h3Index) {
         FaceIJK fijk2K = {8, {2, 0, 20}};
         t_assert(_faceIjkToH3(&fijk2K, 2) == 0, "k out of bounds at res 2");
     }
+    */
 
     TEST(h3IsValidAtResolution) {
         for (int i = 0; i <= MAX_H3_RES; i++) {

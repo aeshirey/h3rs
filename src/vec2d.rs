@@ -170,11 +170,11 @@ const faceAxesAzRadsCII: [[f64; 3]; constants::NUM_ICOSA_FACES] = [
 
 // indexes for faceNeighbors table
 /// IJ quadrant faceNeighbors table direction
-const IJ: i32 = 1;
+pub(crate) const IJ: i32 = 1;
 /// KI quadrant faceNeighbors table direction
-const KI: i32 = 2;
+pub(crate) const KI: i32 = 2;
 /// JK quadrant faceNeighbors table direction
-const JK: i32 = 3;
+pub(crate) const JK: i32 = 3;
 
 /// Invalid face index
 const INVALID_FACE: i32 = -1;

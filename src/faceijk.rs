@@ -1,15 +1,26 @@
-use crate::{constants, coordijk::CoordIJK, geopolygon::GeoBoundary, GeoCoord, Resolution};
+use crate::{
+    basecell::BaseCell,
+    basecellrotation::faceIjkBaseCells,
+    constants::{NUM_HEX_VERTS, NUM_ICOSA_FACES, NUM_PENT_VERTS},
+    coordijk::CoordIJK,
+    geopolygon::GeoBoundary,
+    h3index::H3Mode,
+    vec2d::Overage,
+    Direction, GeoCoord, H3Index, Resolution,
+};
 
 #[derive(Copy, Clone, Debug, Default)]
 /// Face number and ijk coordinates on that face-centered coordinate system
 pub(crate) struct FaceIJK {
     /// face number
-    face: i32,
+    pub(crate) face: i32,
     /// ijk coordinates on that face
     pub(crate) coord: CoordIJK,
 }
 
 impl FaceIJK {
+    const MAX_FACE_COORD: i32 = 2;
+
     pub(crate) const fn new(face: i32, coord: (i32, i32, i32)) -> Self {
         let coord = CoordIJK::new(coord.0, coord.1, coord.2);
 
@@ -134,6 +145,132 @@ impl FaceIJK {
             lastOverage = overage;
         }
         */
+    }
+
+    /**
+     * Convert an FaceIJK address to the corresponding H3Index.
+     * @param fijk The FaceIJK address.
+     * @param res The cell resolution.
+     * @return The encoded H3Index (or H3_NULL on failure).
+     */
+    pub(crate) fn _faceIjkToH3(&self, res: Resolution) -> H3Index {
+        // initialize the index
+        let mut h = H3Index::H3_INIT;
+        h.set_mode(H3Mode::H3_HEXAGON_MODE);
+        h.set_resolution(res);
+
+        // check for res 0/base cell
+        if res == Resolution::R0 {
+            if self.coord.i > Self::MAX_FACE_COORD
+                || self.coord.j > Self::MAX_FACE_COORD
+                || self.coord.k > Self::MAX_FACE_COORD
+            {
+                // out of range input
+                return H3Index::H3_NULL;
+            }
+
+            h.set_base_cell(self._faceIjkToBaseCell());
+            return h;
+        }
+
+        // we need to find the correct base cell FaceIJK for this H3 index;
+        // start with the passed in face and resolution res ijk coordinates
+        // in that face's coordinate system
+        let mut fijkBC = *self;
+
+        // build the H3Index from finest res up
+        // adjust r for the fact that the res 0 base cell offsets the indexing digits
+        for r in (0..res.into()).rev() {
+            let lastIJK = fijkBC.coord;
+            let mut lastCenter;
+
+            let rr: Resolution = (r + 1).into();
+
+            if rr.isResClassIII() {
+                // rotate ccw
+                fijkBC.coord._upAp7();
+                lastCenter = fijkBC.coord;
+                lastCenter._downAp7();
+            } else {
+                // rotate cw
+                fijkBC.coord._upAp7r();
+                lastCenter = fijkBC.coord;
+                lastCenter._downAp7r();
+            }
+
+            let mut diff = lastIJK - lastCenter;
+            diff.normalize();
+
+            h.set_index_digit(rr, diff._unitIjkToDigit().into());
+        }
+
+        // fijkBC should now hold the IJK of the base cell in the
+        // coordinate system of the current face
+
+        if fijkBC.coord.i > Self::MAX_FACE_COORD
+            || fijkBC.coord.j > Self::MAX_FACE_COORD
+            || fijkBC.coord.k > Self::MAX_FACE_COORD
+        {
+            // out of range input
+            return H3Index::H3_NULL;
+        }
+
+        // lookup the correct base cell
+        let baseCell = fijkBC._faceIjkToBaseCell();
+        h.set_base_cell(baseCell);
+
+        // rotate if necessary to get canonical base cell orientation for this base cell
+        let numRots = fijkBC._faceIjkToBaseCellCCWrot60();
+
+        if baseCell._isBaseCellPentagon() {
+            // force rotation out of missing k-axes sub-sequence
+            if h._h3LeadingNonZeroDigit() == Direction::K_AXES_DIGIT {
+                // check for a cw/ccw offset face; default is ccw
+                if baseCell._baseCellIsCwOffset(&fijkBC) {
+                    h = h._h3Rotate60cw();
+                } else {
+                    h = h._h3Rotate60ccw();
+                }
+            }
+
+            for _ in 0..numRots {
+                h = h._h3RotatePent60ccw();
+            }
+        } else {
+            for _ in 0..numRots {
+                h = h._h3Rotate60ccw();
+            }
+        }
+
+        h
+    }
+
+    /** Find base cell given FaceIJK.
+     *
+     * Given the face number and a resolution 0 ijk+ coordinate in that face's
+     * face-centered ijk coordinate system, return the base cell located at that
+     * coordinate.
+     *
+     * Valid ijk+ lookup coordinates are from (0, 0, 0) to (2, 2, 2).
+     */
+    pub(crate) fn _faceIjkToBaseCell(&self) -> BaseCell {
+        faceIjkBaseCells[self.face as usize][self.coord.i as usize][self.coord.j as usize]
+            [self.coord.k as usize]
+            .baseCell
+            .into()
+    }
+
+    /// Find base cell given FaceIJK.
+    ///
+    /// Given the face number and a resolution 0 ijk+ coordinate in that face's
+    /// face-centered ijk coordinate system, return the number of 60' ccw rotations
+    /// to rotate into the coordinate system of the base cell at that coordinates.
+    ///
+    /// Valid ijk+ lookup coordinates are from (0, 0, 0) to (2, 2, 2).
+    pub(crate) fn _faceIjkToBaseCellCCWrot60(&self) -> i32 {
+        faceIjkBaseCells[self.face as usize][self.coord.i as usize][self.coord.j as usize]
+            [self.coord.k as usize]
+            .ccwRot60
     }
 
     /**
@@ -275,15 +412,12 @@ impl FaceIJK {
      *            necessary for the substrate grid resolution.
      * @param fijkVerts Output array for the vertices
      */
-    fn _faceIjkToVerts(
-        &mut self,
-        res: &mut Resolution,
-    ) -> [FaceIJK; constants::NUM_HEX_VERTS as usize] {
+    fn _faceIjkToVerts(&mut self, res: &mut Resolution) -> [FaceIJK; NUM_HEX_VERTS as usize] {
         // the vertexes of an origin-centered cell in a Class II resolution on a
         // substrate grid with aperture sequence 33r. The aperture 3 gets us the
         // vertices, and the 3r gets us back to Class II.
         // vertices listed ccw from the i-axes
-        const vertsCII: [CoordIJK; constants::NUM_HEX_VERTS as usize] = [
+        const vertsCII: [CoordIJK; NUM_HEX_VERTS as usize] = [
             CoordIJK::new(2, 1, 0), // 0
             CoordIJK::new(1, 2, 0), // 1
             CoordIJK::new(0, 2, 1), // 2
@@ -296,7 +430,7 @@ impl FaceIJK {
         // substrate grid with aperture sequence 33r7r. The aperture 3 gets us the
         // vertices, and the 3r7r gets us to Class II.
         // vertices listed ccw from the i-axes
-        const vertsCIII: [CoordIJK; constants::NUM_HEX_VERTS as usize] = [
+        const vertsCIII: [CoordIJK; NUM_HEX_VERTS as usize] = [
             CoordIJK::new(5, 4, 0), // 0
             CoordIJK::new(1, 5, 0), // 1
             CoordIJK::new(0, 5, 4), // 2
@@ -326,8 +460,8 @@ impl FaceIJK {
         // The center point is now in the same substrate grid as the origin
         // cell vertices. Add the center point substate coordinates
         // to each vertex to translate the vertices to that cell.
-        let mut fijkVerts = [FaceIJK::default(); constants::NUM_HEX_VERTS as usize];
-        for v in 0..constants::NUM_HEX_VERTS as usize {
+        let mut fijkVerts = [FaceIJK::default(); NUM_HEX_VERTS as usize];
+        for v in 0..NUM_HEX_VERTS as usize {
             let face = self.face;
             let coord = self.coord + verts[v];
 
@@ -336,6 +470,180 @@ impl FaceIJK {
         }
 
         fijkVerts
+    }
+
+    /**
+     * Get the vertices of a pentagon cell as substrate FaceIJK addresses
+     *
+     * @param fijk The FaceIJK address of the cell.
+     * @param res The H3 resolution of the cell. This may be adjusted if necessary for the substrate grid resolution.
+     * @param fijkVerts Output array for the vertices
+     */
+    pub(crate) fn _faceIjkPentToVerts(
+        fijk: &mut Self,
+        res: &mut Resolution,
+    ) -> [FaceIJK; NUM_PENT_VERTS] {
+        // the vertexes of an origin-centered pentagon in a Class II resolution on a
+        // substrate grid with aperture sequence 33r. The aperture 3 gets us the
+        // vertices, and the 3r gets us back to Class II.
+        // vertices listed ccw from the i-axes
+        const vertsCII: [CoordIJK; NUM_PENT_VERTS] = [
+            CoordIJK::new(2, 1, 0), // 0
+            CoordIJK::new(1, 2, 0), // 1
+            CoordIJK::new(0, 2, 1), // 2
+            CoordIJK::new(0, 1, 2), // 3
+            CoordIJK::new(1, 0, 2), // 4
+        ];
+
+        // the vertexes of an origin-centered pentagon in a Class III resolution on
+        // a substrate grid with aperture sequence 33r7r. The aperture 3 gets us the
+        // vertices, and the 3r7r gets us to Class II. vertices listed ccw from the
+        // i-axes
+        const vertsCIII: [CoordIJK; NUM_PENT_VERTS] = [
+            CoordIJK::new(5, 4, 0), // 0
+            CoordIJK::new(1, 5, 0), // 1
+            CoordIJK::new(0, 5, 4), // 2
+            CoordIJK::new(0, 1, 5), // 3
+            CoordIJK::new(4, 0, 5), // 4
+        ];
+
+        // get the correct set of substrate vertices for this resolution
+        let verts = if res.isResClassIII() {
+            vertsCIII
+        } else {
+            vertsCII
+        };
+
+        // adjust the center point to be in an aperture 33r substrate grid
+        // these should be composed for speed
+        fijk.coord._downAp3();
+        fijk.coord._downAp3r();
+
+        // if res is Class III we need to add a cw aperture 7 to get to icosahedral Class II
+        if res.isResClassIII() {
+            fijk.coord._downAp7r();
+            *res = Resolution::from(*res as usize + 1);
+        }
+
+        // The center point is now in the same substrate grid as the origin
+        // cell vertices. Add the center point substate coordinates
+        // to each vertex to translate the vertices to that cell.
+        let mut fijkVerts = [FaceIJK::default(); NUM_PENT_VERTS];
+        for v in 0..NUM_PENT_VERTS {
+            fijkVerts[v].face = fijk.face;
+            fijkVerts[v].coord = fijk.coord + verts[v];
+            fijkVerts[v].coord.normalize();
+        }
+
+        fijkVerts
+    }
+
+    /**
+     * Adjusts a FaceIJK address for a pentagon vertex in a substrate grid in
+     * place so that the resulting cell address is relative to the correct
+     * icosahedral face.
+     *
+     * @param fijk The FaceIJK address of the cell.
+     * @param res The H3 resolution of the cell.
+     */
+    pub(crate) fn _adjustPentVertOverage(&mut self, res: Resolution) -> Overage {
+        let mut pentLeading4 = false;
+
+        loop {
+            let overage = self._adjustOverageClassII(res, pentLeading4, true);
+            if overage == Overage::NEW_FACE {
+                return overage;
+            }
+        }
+    }
+
+    /**
+     * Adjusts a FaceIJK address in place so that the resulting cell address is
+     * relative to the correct icosahedral face.
+     *
+     * @param fijk The FaceIJK address of the cell.
+     * @param res The H3 resolution of the cell.
+     * @param pentLeading4 Whether or not the cell is a pentagon with a leading
+     *        digit 4.
+     * @param substrate Whether or not the cell is in a substrate grid.
+     * @return 0 if on original face (no overage); 1 if on face edge (only occurs
+     *         on substrate grids); 2 if overage on new face interior
+     */
+    fn _adjustOverageClassII(
+        &mut self,
+        res: Resolution,
+        pentLeading4: bool,
+        substrate: bool,
+    ) -> Overage {
+        let mut overage = Overage::NO_OVERAGE;
+
+        let mut ijk = self.coord;
+
+        // get the maximum dimension value; scale if a substrate grid
+        let maxDim = if substrate {
+            res.maxDimByCIIres() * 3
+        } else {
+            res.maxDimByCIIres()
+        };
+
+        // check for overage
+        if substrate && ijk.i + ijk.j + ijk.k == maxDim {
+            // on edge
+            overage = Overage::FACE_EDGE;
+        } else if ijk.i + ijk.j + ijk.k > maxDim
+        // overage
+        {
+            overage = Overage::NEW_FACE;
+
+            let fijkOrient;
+            if ijk.k > 0 {
+                if ijk.j > 0 {
+                    // jk "quadrant"
+                    fijkOrient = &faceNeighbors[self.face as usize][crate::JK as usize];
+                } else {
+                    // ik "quadrant"
+                    fijkOrient = &faceNeighbors[self.face as usize][crate::KI as usize];
+
+                    // adjust for the pentagonal missing sequence
+                    if pentLeading4 {
+                        // translate origin to center of pentagon
+                        let origin = CoordIJK::new(maxDim, 0, 0);
+                        let mut tmp = ijk - origin;
+                        // rotate to adjust for the missing sequence
+                        tmp._ijkRotate60cw();
+                        // translate the origin back to the center of the triangle
+                        ijk = tmp + origin;
+                    }
+                }
+            } else {
+                // ij "quadrant"
+                fijkOrient = &faceNeighbors[self.face as usize][crate::IJ as usize];
+            }
+
+            self.face = fijkOrient.face;
+
+            // rotate and translate for adjacent face
+            for _ in 0..fijkOrient.ccwRot60 {
+                ijk._ijkRotate60ccw();
+            }
+
+            let mut unitScale = res.unitScaleByCIIres();
+            if substrate {
+                unitScale *= 3;
+            }
+
+            let transVec = fijkOrient.translate * unitScale;
+            ijk += transVec;
+            ijk.normalize();
+
+            // overage points on pentagon boundaries can end up on edges
+            if substrate && ijk.i + ijk.j + ijk.k == maxDim {
+                // on edge
+                overage = Overage::FACE_EDGE;
+            }
+        }
+
+        overage
     }
 }
 
@@ -364,7 +672,7 @@ impl FaceOrientIJK {
 }
 
 /// Definition of which faces neighbor each other.
-const faceNeighbors: [[FaceOrientIJK; 4]; constants::NUM_ICOSA_FACES] = [
+const faceNeighbors: [[FaceOrientIJK; 4]; NUM_ICOSA_FACES] = [
     [
         // face 0
         FaceOrientIJK::new(0, (0, 0, 0), 0), // central face
@@ -506,3 +814,32 @@ const faceNeighbors: [[FaceOrientIJK; 4]; constants::NUM_ICOSA_FACES] = [
         FaceOrientIJK::new(14, (0, 2, 2), 3), // jk quadrant
     ],
 ];
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn faceIjkToH3ExtremeCoordinates() {
+        /*
+            FaceIJK fijk0I = {0, {3, 0, 0}};
+            t_assert(_faceIjkToH3(&fijk0I, 0) == 0, "i out of bounds at res 0");
+            FaceIJK fijk0J = {1, {0, 4, 0}};
+            t_assert(_faceIjkToH3(&fijk0J, 0) == 0, "j out of bounds at res 0");
+            FaceIJK fijk0K = {2, {2, 0, 5}};
+            t_assert(_faceIjkToH3(&fijk0K, 0) == 0, "k out of bounds at res 0");
+
+            FaceIJK fijk1I = {3, {6, 0, 0}};
+            t_assert(_faceIjkToH3(&fijk1I, 1) == 0, "i out of bounds at res 1");
+            FaceIJK fijk1J = {4, {0, 7, 1}};
+            t_assert(_faceIjkToH3(&fijk1J, 1) == 0, "j out of bounds at res 1");
+            FaceIJK fijk1K = {5, {2, 0, 8}};
+            t_assert(_faceIjkToH3(&fijk1K, 1) == 0, "k out of bounds at res 1");
+
+            FaceIJK fijk2I = {6, {18, 0, 0}};
+            t_assert(_faceIjkToH3(&fijk2I, 2) == 0, "i out of bounds at res 2");
+            FaceIJK fijk2J = {7, {0, 19, 1}};
+            t_assert(_faceIjkToH3(&fijk2J, 2) == 0, "j out of bounds at res 2");
+            FaceIJK fijk2K = {8, {2, 0, 20}};
+            t_assert(_faceIjkToH3(&fijk2K, 2) == 0, "k out of bounds at res 2");
+        */
+    }
+}

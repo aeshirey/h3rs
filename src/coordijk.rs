@@ -2,6 +2,7 @@ use std::ops;
 
 use crate::{
     constants::{M_SIN60, M_SQRT3_2},
+    coordij::CoordIJ,
     vec2d::Vec2d,
     Direction,
 };
@@ -265,6 +266,20 @@ impl CoordIJK {
         }
     }
 
+    /// Convert IJK coordinates to cube coordinates, in place
+    pub(crate) fn ijkToCube(&mut self) {
+        self.i = -self.i + self.k;
+        self.j = self.j - self.k;
+        self.k = -self.i - self.j;
+    }
+
+    /// Convert cube coordinates to IJK coordinates, in place
+    pub(crate) fn cubeToIjk(&mut self) {
+        self.i = -self.i;
+        self.k = 0;
+        self.normalize();
+    }
+
     /**
      * Find the center point in 2D cartesian coordinates of a hex.
      *
@@ -315,6 +330,20 @@ impl CoordIJK {
 
         *self = iVec + jVec + kVec;
         self.normalize();
+    }
+
+    /**
+     * Transforms coordinates from the IJK+ coordinate system to the IJ coordinate
+     * system.
+     *
+     * @param ijk The input IJK+ coordinates
+     * @param ij The output IJ coordinates
+     */
+    pub(crate) fn ijkToIj(&self) -> CoordIJ {
+        CoordIJ {
+            i: self.i - self.k,
+            j: self.j - self.k,
+        }
     }
 }
 
@@ -538,5 +567,45 @@ mod tests {
 
         ijk._neighbor(Direction::INVALID_DIGIT);
         assert_eq!(ijk, i, "Invalid neighbor is self");
+    }
+
+    #[test]
+    fn ijkToIj_zero() {
+        let ijk = CoordIJK::new(0, 0, 0);
+        let ij = ijk.ijkToIj();
+
+        assert_eq!(ij.i, 0, "ij.i zero");
+        assert_eq!(ij.j, 0, "ij.j zero");
+
+        let ijk = ij.ijToIjk();
+        assert_eq!(ijk.i, 0, "ijk.i zero");
+        assert_eq!(ijk.j, 0, "ijk.j zero");
+        assert_eq!(ijk.k, 0, "ijk.k zero");
+    }
+
+    #[test]
+    fn ijkToIj_roundtrip() {
+        for dir in Direction::VALID_DIRECTIONS.iter() {
+            let mut ijk = CoordIJK::default();
+            ijk._neighbor(*dir);
+
+            let ij = ijk.ijkToIj();
+            let recovered = ij.ijToIjk();
+            assert_eq!(ijk, recovered, "got same ijk coordinates back");
+        }
+    }
+
+    #[test]
+    fn ijkToCube_roundtrip() {
+        for dir in Direction::VALID_DIRECTIONS.iter() {
+            let mut ijk = CoordIJK::default();
+            ijk._neighbor(*dir);
+
+            let original = ijk.clone();
+
+            ijk.ijkToCube();
+            ijk.cubeToIjk();
+            assert_eq!(ijk, original, "got same ijk coordinates back");
+        }
     }
 }

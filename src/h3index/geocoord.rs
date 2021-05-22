@@ -147,7 +147,7 @@ impl H3Index {
         let fijk: FaceIJK = self._h3ToFaceIjk();
         let res = self.get_resolution();
         if self.is_pentagon() {
-            fijk._faceIjkPentToGeoBoundary(res, 0, NUM_PENT_VERTS)
+            fijk._faceIjkPentToGeoBoundary(res, 0, NUM_PENT_VERTS as i32)
         } else {
             fijk._faceIjkToGeoBoundary(res, 0, NUM_HEX_VERTS)
         }

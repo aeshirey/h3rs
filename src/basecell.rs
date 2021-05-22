@@ -17,6 +17,22 @@ impl BaseCell {
         Self(cellnum)
     }
 
+    /*
+        int H3_EXPORT(h3IsPentagon)(H3Index h) {
+        return _isBaseCellPentagon(H3_GET_BASE_CELL(h)) &&
+               !_h3LeadingNonZeroDigit(h);
+    }
+
+    /** @brief Return whether or not the indicated base cell is a pentagon. */
+    int _isBaseCellPentagon(int baseCell) {
+        if (baseCell < 0 || baseCell >= NUM_BASE_CELLS) {  // LCOV_EXCL_BR_LINE
+            // Base cells less than zero can not be represented in an index
+            return false;
+        }
+        return baseCellData[baseCell].isPentagon;
+    }
+    */
+
     /// Return whether or not the indicated base cell is a pentagon.
     pub(crate) fn _isBaseCellPentagon(&self) -> bool {
         if self.0 < 0 || self.0 >= Self::NUM_BASE_CELLS as i32 {
@@ -75,6 +91,22 @@ impl BaseCell {
         }
 
         INVALID_ROTATIONS
+    }
+
+    /// Return whether or not the tested face is a cw offset face.
+    pub(crate) fn _baseCellIsCwOffset(&self, testface: &FaceIJK) -> bool {
+        //baseCellData[self.0 as usize].cwOffsetPent[0] == testFace
+        //    || baseCellData[self.0 as usize].cwOffsetPent[1] == testFace
+        if let Some(bcd) = baseCellData[self.0 as usize].cwOffsetPent {
+            bcd[0] == testface.face || bcd[1] == testface.face
+        } else {
+            false
+        }
+    }
+
+    /// Find the FaceIJK given a base cell.
+    pub(crate) fn _baseCellToFaceIjk(&self) -> FaceIJK {
+        baseCellData[self.0 as usize].homeFijk
     }
 }
 

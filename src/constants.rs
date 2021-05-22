@@ -41,6 +41,6 @@ pub const NUM_ICOSA_FACES: usize = 20;
 /// The number of vertices in a hexagon
 pub const NUM_HEX_VERTS: i32 = 6;
 /// The number of vertices in a pentagon
-pub const NUM_PENT_VERTS: i32 = 5;
+pub const NUM_PENT_VERTS: usize = 5;
 /// The number of pentagons per resolution *
 pub const NUM_PENTAGONS: i32 = 12;

@@ -1,3 +1,5 @@
+use std::ops::Add;
+
 use crate::{
     basecell::baseCellNeighbor60CCWRots, coordij::CoordIJ, coordijk::CoordIJK, faceijk::FaceIJK,
     BaseCell, Direction, Resolution,
@@ -504,5 +506,300 @@ impl H3Index {
 
         out.set_base_cell(basecell);
         Ok(out)
+    }
+
+    /**
+     * Given two H3 indexes, return the line of indexes between them (inclusive).
+     *
+     * This function may fail to find the line between two indexes, for
+     * example if they are very far apart. It may also fail when finding
+     * distances for indexes on opposite sides of a pentagon.
+     *
+     * Notes:
+     *
+     *  - The specific output of this function should not be considered stable
+     *    across library versions. The only guarantees the library provides are
+     *    that the line length will be `h3Distance(start, end) + 1` and that
+     *    every index in the line will be a neighbor of the preceding index.
+     *  - Lines are drawn in grid space, and may not correspond exactly to either
+     *    Cartesian lines or great arcs.
+     *
+     * @param start Start index of the line
+     * @param end End index of the line
+     * @param out Output array, which must be of size h3LineSize(start, end)
+     * @return 0 on success, or another value on failure.
+     */
+
+    pub fn h3Line(start: Self, end: Self) -> Result<Vec<H3Index>, ()> {
+        // Early exit if we can't calculate the line
+        let distance = start.h3Distance(&end)?;
+
+        // Get IJK coords for the start and end. We've already confirmed
+        // that these can be calculated with the distance check above.
+        let mut startIjk = start.h3ToLocalIjk(&start).unwrap();
+        let mut endIjk = start.h3ToLocalIjk(&end).unwrap();
+
+        // Convert IJK to cube coordinates suitable for linear interpolation
+        startIjk.ijkToCube();
+        endIjk.ijkToCube();
+
+        let iStep = if distance > 0 {
+            (endIjk.i - startIjk.i) as f32 / distance as f32
+        } else {
+            0.0
+        };
+        let jStep = if distance > 0 {
+            (endIjk.j - startIjk.j) as f32 / distance as f32
+        } else {
+            0.0
+        };
+        let kStep = if distance > 0 {
+            (endIjk.k - startIjk.k) as f32 / distance as f32
+        } else {
+            0.0
+        };
+
+        let mut currentIjk = startIjk;
+
+        let mut result = Vec::with_capacity(distance as usize + 1);
+
+        for n in 0..=distance {
+            let mut currentIjk = Self::cubeRound(
+                startIjk.i as f32 + iStep * n as f32,
+                startIjk.j as f32 + jStep * n as f32,
+                startIjk.k as f32 + kStep * n as f32,
+            );
+
+            // Convert cube -> ijk -> h3 index
+            currentIjk.cubeToIjk();
+
+            result.push(start.localIjkToH3(&currentIjk).unwrap());
+        }
+
+        Ok(result)
+    }
+
+    fn cubeRound(i: f32, j: f32, k: f32) -> CoordIJK {
+        let mut ri = i.round() as i32;
+        let mut rj = j.round() as i32;
+        let mut rk = k.round() as i32;
+
+        let iDiff = (ri as f32 - i).abs();
+        let jDiff = (rj as f32 - j).abs();
+        let kDiff = (rk as f32 - k).abs();
+
+        // Round, maintaining valid cube coords
+        if iDiff > jDiff && iDiff > kDiff {
+            ri = -rj - rk;
+        } else if jDiff > kDiff {
+            rj = -ri - rk;
+        } else {
+            rk = -ri - rj;
+        }
+
+        CoordIJK::new(ri as i32, rj as i32, rk as i32)
+    }
+
+    /*
+     * Produces ijk+ coordinates for an index anchored by an origin.
+     *
+     * The coordinate space used by this function may have deleted
+     * regions or warping due to pentagonal distortion.
+     *
+     * Coordinates are only comparable if they come from the same
+     * origin index.
+     *
+     * Failure may occur if the index is too far away from the origin
+     * or if the index is on the other side of a pentagon.
+     *
+     * @param origin An anchoring index for the ijk+ coordinate system.
+     * @param index Index to find the coordinates of
+     * @param out ijk+ coordinates of the index will be placed here on success
+     * @return 0 on success, or another value on failure.
+     */
+    //*
+    fn h3ToLocalIjk__newversion(origin: H3Index, mut h3: H3Index) -> Result<CoordIJK, i32> {
+        let res = origin.get_resolution();
+
+        if res != h3.get_resolution() {
+            return Err(1);
+        }
+
+        let originBaseCell = origin.get_base_cell();
+        let baseCell = h3.get_base_cell();
+
+        if originBaseCell >= BaseCell::NUM_BASE_CELLS {
+            return Err(1);
+        }
+
+        if baseCell >= BaseCell::NUM_BASE_CELLS {
+            // Base cells less than zero can not be represented in an index
+            return Err(1);
+        }
+
+        // Direction from origin base cell to index base cell
+        let mut dir = Direction::CENTER_DIGIT;
+        let mut revDir = Direction::CENTER_DIGIT;
+
+        if originBaseCell != baseCell {
+            dir = originBaseCell._getBaseCellDirection(baseCell);
+            if dir == Direction::INVALID_DIGIT {
+                // Base cells are not neighbors, can't unfold.
+                return Err(2);
+            }
+            revDir = baseCell._getBaseCellDirection(originBaseCell);
+            assert_ne!(revDir, Direction::INVALID_DIGIT);
+        }
+
+        let originOnPent = originBaseCell._isBaseCellPentagon();
+        let indexOnPent = baseCell._isBaseCellPentagon();
+
+        if dir != Direction::CENTER_DIGIT {
+            // Rotate index into the orientation of the origin base cell.
+            // cw because we are undoing the rotation into that base cell.
+            let baseCellRotations =
+                baseCellNeighbor60CCWRots[originBaseCell.0 as usize][dir as usize];
+            if indexOnPent {
+                for _ in 0..baseCellRotations.0 {
+                    h3 = h3._h3RotatePent60cw();
+
+                    revDir = revDir.rotate60cw();
+                    if revDir == Direction::K_AXES_DIGIT {
+                        revDir = revDir.rotate60cw();
+                    }
+                }
+            } else {
+                for _ in 0..baseCellRotations.0 {
+                    h3 = h3._h3Rotate60cw();
+
+                    revDir = revDir.rotate60cw();
+                }
+            }
+        }
+
+        // Face is unused. This produces coordinates in base cell coordinate space.
+        let mut indexFijk = FaceIJK::default();
+        h3._h3ToFaceIjkWithInitializedFijk(&mut indexFijk);
+
+        if dir != Direction::CENTER_DIGIT {
+            assert!(baseCell != originBaseCell);
+            assert!(!(originOnPent && indexOnPent));
+
+            let mut pentagonRotations = 0;
+            let mut directionRotations = 0;
+
+            if originOnPent {
+                let originLeadingDigit = origin._h3LeadingNonZeroDigit();
+
+                if FAILED_DIRECTIONS[originLeadingDigit as usize][dir as usize] {
+                    // TODO: We may be unfolding the pentagon incorrectly in this
+                    // case; return an error code until this is guaranteed to be
+                    // correct.
+                    return Err(3);
+                }
+
+                directionRotations = PENTAGON_ROTATIONS[originLeadingDigit as usize][dir as usize];
+                pentagonRotations = directionRotations;
+            } else if indexOnPent {
+                let indexLeadingDigit = h3._h3LeadingNonZeroDigit();
+
+                if FAILED_DIRECTIONS[indexLeadingDigit as usize][revDir as usize] {
+                    // TODO: We may be unfolding the pentagon incorrectly in this
+                    // case; return an error code until this is guaranteed to be
+                    // correct.
+                    return Err(4);
+                }
+
+                pentagonRotations = PENTAGON_ROTATIONS[revDir as usize][indexLeadingDigit as usize];
+            }
+
+            assert!(pentagonRotations >= 0);
+            assert!(directionRotations >= 0);
+
+            for _ in 0..pentagonRotations {
+                indexFijk.coord._ijkRotate60cw();
+            }
+
+            let mut offset = CoordIJK::default();
+            offset._neighbor(dir);
+
+            // Scale offset based on resolution
+            for r in (0..res as usize).rev() {
+                let r1: Resolution = (r + 1).into();
+
+                if r1.isResClassIII() {
+                    // rotate ccw
+                    offset._downAp7();
+                } else {
+                    // rotate cw
+                    offset._downAp7r();
+                }
+            }
+
+            for _ in 0..directionRotations {
+                offset._ijkRotate60cw();
+            }
+
+            // Perform necessary translation
+            indexFijk.coord += offset;
+            indexFijk.coord.normalize();
+            //_ijkAdd(&indexFijk.coord, &offset, &indexFijk.coord);
+            //_ijkNormalize(&indexFijk.coord);
+        } else if originOnPent && indexOnPent {
+            // If the origin and index are on pentagon, and we checked that the base
+            // cells are the same or neighboring, then they must be the same base
+            // cell.
+            assert_eq!(baseCell, originBaseCell);
+
+            let originLeadingDigit = origin._h3LeadingNonZeroDigit();
+            let indexLeadingDigit = h3._h3LeadingNonZeroDigit();
+
+            if FAILED_DIRECTIONS[originLeadingDigit as usize][indexLeadingDigit as usize] {
+                // TODO: We may be unfolding the pentagon incorrectly in this case;
+                // return an error code until this is guaranteed to be correct.
+                return Err(5);
+            }
+
+            let withinPentagonRotations =
+                PENTAGON_ROTATIONS[originLeadingDigit as usize][indexLeadingDigit as usize];
+
+            for _ in 0..withinPentagonRotations {
+                indexFijk.coord._ijkRotate60cw();
+            }
+        }
+
+        Ok(indexFijk.coord)
+    }
+
+    /**
+     * Produces ij coordinates for an index anchored by an origin.
+     *
+     * The coordinate space used by this function may have deleted
+     * regions or warping due to pentagonal distortion.
+     *
+     * Coordinates are only comparable if they come from the same
+     * origin index.
+     *
+     * Failure may occur if the index is too far away from the origin
+     * or if the index is on the other side of a pentagon.
+     *
+     * This function is experimental, and its output is not guaranteed
+     * to be compatible across different versions of H3.
+     *
+     * @param origin An anchoring index for the ij coordinate system.
+     * @param index Index to find the coordinates of
+     * @param out ij coordinates of the index will be placed here on success
+     * @return 0 on success, or another value on failure.
+     */
+    pub fn experimentalH3ToLocalIj(origin: H3Index, h3: H3Index) -> Result<CoordIJ, i32> {
+        // This function is currently experimental. Once ready to be part of the
+        // non-experimental API, this function (with the experimental prefix) will
+        // be marked as deprecated and to be removed in the next major version. It
+        // will be replaced with a non-prefixed function name.
+        origin.h3ToLocalIjk(&h3).map(|ijk| ijk.ijkToIj())
+
+        //let ijk = origin.h3ToLocalIjk(&h3)?;
+        //let out = ijk.ijkToIj();
+        //Ok(out)
     }
 }

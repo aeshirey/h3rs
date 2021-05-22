@@ -1,4 +1,4 @@
-use crate::{constants::*, Resolution};
+use crate::{Resolution, constants::*, faceijk::FaceIJK, vec2d::Vec2d};
 
 /// epsilon of ~0.1mm in degrees
 const EPSILON_DEG: f64 = 0.000000001;
@@ -218,6 +218,83 @@ impl GeoCoord {
     //        of each other.
     fn geoAlmostEqualThreshold(p1: &Self, p2: &Self, threshold: f64) -> bool {
         (p1.lat - p2.lat).abs() < threshold && (p1.lon - p2.lon).abs() < threshold
+    }
+
+    /**
+     * Encodes a coordinate on the sphere to the FaceIJK address of the containing
+     * cell at the specified resolution.
+     *
+     * @param g The spherical coordinates to encode.
+     * @param res The desired H3 resolution for the encoding.
+     * @param h The FaceIJK address of the containing cell at resolution res.
+     */
+    pub(crate) fn _geoToFaceIjk(&self, res: Resolution) -> FaceIJK {
+        /*
+        // first convert to hex2d
+        let v : Vec2d = self._geoToHex2d(res, &h->face, &v);
+
+        // then convert to ijk+
+        _hex2dToCoordIJK(&v, &h->coord);
+        */
+        todo!()
+    }
+
+    /**
+     * Encodes a coordinate on the sphere to the corresponding icosahedral face and
+     * containing 2D hex coordinates relative to that face center.
+     *
+     * @param g The spherical coordinates to encode.
+     * @param res The desired H3 resolution for the encoding.
+     * @param face The icosahedral face containing the spherical coordinates.
+     * @param v The 2D hex coordinates of the cell containing the point.
+     */
+    pub(crate) fn _geoToHex2d(&self, res: Resolution) {
+        //pub(crate) fn _geoToHex2d(&self, res:Resolution, int* face, Vec2d* v) {
+        /*
+        Vec3d v3d;
+        _geoToVec3d(g, &v3d);
+
+        // determine the icosahedron face
+        *face = 0;
+        double sqd = _pointSquareDist(&faceCenterPoint[0], &v3d);
+        for (int f = 1; f < NUM_ICOSA_FACES; f++) {
+            double sqdT = _pointSquareDist(&faceCenterPoint[f], &v3d);
+            if (sqdT < sqd) {
+                *face = f;
+                sqd = sqdT;
+            }
+        }
+
+        // cos(r) = 1 - 2 * sin^2(r/2) = 1 - 2 * (sqd / 4) = 1 - sqd/2
+        double r = acos(1 - sqd / 2);
+
+        if (r < EPSILON) {
+            v->x = v->y = 0.0L;
+            return;
+        }
+
+        // now have face and r, now find CCW theta from CII i-axis
+        double theta =
+            _posAngleRads(faceAxesAzRadsCII[*face][0] -
+                          _posAngleRads(_geoAzimuthRads(&faceCenterGeo[*face], g)));
+
+        // adjust theta for Class III (odd resolutions)
+        if (isResClassIII(res)) theta = _posAngleRads(theta - M_AP7_ROT_RADS);
+
+        // perform gnomonic scaling of r
+        r = tan(r);
+
+        // scale for current resolution length u
+        r /= RES0_U_GNOMONIC;
+        for (int i = 0; i < res; i++) r *= M_SQRT7;
+
+        // we now have (r, theta) in hex2d with theta ccw from x-axes
+
+        // convert to local x,y
+        v->x = r * cos(theta);
+        v->y = r * sin(theta);
+        */
+        todo!()
     }
 }
 

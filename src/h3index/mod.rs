@@ -79,7 +79,7 @@ impl H3Index {
     /// H3 index with mode 0, res 0, base cell 0, and 7 for all index digits.
     /// Typically used to initialize the creation of an H3 cell index, which
     /// expects all direction digits to be 7 beyond the cell's resolution.
-    const H3_INIT: H3Index = H3Index(35184372088831);
+    pub(crate) const H3_INIT: H3Index = H3Index(35184372088831);
 
     /// Gets the highest bit of the H3 index.
     fn get_high_bit(&self) -> u64 {
@@ -416,6 +416,15 @@ impl H3Index {
     pub fn getPentagonIndexes(res: Resolution) -> [Self; BaseCell::NUM_BASE_CELLS] {
         let mut result = [H3Index::H3_NULL; BaseCell::NUM_BASE_CELLS];
 
+        for bc in -1..BaseCell::NUM_BASE_CELLS as i32 {
+            let basecell = BaseCell::new(bc);
+            if basecell._isBaseCellPentagon() {
+                let pentagon = Self::setH3Index(res, basecell, Direction::CENTER_DIGIT);
+                result[bc as usize] = pentagon;
+            }
+        }
+
+        /*
         for bc in 0..BaseCell::NUM_BASE_CELLS {
             let basecell = BaseCell::new(bc as i32);
             if basecell._isBaseCellPentagon() {
@@ -423,6 +432,7 @@ impl H3Index {
                 result[bc] = pentagon;
             }
         }
+        */
         result
     }
 
@@ -536,6 +546,7 @@ mod test {
     #[test]
     fn pentagon_indexes_property_tests() {
         let expectedCount = H3Index::pentagonIndexCount();
+        assert_eq!(expectedCount, 12); // this is a constant, but the assert is just for our info
 
         for res in 0..=15 {
             let h3Indexes = H3Index::getPentagonIndexes(res.into());
@@ -551,8 +562,9 @@ mod test {
                     numFound += 1;
                     assert!(h3Index.is_valid(), "index should be valid");
                     assert!(h3Index.is_pentagon(), "index should be pentagon");
-                    assert!(
-                        h3Index.get_resolution() == res.into(),
+                    assert_eq!(
+                        h3Index.get_resolution(),
+                        res.into(),
                         "index should have correct resolution"
                     );
 
@@ -567,7 +579,8 @@ mod test {
 
             assert_eq!(
                 numFound, expectedCount,
-                "there should be exactly 12 pentagons"
+                "there should be exactly 12 pentagons for resolution {}",
+                res
             );
         }
     }
@@ -596,5 +609,24 @@ mod test {
 
         h.set_resolution(Resolution::R13);
         assert_eq!(h.get_resolution(), Resolution::R13);
+
+        h.set_base_cell(BaseCell::from(123));
+        assert_eq!(h.get_base_cell(), BaseCell::from(123));
+
+        let digit = Direction::JK_AXES_DIGIT;
+        h.set_index_digit(Resolution::R0, digit.into());
+        assert_eq!(h.get_index_digit(Resolution::R0), digit);
+    }
+
+    #[test]
+    fn test_index_digits() {
+        let mut h = H3Index::H3_INIT;
+
+        for res in Resolution::RESOLUTIONS.iter() {
+            for dir in Direction::VALID_DIRECTIONS.iter() {
+                h.set_index_digit(*res, u64::from(*dir));
+                assert_eq!(h.get_index_digit(*res), *dir);
+            }
+        }
     }
 }
