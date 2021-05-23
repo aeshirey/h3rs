@@ -608,4 +608,49 @@ mod tests {
             assert_eq!(ijk, original, "got same ijk coordinates back");
         }
     }
+
+    #[test]
+    fn _unitIjkToDigit() {
+        let zero = CoordIJK::default();
+        let i = CoordIJK::new(1, 0, 0);
+        let outOfRange = CoordIJK::new(2, 0, 0);
+        let unnormalizedZero = CoordIJK::new(2, 2, 2);
+
+        assert_eq!(
+            zero._unitIjkToDigit(),
+            Direction::CENTER_DIGIT,
+            "Unit IJK to zero"
+        );
+        assert_eq!(
+            i._unitIjkToDigit(),
+            Direction::I_AXES_DIGIT,
+            "Unit IJK to I axis"
+        );
+        assert_eq!(
+            outOfRange._unitIjkToDigit(),
+            Direction::INVALID_DIGIT,
+            "Unit IJK out of range"
+        );
+        assert_eq!(
+            unnormalizedZero._unitIjkToDigit(),
+            Direction::CENTER_DIGIT,
+            "Unnormalized unit IJK to zero"
+        );
+    }
+
+    #[test]
+    fn neighbor() {
+        let mut ijk = CoordIJK::default();
+        let zero = CoordIJK::default();
+        let i = CoordIJK::new(1, 0, 0);
+
+        ijk._neighbor(Direction::CENTER_DIGIT);
+        assert_eq!(ijk, zero, "Center neighbor is self");
+
+        ijk._neighbor(Direction::I_AXES_DIGIT);
+        assert_eq!(ijk, i, "I neighbor as expected");
+
+        ijk._neighbor(Direction::INVALID_DIGIT);
+        assert_eq!(ijk, i, "Invalid neighbor is self");
+    }
 }

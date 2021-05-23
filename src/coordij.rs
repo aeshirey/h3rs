@@ -12,6 +12,10 @@ pub struct CoordIJ {
 }
 
 impl CoordIJ {
+    pub(crate) const fn new(i: i32, j: i32) -> Self {
+        Self { i, j }
+    }
+
     /**
      * Transforms coordinates from the IJ coordinate system to the IJK+ coordinate
      * system.
@@ -28,5 +32,12 @@ impl CoordIJ {
         ijk.normalize();
 
         ijk
+    }
+}
+
+impl From<(i32, i32)> for CoordIJ {
+    fn from(ij: (i32, i32)) -> Self {
+        let (i, j) = ij;
+        CoordIJ { i, j }
     }
 }

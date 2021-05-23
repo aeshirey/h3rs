@@ -803,3 +803,218 @@ impl H3Index {
         //Ok(out)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn h3Line_acrossMultipleFaces() {
+        let start = H3Index(0x85285aa7fffffff);
+        let end = H3Index(0x851d9b1bfffffff);
+
+        let lineSz = H3Index::h3LineSize(&start, &end);
+        assert!(
+            lineSz.is_err(),
+            "Line not computable across multiple icosa faces"
+        );
+    }
+
+    const MAX_DISTANCES: [i32; 6] = [1, 2, 5, 12, 19, 26];
+
+    /// Property-based testing of h3Line output
+    fn h3Line_assertions(start: H3Index, end: H3Index) {
+        /*
+        int sz = H3_EXPORT(h3LineSize)(start, end);
+        t_assert(sz > 0, "got valid size");
+        H3Index *line = calloc(sz, sizeof(H3Index));
+
+        int err = H3_EXPORT(h3Line)(start, end, line);
+
+        t_assert(err == 0, "no error on line");
+        t_assert(line[0] == start, "line starts with start index");
+        t_assert(line[sz - 1] == end, "line ends with end index");
+
+        for (int i = 1; i < sz; i++) {
+            t_assert(H3_EXPORT(h3IsValid)(line[i]), "index is valid");
+            t_assert(H3_EXPORT(h3IndexesAreNeighbors)(line[i], line[i - 1]),
+                     "index is a neighbor of the previous index");
+            if (i > 1) {
+                t_assert(
+                    !H3_EXPORT(h3IndexesAreNeighbors)(line[i], line[i - 2]),
+                    "index is not a neighbor of the index before the previous");
+            }
+        }
+
+        free(line);
+        */
+    }
+
+    /// Tests for invalid h3Line input
+    fn h3Line_invalid_assertions(start: H3Index, end: H3Index) {
+        let sz = H3Index::h3LineSize(&start, &end);
+        assert!(sz.is_err(), "line size marked as invalid");
+
+        let line = H3Index::h3Line(start, end);
+        assert!(line.is_err(), "line marked as invalid");
+    }
+
+    /// Test for lines from an index to all neighbors within a kRing
+    fn h3Line_kRing_assertions(h3: H3Index) {
+        /*
+        int r = H3_GET_RESOLUTION(h3);
+        t_assert(r <= 5, "resolution supported by test function (kRing)");
+        int maxK = MAX_DISTANCES[r];
+
+        int sz = H3_EXPORT(maxKringSize)(maxK);
+
+        if (H3_EXPORT(h3IsPentagon)(h3)) {
+            return;
+        }
+
+        H3Index *neighbors = calloc(sz, sizeof(H3Index));
+        H3_EXPORT(kRing)(h3, maxK, neighbors);
+
+        for (int i = 0; i < sz; i++) {
+            if (neighbors[i] == 0) {
+                continue;
+            }
+            int distance = H3_EXPORT(h3Distance)(h3, neighbors[i]);
+            if (distance >= 0) {
+                h3Line_assertions(h3, neighbors[i]);
+            } else {
+                h3Line_invalid_assertions(h3, neighbors[i]);
+            }
+        }
+
+        free(neighbors);
+        */
+    }
+
+    #[test]
+    fn h3Line_kRing() {
+        //iterateAllIndexesAtRes(0, h3Line_kRing_assertions);
+        //iterateAllIndexesAtRes(1, h3Line_kRing_assertions);
+        //iterateAllIndexesAtRes(2, h3Line_kRing_assertions);
+        // Don't iterate all of res 3, to save time
+        //iterateAllIndexesAtResPartial(3, h3Line_kRing_assertions, 6);
+        // Further resolutions aren't tested to save time.
+    }
+
+    fn setup() -> (H3Index, H3Index, H3Index, H3Index) {
+        let bc1 = H3Index::setH3Index(Resolution::R0, BaseCell(15), Direction::CENTER_DIGIT);
+        let bc2 = H3Index::setH3Index(Resolution::R0, BaseCell(8), Direction::CENTER_DIGIT);
+        let bc3 = H3Index::setH3Index(Resolution::R0, BaseCell(31), Direction::CENTER_DIGIT);
+        let pent1 = H3Index::setH3Index(Resolution::R0, BaseCell(4), Direction::CENTER_DIGIT);
+
+        (bc1, bc2, bc3, pent1)
+    }
+
+    #[test]
+    fn ijkBaseCells1() {
+        let (bc1, bc2, bc3, pent1) = setup();
+
+        let ijk = pent1.h3ToLocalIjk(&bc1);
+        assert!(ijk.is_ok(), "got ijk for base cells 4 and 15");
+        //assert_eq!(ijk.unwrpa(), &UNIT_VECS[2]) == 1, "neighboring base cell at 0,1,0");
+    }
+
+    #[test]
+    fn ijBaseCells2() {
+        let mut ij = CoordIJ::default();
+        let origin = H3Index(0x8029fffffffffff);
+        let retrieved = origin.experimentalLocalIjToH3(&ij);
+        assert!(retrieved.is_ok(), "got origin back");
+        assert_eq!(
+            retrieved.unwrap().0,
+            0x8029fffffffffff,
+            "origin matches self"
+        );
+        ij.i = 1;
+        let retrieved = origin.experimentalLocalIjToH3(&ij);
+        assert!(retrieved.is_ok(), "got offset index");
+        assert_eq!(
+            retrieved.unwrap().0,
+            0x8051fffffffffff,
+            "modified index matches expected"
+        );
+
+        ij.i = 2;
+        let retrieved = origin.experimentalLocalIjToH3(&ij);
+        assert!(retrieved.is_ok(), "out of range base cell (1)");
+
+        ij.i = 0;
+        ij.j = 2;
+        let retrieved = origin.experimentalLocalIjToH3(&ij);
+        assert!(retrieved.is_ok(), "out of range base cell (2)");
+
+        ij.i = -2;
+        ij.j = -2;
+        let retrieved = origin.experimentalLocalIjToH3(&ij);
+        assert!(retrieved.is_ok(), "out of range base cell (3)");
+    }
+
+    #[test]
+    fn ijOutOfRange() {
+        const numCoords: usize = 7;
+        const coords: [CoordIJ; numCoords] = [
+            CoordIJ::new(0, 0),
+            CoordIJ::new(1, 0),
+            CoordIJ::new(2, 0),
+            CoordIJ::new(3, 0),
+            CoordIJ::new(4, 0),
+            CoordIJ::new(-4, 0),
+            CoordIJ::new(0, 4),
+        ];
+        const expected: [H3Index; numCoords] = [
+            H3Index(0x81283ffffffffff),
+            H3Index(0x81293ffffffffff),
+            H3Index(0x8150bffffffffff),
+            H3Index(0x8151bffffffffff),
+            H3Index::H3_NULL,
+            H3Index::H3_NULL,
+            H3Index::H3_NULL,
+        ];
+
+        for (ex, coord) in expected.iter().zip(coords.iter()) {
+            let result = expected[0].experimentalLocalIjToH3(coord);
+            if *ex == H3Index::H3_NULL {
+                assert!(result.is_err(), "coordinates are out of range");
+            } else {
+                assert!(result.is_ok(), "coordinates in range");
+                // >>> bin(581703223744659455) <- left
+                // '0b100000010010100111111111111111111111111111111111111111111111'
+                // >>> bin(581672437419081727) <- right
+                // '0b100000010010100000111111111111111111111111111111111111111111'
+                assert_eq!(result.unwrap(), *ex, "result matches expectations");
+            }
+        }
+    }
+
+    #[test]
+    fn experimentalH3ToLocalIjFailed() {
+        let (bc1, bc2, bc3, pent1) = setup();
+
+        let ij = H3Index::experimentalH3ToLocalIj(bc1, bc1);
+        assert!(ij.is_ok(), "found IJ (1)");
+        assert_eq!(ij.unwrap().i, 0, "ij.i correct (1)");
+        assert_eq!(ij.unwrap().j, 0, "ij.j correct (1)");
+
+        let ij = H3Index::experimentalH3ToLocalIj(bc1, pent1);
+        assert!(ij.is_ok(), "found IJ (2)");
+        assert_eq!(ij.unwrap().i, 1, "ij.i correct (2)");
+        assert_eq!(ij.unwrap().j, 0, "ij.j correct (2)");
+
+        let ij = H3Index::experimentalH3ToLocalIj(bc1, bc2);
+        assert!(ij.is_ok(), "found IJ (3)");
+        assert!(ij.unwrap().i == 0 && ij.unwrap().j == -1, "ij correct (3)");
+
+        let ij = H3Index::experimentalH3ToLocalIj(bc1, bc3);
+        assert!(ij.is_ok(), "found IJ (4)");
+        assert!(ij.unwrap().i == -1 && ij.unwrap().j == 0, "ij correct (4)");
+
+        let ij = H3Index::experimentalH3ToLocalIj(pent1, bc3);
+        assert!(ij.is_err(), "found IJ (5)");
+        //assert!(pent1.experimentalH3ToLocalIj(bc3, &ij) != 0, "found IJ (5)");
+    }
+}
