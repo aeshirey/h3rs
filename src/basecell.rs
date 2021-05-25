@@ -144,12 +144,12 @@ basecell_impl!(usize);
 /// information on a single base cell
 pub(crate) struct BaseCellData {
     ///  "home" face and normalized ijk coordinates on that face
-    homeFijk: FaceIJK,
+    pub(crate) homeFijk: FaceIJK,
 
     //  is this base cell a pentagon?
     //isPentagon: bool,
     ///  if a pentagon, what are its two clockwise offset faces?
-    cwOffsetPent: Option<[i32; 2]>,
+    pub(crate) cwOffsetPent: Option<[i32; 2]>,
     //cwOffsetPent : [i32; 2],
 }
 
@@ -169,7 +169,7 @@ impl BaseCellData {
  * is a pentagon, the two cw offset rotation adjacent faces are given (-1
  * indicates that no cw offset rotation faces exist for this base cell).
  */
-const baseCellData: [BaseCellData; BaseCell::NUM_BASE_CELLS] = [
+pub(crate) const baseCellData: [BaseCellData; BaseCell::NUM_BASE_CELLS] = [
     BaseCellData::new(FaceIJK::new(1, (1, 0, 0)), None), // base cell 0
     BaseCellData::new(FaceIJK::new(2, (1, 1, 0)), None), // base cell 1
     BaseCellData::new(FaceIJK::new(1, (0, 0, 0)), None), // base cell 2

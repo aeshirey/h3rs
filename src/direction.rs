@@ -136,3 +136,20 @@ macro_rules! from_dir {
 
 from_dir!(u64);
 from_dir!(usize);
+
+impl std::ops::AddAssign<usize> for Direction {
+    fn add_assign(&mut self, rhs: usize) {
+        assert_eq!(rhs, 1);
+
+        *self = match self {
+            Direction::CENTER_DIGIT => Self::K_AXES_DIGIT,
+            Direction::K_AXES_DIGIT => Self::J_AXES_DIGIT,
+            Direction::J_AXES_DIGIT => Self::JK_AXES_DIGIT,
+            Direction::JK_AXES_DIGIT => Self::I_AXES_DIGIT,
+            Direction::I_AXES_DIGIT => Self::IK_AXES_DIGIT,
+            Direction::IK_AXES_DIGIT => Self::IJ_AXES_DIGIT,
+            Direction::IJ_AXES_DIGIT => Self::INVALID_DIGIT,
+            Direction::INVALID_DIGIT => Self::INVALID_DIGIT,
+        };
+    }
+}

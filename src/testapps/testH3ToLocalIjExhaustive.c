@@ -34,57 +34,7 @@
 #include "test.h"
 #include "utility.h"
 
-static const int MAX_DISTANCES[] = {1, 2, 5, 12, 19, 26};
 
-// The same traversal constants from algos.c (for hexRange) here reused as local
-// IJ vectors.
-static const CoordIJ DIRECTIONS[6] = {{0, 1},  {-1, 0}, {-1, -1},
-                                      {0, -1}, {1, 0},  {1, 1}};
-
-static const CoordIJ NEXT_RING_DIRECTION = {1, 0};
-
-/**
- * Test that the local coordinates for an index map to itself.
- */
-void localIjToH3_identity_assertions(H3Index h3) {
-    CoordIJ ij;
-    t_assert(H3_EXPORT(experimentalH3ToLocalIj)(h3, h3, &ij) == 0,
-             "able to setup localIjToH3 test");
-
-    H3Index retrieved;
-    t_assert(H3_EXPORT(experimentalLocalIjToH3)(h3, &ij, &retrieved) == 0,
-             "got an index back from localIjTOh3");
-    t_assert(h3 == retrieved, "round trip through local IJ space works");
-}
-
-/**
- * Test that coordinates for an index match some simple rules about index
- * digits, when using the index as its own origin. That is, that the IJ
- * coordinates are in the coordinate space of the origin's base cell.
- */
-void h3ToLocalIj_coordinates_assertions(H3Index h3) {
-    int r = H3_GET_RESOLUTION(h3);
-
-    CoordIJ ij;
-    t_assert(H3_EXPORT(experimentalH3ToLocalIj)(h3, h3, &ij) == 0,
-             "get ij for origin");
-    CoordIJK ijk;
-    ijToIjk(&ij, &ijk);
-    if (r == 0) {
-        t_assert(_ijkMatches(&ijk, &UNIT_VECS[0]) == 1, "res 0 cell at 0,0,0");
-    } else if (r == 1) {
-        t_assert(_ijkMatches(&ijk, &UNIT_VECS[H3_GET_INDEX_DIGIT(h3, 1)]) == 1,
-                 "res 1 cell at expected coordinates");
-    } else if (r == 2) {
-        CoordIJK expected = UNIT_VECS[H3_GET_INDEX_DIGIT(h3, 1)];
-        _downAp7r(&expected);
-        _neighbor(&expected, H3_GET_INDEX_DIGIT(h3, 2));
-        t_assert(_ijkMatches(&ijk, &expected) == 1,
-                 "res 2 cell at expected coordinates");
-    } else {
-        t_assert(0, "resolution supported by test function (coordinates)");
-    }
-}
 
 /**
  * Test the the immediate neighbors of an index are at the expected locations in

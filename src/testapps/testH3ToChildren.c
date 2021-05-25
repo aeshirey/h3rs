@@ -21,26 +21,6 @@
 
 #define PADDED_COUNT 10
 
-static void verifyCountAndUniqueness(H3Index* children, int paddedCount,
-                                     int expectedCount) {
-    int numFound = 0;
-    for (int i = 0; i < paddedCount; i++) {
-        H3Index currIndex = children[i];
-        if (currIndex == 0) {
-            continue;
-        }
-        numFound++;
-        // verify uniqueness
-        int indexSeen = 0;
-        for (int j = i + 1; j < paddedCount; j++) {
-            if (children[j] == currIndex) {
-                indexSeen++;
-            }
-        }
-        t_assert(indexSeen == 0, "index was seen only once");
-    }
-    t_assert(numFound == expectedCount, "got expected number of children");
-}
 
 SUITE(h3ToChildren) {
     GeoCoord sf = {0.659966917655, 2 * 3.14159 - 2.1364398519396};

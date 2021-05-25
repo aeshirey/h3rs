@@ -2,7 +2,7 @@ use crate::{
     constants::{EARTH_RADIUS_KM, NUM_HEX_VERTS, NUM_PENT_VERTS},
     faceijk::FaceIJK,
     geopolygon::GeoBoundary,
-    GeoCoord, H3Index,
+    GeoCoord, H3Index, Resolution,
 };
 
 impl H3Index {

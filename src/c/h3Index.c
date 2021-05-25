@@ -404,28 +404,6 @@ H3Index _h3Rotate60cw(H3Index h) {
 
 
 
-/**
- * Encodes a coordinate on the sphere to the H3 index of the containing cell at
- * the specified resolution.
- *
- * Returns 0 on invalid input.
- *
- * @param g The spherical coordinates to encode.
- * @param res The desired H3 resolution for the encoding.
- * @return The encoded H3Index (or H3_NULL on failure).
- */
-H3Index H3_EXPORT(geoToH3)(const GeoCoord* g, int res) {
-    if (res < 0 || res > MAX_H3_RES) {
-        return H3_NULL;
-    }
-    if (!isfinite(g->lat) || !isfinite(g->lon)) {
-        return H3_NULL;
-    }
-
-    FaceIJK fijk;
-    _geoToFaceIjk(g, res, &fijk);
-    return _faceIjkToH3(&fijk, res);
-}
 
 
 

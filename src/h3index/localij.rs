@@ -822,6 +822,17 @@ mod tests {
 
     const MAX_DISTANCES: [i32; 6] = [1, 2, 5, 12, 19, 26];
 
+    // The same traversal constants from algos.c (for hexRange) here reused as local IJ vectors.
+    const DIRECTIONS: [CoordIJ; 6] = [
+        CoordIJ::new(0, 1),
+        CoordIJ::new(-1, 0),
+        CoordIJ::new(-1, -1),
+        CoordIJ::new(0, -1),
+        CoordIJ::new(1, 0),
+        CoordIJ::new(1, 1),
+    ];
+    const NEXT_RING_DIRECTION: CoordIJ = CoordIJ::new(1, 0);
+
     /// Property-based testing of h3Line output
     fn h3Line_assertions(start: H3Index, end: H3Index) {
         /*
@@ -1015,6 +1026,214 @@ mod tests {
 
         let ij = H3Index::experimentalH3ToLocalIj(pent1, bc3);
         assert!(ij.is_err(), "found IJ (5)");
-        //assert!(pent1.experimentalH3ToLocalIj(bc3, &ij) != 0, "found IJ (5)");
     }
+
+    #[test]
+    fn experimentalH3ToLocalIjInvalid() {
+        let (bc1, _, _, _) = setup();
+        let mut invalid_index = H3Index(0x7fffffffffffffff);
+        invalid_index.set_resolution(bc1.get_resolution());
+
+        let ij = H3Index::experimentalH3ToLocalIj(bc1, invalid_index);
+        assert!(ij.is_err(), "invalid index");
+
+        let ij = H3Index::experimentalH3ToLocalIj(H3Index(0x7fffffffffffffff), invalid_index);
+        assert!(ij.is_err(), "invalid origin");
+
+        let ij = H3Index::experimentalH3ToLocalIj(
+            H3Index(0x7fffffffffffffff),
+            H3Index(0x7fffffffffffffff),
+        );
+        assert!(ij.is_err(), "invalid origin, and index");
+    }
+
+    #[test]
+    fn experimentalLocalIjToH3Invalid() {
+        let ij = CoordIJ::default();
+        let index = H3Index::experimentalLocalIjToH3(&H3Index(0x7fffffffffffffff), &ij);
+
+        assert!(index.is_err(), "invalid origin for ijToH3");
+    }
+
+    /**
+     * Test that coming from the same direction outside the pentagon is handled
+     * the same as coming from the same direction inside the pentagon.
+     */
+    #[test]
+    fn onOffPentagonSame() {
+        for bc in 0..BaseCell::NUM_BASE_CELLS {
+            for res in 1..=Resolution::MAX_H3_RES {
+                let res: Resolution = res.into();
+                let bc: BaseCell = bc.into();
+                // K_AXES_DIGIT is the first internal direction, and it's also
+                // invalid for pentagons, so skip to next.
+                let mut startDir = Direction::K_AXES_DIGIT;
+                if bc._isBaseCellPentagon() {
+                    startDir += 1;
+                }
+
+                let mut dir = startDir;
+                while dir != Direction::INVALID_DIGIT {
+                    let internalOrigin = H3Index::setH3Index(res, bc, dir);
+                    let externalOrigin = H3Index::setH3Index(
+                        res,
+                        bc._getBaseCellNeighbor(&dir),
+                        Direction::CENTER_DIGIT,
+                    );
+
+                    let mut testDir = startDir;
+                    while testDir != Direction::INVALID_DIGIT {
+                        let testIndex = H3Index::setH3Index(res, bc, testDir);
+
+                        let internalIj =
+                            H3Index::experimentalH3ToLocalIj(internalOrigin, testIndex);
+                        let externalIj =
+                            H3Index::experimentalH3ToLocalIj(externalOrigin, testIndex);
+                        assert_eq!(
+                            internalIj.is_err(),
+                            externalIj.is_err(),
+                            "internal/external failed matches when getting IJ"
+                        );
+
+                        if internalIj.is_err() {
+                            continue;
+                        }
+
+                        let internalIndex =
+                            H3Index::experimentalLocalIjToH3(&internalOrigin, &internalIj.unwrap());
+                        let externalIndex =
+                            H3Index::experimentalLocalIjToH3(&externalOrigin, &externalIj.unwrap());
+
+                        assert_eq!(
+                            internalIj.is_err(),
+                            externalIj.is_err(),
+                            "internal/external failed matches when getting index"
+                        );
+
+                        if internalIj.is_err() {
+                            continue;
+                        }
+
+                        assert_eq!(
+                            internalIndex.unwrap(),
+                            externalIndex.unwrap(),
+                            "internal/external index matches"
+                        );
+
+                        testDir += 1;
+                    }
+
+                    dir += 1;
+                }
+
+                todo!()
+            }
+        }
+    }
+
+    /// Test that the local coordinates for an index map to itself.
+    fn localIjToH3_identity_assertions(h3: H3Index) {
+        let ij = H3Index::experimentalH3ToLocalIj(h3, h3);
+        assert!(ij.is_ok(), "able to setup localIjToH3 test");
+
+        let retrieved = h3.experimentalLocalIjToH3(&ij.unwrap());
+        assert!(retrieved.is_ok(), "got an index back from localIjTOh3");
+        assert_eq!(
+            h3,
+            retrieved.unwrap(),
+            "round trip through local IJ space works"
+        );
+    }
+
+    /// Test that coordinates for an index match some simple rules about index
+    /// digits, when using the index as its own origin. That is, that the IJ
+    /// coordinates are in the coordinate space of the origin's base cell.
+    fn h3ToLocalIj_coordinates_assertions(h3: H3Index) {
+        let r = h3.get_resolution();
+
+        let ij = H3Index::experimentalH3ToLocalIj(h3, h3);
+        assert!(ij.is_ok(), "get ij for origin");
+
+        let ijk = ij.unwrap().ijToIjk();
+
+        if r == Resolution::R0 {
+            assert_eq!(ijk, CoordIJK::UNIT_VECS[0].0, "res 0 cell at 0,0,0");
+        } else if r == Resolution::R1 {
+            let index = h3.get_index_digit(r);
+            assert_eq!(
+                ijk,
+                CoordIJK::UNIT_VECS[index as usize].0,
+                "res 1 cell at expected coordinates"
+            );
+        } else if r == Resolution::R2 {
+            // the C unit test uses an index digit of 1 here, not 2
+            let index = h3.get_index_digit(r);
+            let mut expected = CoordIJK::UNIT_VECS[index as usize].0;
+
+            expected._downAp7r();
+            expected._neighbor(h3.get_index_digit(r));
+            assert_eq!(ijk, expected, "res 2 cell at expected coordinates");
+        } else {
+            assert!(false, "resolution supported by test function (coordinates)");
+        }
+    }
+
+    /**
+     * Test the the immediate neighbors of an index are at the expected locations in
+     * the local IJ coordinate space.
+     */
+    fn h3ToLocalIj_neighbors_assertions(h3: H3Index) {
+        let origin = H3Index::experimentalH3ToLocalIj(h3, h3);
+        assert!(origin.is_ok(), "got ij for origin");
+
+        let originIjk = origin.unwrap().ijToIjk();
+
+        let mut d = Direction::K_AXES_DIGIT;
+        while d != Direction::INVALID_DIGIT {
+            if d == Direction::K_AXES_DIGIT && h3.is_pentagon() {
+                continue;
+            }
+
+            let mut rotations = 0;
+            let offset = h3.h3NeighborRotations(d, &mut rotations);
+
+            let ij = H3Index::experimentalH3ToLocalIj(h3, offset);
+            assert!(ij.is_ok(), "got ij for destination");
+            let mut ijk = ij.unwrap().ijToIjk();
+            let mut invertedIjk = CoordIJK::default();
+            invertedIjk._neighbor(d);
+
+            for _ in 0..3 {
+                invertedIjk._ijkRotate60ccw();
+            }
+
+            ijk = invertedIjk + ijk;
+            ijk.normalize();
+
+            assert_eq!(ijk, originIjk, "back to origin");
+        }
+        d += 1;
+    }
+
+    /// Call the callback for every index at the given resolution.
+    fn iterateAllIndexesAtRes(res: Resolution, cb: fn(H3Index)) {
+        //void (*callback)(H3Index)) {
+        iterateAllIndexesAtResPartial(res, cb, BaseCell::NUM_BASE_CELLS);
+    }
+
+    /// Call the callback for every index at the given resolution in base
+    /// cell 0 up to the given base cell number.
+    fn iterateAllIndexesAtResPartial(res: Resolution, cb: fn(H3Index), baseCells: usize) {
+        assert!(baseCells <= BaseCell::NUM_BASE_CELLS);
+        for i in 0..baseCells {
+            iterateBaseCellIndexesAtRes(res, cb, i);
+        }
+    }
+
+    //#[test]
+    //fn h3ToLocalIj_neighbors() {
+    //iterateAllIndexesAtRes(0, h3ToLocalIj_neighbors_assertions);
+    //iterateAllIndexesAtRes(1, h3ToLocalIj_neighbors_assertions);
+    //iterateAllIndexesAtRes(2, h3ToLocalIj_neighbors_assertions);
+    //}
 }

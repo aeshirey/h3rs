@@ -1,4 +1,4 @@
-use crate::{Resolution, constants::*, faceijk::FaceIJK, vec2d::Vec2d};
+use crate::{constants::*, faceijk::FaceIJK, vec2d::Vec2d, H3Index, Resolution};
 
 /// epsilon of ~0.1mm in degrees
 const EPSILON_DEG: f64 = 0.000000001;
@@ -295,6 +295,29 @@ impl GeoCoord {
         v->y = r * sin(theta);
         */
         todo!()
+    }
+
+    /**
+     * Encodes a coordinate on the sphere to the H3 index of the containing cell at
+     * the specified resolution.
+     *
+     * Returns 0 on invalid input.
+     *
+     * @param g The spherical coordinates to encode.
+     * @param res The desired H3 resolution for the encoding.
+     * @return The encoded H3Index (or H3_NULL on failure).
+     */
+    pub fn geoToH3(&self, res: Resolution) -> H3Index {
+        //if (res < 0 || res > MAX_H3_RES) {
+        //    return H3_NULL;
+        //}
+
+        if !self.lat.is_finite() || !self.lon.is_finite() {
+            return H3Index::H3_NULL;
+        }
+
+        let fijk = self._geoToFaceIjk(res);
+        fijk._faceIjkToH3(res)
     }
 }
 

@@ -1,4 +1,8 @@
-use crate::{GeoCoord, H3Index, constants::{M_2PI, M_PI, M_PI_2}, resolution::Resolution};
+use crate::{
+    constants::{M_2PI, M_PI, M_PI_2},
+    resolution::Resolution,
+    GeoCoord, H3Index,
+};
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 /// Geographic bounding box with coordinates defined in radians
@@ -58,8 +62,7 @@ impl BBox {
 
     /// returns an estimated number of hexagons that fit within the cartesian-projected bounding box
     fn bboxHexEstimate(&self /*bbox*/, res: Resolution) -> i32 {
-
-        let mut pentagons : [H3Index; 12] = [H3Index::H3_NULL; 12];
+        let mut pentagons: [H3Index; 12] = [H3Index::H3_NULL; 12];
 
         //getPentagonIndexes
         todo!()

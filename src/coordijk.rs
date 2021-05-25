@@ -87,7 +87,7 @@ impl CoordIJK {
     }
 
     /// @brief CoordIJK unit vectors corresponding to the 7 H3 digits.
-    const UNIT_VECS: [(CoordIJK, Direction); 7] = [
+    pub(crate) const UNIT_VECS: [(CoordIJK, Direction); 7] = [
         (CoordIJK::new(0, 0, 0), Direction::CENTER_DIGIT), // direction 0
         (CoordIJK::new(0, 0, 1), Direction::K_AXES_DIGIT), // direction 1
         (CoordIJK::new(0, 1, 0), Direction::J_AXES_DIGIT), // direction 2

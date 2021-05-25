@@ -3,6 +3,7 @@ pub use geocoord::*;
 
 use crate::{basecell::BaseCell, faceijk::FaceIJK, Direction, GeoCoord, Resolution};
 
+mod algos;
 mod basecell;
 mod h3UniEdge;
 mod localij;
@@ -509,6 +510,126 @@ impl H3Index {
 
         h
     }
+
+    /**
+     * uncompact takes a compressed set of hexagons and expands back to the
+     * original set of hexagons.
+     * @param compactedSet Set of hexagons
+     * @param numHexes The number of hexes in the input set
+     * @param h3Set Output array of decompressed hexagons (preallocated)
+     * @param maxHexes The size of the output array to bound check against
+     * @param res The hexagon resolution to decompress to
+     * @return An error code if output array is too small or any hexagon is
+     * smaller than the output resolution.
+     */
+    pub fn uncompact(
+        compactedSet: Vec<H3Index>,
+        res: Resolution,
+        maxHexes: usize,
+    ) -> Result<Vec<H3Index>, i32> {
+        let numHexes = compactedSet.len();
+
+        let mut h3Set = Vec::new();
+
+        for i in 0..numHexes {
+            if compactedSet[i] == H3Index::H3_NULL {
+                continue;
+            }
+
+            if h3Set.len() > maxHexes {
+                // We went too far, abort!
+                return Err(-1);
+            }
+
+            let currentRes = compactedSet[i].get_resolution();
+            if !currentRes._isValidChildRes(&res) {
+                // Nonsensical. Abort.
+                return Err(-2);
+            }
+
+            if currentRes == res {
+                // Just copy and move along
+                h3Set.push(compactedSet[i]);
+            } else {
+                // Bigger hexagon to reduce in size
+                let numHexesToGen = compactedSet[i].maxH3ToChildrenSize(res);
+
+                if h3Set.len() + numHexesToGen as usize > maxHexes {
+                    // We're about to go too far, abort!
+                    return Err(-1);
+                }
+
+                todo!()
+                //H3_EXPORT(h3ToChildren)(compactedSet[i], res, h3Set + outOffset);
+            }
+        }
+
+        Ok(h3Set)
+    }
+
+    /**
+     * h3ToChildren takes the given hexagon id and generates all of the children
+     * at the specified resolution storing them into the provided memory pointer.
+     * It's assumed that maxH3ToChildrenSize was used to determine the allocation.
+     *
+     * @param h H3Index to find the children of
+     * @param childRes int the child level to produce
+     * @param children H3Index* the memory to store the resulting addresses in
+     */
+    pub fn h3ToChildren(&self, childRes: Resolution) -> Vec<H3Index> {
+        let parentRes = self.get_resolution();
+
+        let mut results = Vec::new();
+
+        if !parentRes._isValidChildRes(&childRes) {
+            return results;
+        } else if (parentRes == childRes) {
+            results.push(*self);
+            return results;
+        }
+
+        let bufferSize = self.maxH3ToChildrenSize(childRes);
+        let bufferChildStep = (bufferSize / 7);
+        let isAPentagon = self.is_pentagon();
+
+        for i in 0..7 {
+            if isAPentagon && i == usize::from(Direction::K_AXES_DIGIT) {
+                /*
+                H3Index* nextChild = children + bufferChildStep;
+                while (children < nextChild) {
+                    *children = H3_NULL;
+                    children++;
+                }
+                */
+            } else {
+                let children = self.makeDirectChild(i as u64).h3ToChildren(childRes);
+                results.extend(children);
+                //H3_EXPORT(h3ToChildren)(makeDirectChild(h, i), childRes, children);
+                //children += bufferChildStep;
+            }
+        }
+
+        results
+    }
+
+    /**
+     * makeDirectChild takes an index and immediately returns the immediate child
+     * index based on the specified cell number. Bit operations only, could generate
+     * invalid indexes if not careful (deleted cell under a pentagon).
+     *
+     * @param h H3Index to find the direct child of
+     * @param cellNumber int id of the direct child (0-6)
+     *
+     * @return The new H3Index for the child
+     */
+    fn makeDirectChild(&self, cellNumber: u64) -> H3Index {
+        let childRes = self.get_resolution() + 1;
+        let mut childH = *self;
+        childH.set_resolution(childRes);
+        childH.set_index_digit(childRes, cellNumber);
+
+        childH
+    }
 }
 
 impl From<H3Index> for u64 {
@@ -629,4 +750,28 @@ mod test {
             }
         }
     }
+
+    fn verifyCountAndUniqueness(children: Vec<H3Index>, paddedCount: usize, expectedCount: usize) {
+        let mut numFound = 0;
+        for i in 0..paddedCount {
+            let currIndex = children[i];
+            if currIndex == H3Index::H3_NULL {
+                continue;
+            }
+            numFound += 1;
+
+            // verify uniqueness
+            let mut indexSeen = 0;
+            for j in i + 1..paddedCount {
+                if children[j] == currIndex {
+                    indexSeen += 1;
+                }
+            }
+            assert_eq!(indexSeen, 0, "index was seen only once");
+        }
+        assert_eq!(numFound, expectedCount, "got expected number of children");
+    }
+
+    const sf: GeoCoord = GeoCoord::new(0.659966917655, 2. * 3.14159 - 2.1364398519396);
+    //let sfHex8 : H3Index = sf.geoToH3(8);
 }
