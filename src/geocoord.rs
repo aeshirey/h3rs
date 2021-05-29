@@ -1,11 +1,41 @@
-use crate::{constants::*, faceijk::FaceIJK, vec2d::Vec2d, H3Index, Resolution};
+use crate::{
+    constants::*,
+    faceijk::FaceIJK,
+    vec2d::{faceAxesAzRadsCII, faceCenterPoint, Vec2d},
+    vec3d::Vec3d,
+    H3Index, Resolution,
+};
 
 /// epsilon of ~0.1mm in degrees
 const EPSILON_DEG: f64 = 0.000000001;
 /// epsilon of ~0.1mm in radians
 const EPSILON_RAD: f64 = EPSILON_DEG * M_PI_180;
 
-#[derive(Copy, Clone, Debug)]
+/** @brief icosahedron face centers in lat/lon radians */
+pub(crate) const faceCenterGeo: [GeoCoord; NUM_ICOSA_FACES] = [
+    GeoCoord::new(0.803582649718989942, 1.248397419617396099), // face  0
+    GeoCoord::new(1.307747883455638156, 2.536945009877921159), // face  1
+    GeoCoord::new(1.054751253523952054, -1.347517358900396623), // face  2
+    GeoCoord::new(0.600191595538186799, -0.450603909469755746), // face  3
+    GeoCoord::new(0.491715428198773866, 0.401988202911306943), // face  4
+    GeoCoord::new(0.172745327415618701, 1.678146885280433686), // face  5
+    GeoCoord::new(0.605929321571350690, 2.953923329812411617), // face  6
+    GeoCoord::new(0.427370518328979641, -1.888876200336285401), // face  7
+    GeoCoord::new(-0.079066118549212831, -0.733429513380867741), // face  8
+    GeoCoord::new(-0.230961644455383637, 0.506495587332349035), // face  9
+    GeoCoord::new(0.079066118549212831, 2.408163140208925497), // face 10
+    GeoCoord::new(0.230961644455383637, -2.635097066257444203), // face 11
+    GeoCoord::new(-0.172745327415618701, -1.463445768309359553), // face 12
+    GeoCoord::new(-0.605929321571350690, -0.187669323777381622), // face 13
+    GeoCoord::new(-0.427370518328979641, 1.252716453253507838), // face 14
+    GeoCoord::new(-0.600191595538186799, 2.690988744120037492), // face 15
+    GeoCoord::new(-0.491715428198773866, -2.739604450678486295), // face 16
+    GeoCoord::new(-0.803582649718989942, -1.893195233972397139), // face 17
+    GeoCoord::new(-1.307747883455638156, -0.604647643711872080), // face 18
+    GeoCoord::new(-1.054751253523952054, 1.794075294689396615), // face 19
+];
+
+#[derive(Copy, Clone, Debug, Default)]
 /// latitude/longitude in radians
 pub struct GeoCoord {
     /// latitude in radians
@@ -140,16 +170,12 @@ impl GeoCoord {
         2. * f64::atan2(a.sqrt(), (1. - a).sqrt())
     }
 
-    /**
-     * The great circle distance in kilometers between two spherical coordinates.
-     */
+    /// The great circle distance in kilometers between two spherical coordinates.
     pub fn pointDistKm(a: &Self, b: &Self) -> f64 {
         Self::pointDistRads(a, b) * EARTH_RADIUS_KM
     }
 
-    /**
-     * The great circle distance in meters between two spherical coordinates.
-     */
+    /// The great circle distance in meters between two spherical coordinates.
     pub fn pointDistM(a: &Self, b: &Self) -> f64 {
         Self::pointDistKm(a, b) * 1000.
     }
@@ -229,14 +255,31 @@ impl GeoCoord {
      * @param h The FaceIJK address of the containing cell at resolution res.
      */
     pub(crate) fn _geoToFaceIjk(&self, res: Resolution) -> FaceIJK {
-        /*
         // first convert to hex2d
-        let v : Vec2d = self._geoToHex2d(res, &h->face, &v);
+        let (face, v) = self._geoToHex2d(res);
 
         // then convert to ijk+
-        _hex2dToCoordIJK(&v, &h->coord);
-        */
-        todo!()
+        let coord = v._hex2dToCoordIJK();
+
+        FaceIJK {
+            face: face as i32,
+            coord,
+        }
+    }
+
+    /// Calculate the 3D coordinate on unit sphere from the latitude and longitude.
+    ///
+    ///@param geo The latitude and longitude of the point.
+    ///@param v The 3D coordinate of the point.
+
+    pub(crate) fn _geoToVec3d(&self) -> Vec3d {
+        let r = self.lat.cos();
+
+        let z = self.lat.sin();
+        let x = self.lon.cos() * r;
+        let y = self.lon.sin() * r;
+
+        Vec3d::new(x, y, z)
     }
 
     /**
@@ -248,53 +291,53 @@ impl GeoCoord {
      * @param face The icosahedral face containing the spherical coordinates.
      * @param v The 2D hex coordinates of the cell containing the point.
      */
-    pub(crate) fn _geoToHex2d(&self, res: Resolution) {
-        //pub(crate) fn _geoToHex2d(&self, res:Resolution, int* face, Vec2d* v) {
-        /*
-        Vec3d v3d;
-        _geoToVec3d(g, &v3d);
+    pub(crate) fn _geoToHex2d(&self, res: Resolution) -> (usize, Vec2d) {
+        let v3d = self._geoToVec3d();
 
         // determine the icosahedron face
-        *face = 0;
-        double sqd = _pointSquareDist(&faceCenterPoint[0], &v3d);
-        for (int f = 1; f < NUM_ICOSA_FACES; f++) {
-            double sqdT = _pointSquareDist(&faceCenterPoint[f], &v3d);
-            if (sqdT < sqd) {
-                *face = f;
-                sqd = sqdT;
-            }
-        }
+        //let mut face = 0;
+        //let sqd = faceCenterPoint[0]._pointSquareDist(&v3d);
+
+        let (face, _vec3d, sqd) = faceCenterPoint
+            .iter()
+            .enumerate()
+            .map(|(i, pt)| (i, pt, pt._pointSquareDist(&v3d)))
+            .min_by(|v1, v2| v1.2.partial_cmp(&v2.2).unwrap())
+            .unwrap();
 
         // cos(r) = 1 - 2 * sin^2(r/2) = 1 - 2 * (sqd / 4) = 1 - sqd/2
-        double r = acos(1 - sqd / 2);
+        let mut r = (1. - sqd / 2.).acos();
 
-        if (r < EPSILON) {
-            v->x = v->y = 0.0L;
-            return;
+        if r < EPSILON {
+            return (face, Vec2d::default());
         }
 
         // now have face and r, now find CCW theta from CII i-axis
-        double theta =
-            _posAngleRads(faceAxesAzRadsCII[*face][0] -
-                          _posAngleRads(_geoAzimuthRads(&faceCenterGeo[*face], g)));
+        let mut theta = _posAngleRads(
+            faceAxesAzRadsCII[face][0]
+                - _posAngleRads(Self::_geoAzimuthRads(&faceCenterGeo[face], self)),
+        );
 
-        // adjust theta for Class III (odd resolutions)
-        if (isResClassIII(res)) theta = _posAngleRads(theta - M_AP7_ROT_RADS);
+        if res.isResClassIII() {
+            theta = _posAngleRads(theta - M_AP7_ROT_RADS);
+        }
 
-        // perform gnomonic scaling of r
-        r = tan(r);
+        // adjust theta for Class III (odd resolutions) perform gnomonic scaling of r
+        r = r.tan();
 
         // scale for current resolution length u
         r /= RES0_U_GNOMONIC;
-        for (int i = 0; i < res; i++) r *= M_SQRT7;
+        for _ in 0..res as usize {
+            r *= M_SQRT7;
+        }
 
         // we now have (r, theta) in hex2d with theta ccw from x-axes
 
         // convert to local x,y
-        v->x = r * cos(theta);
-        v->y = r * sin(theta);
-        */
-        todo!()
+        let x = r * theta.cos();
+        let y = r * theta.sin();
+
+        (face, Vec2d { x, y })
     }
 
     /**
@@ -318,6 +361,29 @@ impl GeoCoord {
 
         let fijk = self._geoToFaceIjk(res);
         fijk._faceIjkToH3(res)
+    }
+
+    /**
+     * lineHexEstimate returns an estimated number of hexagons that trace
+     *                 the cartesian-projected line
+     *
+     *  @param origin the origin coordinates
+     *  @param destination the destination coordinates
+     *  @param res the resolution of the H3 hexagons to trace the line
+     *  @return the estimated number of hexagons required to trace the line
+     */
+    pub(crate) fn lineHexEstimate(origin: &Self, destination: &Self, res: Resolution) -> usize {
+        // Get the area of the pentagon as the maximally-distorted area possible
+        let pentagons = res.getPentagonIndexes();
+        let pentagonRadiusKm = pentagons[0]._hexRadiusKm();
+
+        let dist = Self::pointDistKm(origin, destination);
+        let estimate = (dist / (2. * pentagonRadiusKm)).ceil() as usize;
+        if estimate == 0 {
+            1
+        } else {
+            estimate
+        }
     }
 }
 

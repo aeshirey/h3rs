@@ -412,7 +412,7 @@ impl FaceIJK {
      *            necessary for the substrate grid resolution.
      * @param fijkVerts Output array for the vertices
      */
-    fn _faceIjkToVerts(&mut self, res: &mut Resolution) -> [FaceIJK; NUM_HEX_VERTS as usize] {
+    pub(crate) fn _faceIjkToVerts(&mut self, res: &mut Resolution) -> [FaceIJK; NUM_HEX_VERTS as usize] {
         // the vertexes of an origin-centered cell in a Class II resolution on a
         // substrate grid with aperture sequence 33r. The aperture 3 gets us the
         // vertices, and the 3r gets us back to Class II.
@@ -480,7 +480,7 @@ impl FaceIJK {
      * @param fijkVerts Output array for the vertices
      */
     pub(crate) fn _faceIjkPentToVerts(
-        fijk: &mut Self,
+        &mut self,
         res: &mut Resolution,
     ) -> [FaceIJK; NUM_PENT_VERTS] {
         // the vertexes of an origin-centered pentagon in a Class II resolution on a
@@ -516,12 +516,12 @@ impl FaceIJK {
 
         // adjust the center point to be in an aperture 33r substrate grid
         // these should be composed for speed
-        fijk.coord._downAp3();
-        fijk.coord._downAp3r();
+        self.coord._downAp3();
+        self.coord._downAp3r();
 
         // if res is Class III we need to add a cw aperture 7 to get to icosahedral Class II
         if res.isResClassIII() {
-            fijk.coord._downAp7r();
+            self.coord._downAp7r();
             *res = Resolution::from(*res as usize + 1);
         }
 
@@ -530,8 +530,8 @@ impl FaceIJK {
         // to each vertex to translate the vertices to that cell.
         let mut fijkVerts = [FaceIJK::default(); NUM_PENT_VERTS];
         for v in 0..NUM_PENT_VERTS {
-            fijkVerts[v].face = fijk.face;
-            fijkVerts[v].coord = fijk.coord + verts[v];
+            fijkVerts[v].face = self.face;
+            fijkVerts[v].coord = self.coord + verts[v];
             fijkVerts[v].coord.normalize();
         }
 
@@ -569,7 +569,7 @@ impl FaceIJK {
      * @return 0 if on original face (no overage); 1 if on face edge (only occurs
      *         on substrate grids); 2 if overage on new face interior
      */
-    fn _adjustOverageClassII(
+    pub(crate) fn _adjustOverageClassII(
         &mut self,
         res: Resolution,
         pentLeading4: bool,

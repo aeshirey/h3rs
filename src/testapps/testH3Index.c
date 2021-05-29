@@ -86,42 +86,6 @@ SUITE(h3Index) {
                  "h3IsValid failed on invalid unused digits");
     }
 
-    TEST(h3IsValidBaseCell) {
-        for (int i = 0; i < NUM_BASE_CELLS; i++) {
-            H3Index h = H3_INIT;
-            H3_SET_MODE(h, H3_HEXAGON_MODE);
-            H3_SET_BASE_CELL(h, i);
-            char failureMessage[BUFF_SIZE];
-            sprintf(failureMessage, "h3IsValid failed on base cell %d", i);
-            t_assert(H3_EXPORT(h3IsValid)(h), failureMessage);
-
-            t_assert(H3_EXPORT(h3GetBaseCell)(h) == i,
-                     "failed to recover base cell");
-        }
-    }
-
-    TEST(h3IsValidBaseCellInvalid) {
-        H3Index hWrongBaseCell = H3_INIT;
-        H3_SET_MODE(hWrongBaseCell, H3_HEXAGON_MODE);
-        H3_SET_BASE_CELL(hWrongBaseCell, NUM_BASE_CELLS);
-        t_assert(!H3_EXPORT(h3IsValid)(hWrongBaseCell),
-                 "h3IsValid failed on invalid base cell");
-    }
-
-    TEST(h3IsValidWithMode) {
-        for (int i = 0; i <= 0xf; i++) {
-            H3Index h = H3_INIT;
-            H3_SET_MODE(h, i);
-            if (i == H3_HEXAGON_MODE) {
-                t_assert(H3_EXPORT(h3IsValid)(h),
-                         "h3IsValid succeeds on valid mode");
-            } else {
-                char failureMessage[BUFF_SIZE];
-                sprintf(failureMessage, "h3IsValid failed on mode %d", i);
-                t_assert(!H3_EXPORT(h3IsValid)(h), failureMessage);
-            }
-        }
-    }
 
     TEST(h3IsValidReservedBits) {
         for (int i = 0; i < 8; i++) {

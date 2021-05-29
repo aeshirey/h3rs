@@ -1,3 +1,5 @@
+use crate::{basecell::BaseCell, constants::NUM_PENTAGONS, Direction, H3Index};
+
 #[derive(Copy, Clone, PartialEq, PartialOrd, Debug)]
 pub enum Resolution {
     R0,
@@ -205,6 +207,27 @@ impl Resolution {
             Resolution::R15 => -1,     // res 15
                                         //Resolution::R16 => 5764801  // res 16
         }
+    }
+
+    /**
+     * Generates all pentagons at the specified resolution
+     *
+     * @param res The resolution to produce pentagons at.
+     * @param out Output array. Must be of size pentagonIndexCount().
+     */
+    pub fn getPentagonIndexes(&self) -> [H3Index; NUM_PENTAGONS as usize] {
+        let mut result = [H3Index::H3_NULL; NUM_PENTAGONS as usize];
+
+        for i in -1..BaseCell::NUM_BASE_CELLS as i32 {
+            let bc = BaseCell::new(i);
+            if bc._isBaseCellPentagon() {
+                let pentagon = H3Index::setH3Index(*self, bc, Direction::CENTER_DIGIT);
+
+                result[i as usize] = pentagon;
+            }
+        }
+
+        result
     }
 }
 

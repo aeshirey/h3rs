@@ -1,7 +1,14 @@
+use std::collections::HashSet;
 mod geocoord;
 pub use geocoord::*;
 
-use crate::{basecell::BaseCell, faceijk::FaceIJK, Direction, GeoCoord, Resolution};
+use crate::{
+    basecell::BaseCell,
+    constants::{NUM_HEX_VERTS, NUM_PENT_VERTS},
+    faceijk::FaceIJK,
+    geopolygon::GeoBoundary,
+    Direction, GeoCoord, Resolution,
+};
 
 mod algos;
 mod basecell;
@@ -512,6 +519,189 @@ impl H3Index {
     }
 
     /**
+     * compact takes a set of hexagons all at the same resolution and compresses
+     * them by pruning full child branches to the parent level. This is also done
+     * for all parents recursively to get the minimum number of hex addresses that
+     * perfectly cover the defined space.
+     * @param h3Set Set of hexagons
+     * @param compactedSet The output array of compressed hexagons (preallocated)
+     * @param numHexes The size of the input and output arrays (possible that no
+     * contiguous regions exist in the set at all and no compression possible)
+     * @return an error code on bad input data
+     */
+    pub fn compact(h3Set: &[H3Index]) -> Result<Vec<H3Index>, i32> {
+        if h3Set.is_empty() {
+            return Ok(h3Set.iter().cloned().collect());
+        }
+
+        let res = h3Set[0].get_resolution();
+
+        if res == Resolution::R0 {
+            // No compaction possible, just copy the set to output
+            return Ok(h3Set.iter().cloned().collect());
+        }
+
+        /*
+        H3Index* remainingHexes = H3_MEMORY(malloc)(numHexes * sizeof(H3Index));
+        if (!remainingHexes) {
+            return COMPACT_ALLOC_FAILED;
+        }
+        memcpy(remainingHexes, h3Set, numHexes * sizeof(H3Index));
+        H3Index* hashSetArray = H3_MEMORY(calloc)(numHexes, sizeof(H3Index));
+        if (!hashSetArray) {
+            H3_MEMORY(free)(remainingHexes);
+            return COMPACT_ALLOC_FAILED;
+        }
+        H3Index* compactedSetOffset = compactedSet;
+        int numRemainingHexes = numHexes;
+        while (numRemainingHexes) {
+            res = H3_GET_RESOLUTION(remainingHexes[0]);
+            int parentRes = res - 1;
+            // Put the parents of the hexagons into the temp array
+            // via a hashing mechanism, and use the reserved bits
+            // to track how many times a parent is duplicated
+            for (int i = 0; i < numRemainingHexes; i++) {
+                H3Index currIndex = remainingHexes[i];
+                if (currIndex != 0) {
+                    H3Index parent = H3_EXPORT(h3ToParent)(currIndex, parentRes);
+                    // Modulus hash the parent into the temp array
+                    int loc = (int)(parent % numRemainingHexes);
+                    int loopCount = 0;
+                    while (hashSetArray[loc] != 0) {
+                        if (loopCount > numRemainingHexes) {  // LCOV_EXCL_BR_LINE
+                            // LCOV_EXCL_START
+                            // This case should not be possible because at most one
+                            // index is placed into hashSetArray per
+                            // numRemainingHexes.
+                            H3_MEMORY(free)(remainingHexes);
+                            H3_MEMORY(free)(hashSetArray);
+                            return COMPACT_LOOP_EXCEEDED;
+                            // LCOV_EXCL_STOP
+                        }
+                        H3Index tempIndex =
+                            hashSetArray[loc] & H3_RESERVED_MASK_NEGATIVE;
+                        if (tempIndex == parent) {
+                            int count = H3_GET_RESERVED_BITS(hashSetArray[loc]) + 1;
+                            int limitCount = 7;
+                            if (H3_EXPORT(h3IsPentagon)(
+                                    tempIndex & H3_RESERVED_MASK_NEGATIVE)) {
+                                limitCount--;
+                            }
+                            // One is added to count for this check to match one
+                            // being added to count later in this function when
+                            // checking for all children being present.
+                            if (count + 1 > limitCount) {
+                                // Only possible on duplicate input
+                                H3_MEMORY(free)(remainingHexes);
+                                H3_MEMORY(free)(hashSetArray);
+                                return COMPACT_DUPLICATE;
+                            }
+                            H3_SET_RESERVED_BITS(parent, count);
+                            hashSetArray[loc] = H3_NULL;
+                        } else {
+                            loc = (loc + 1) % numRemainingHexes;
+                        }
+                        loopCount++;
+                    }
+                    hashSetArray[loc] = parent;
+                }
+            }
+            // Determine which parent hexagons have a complete set
+            // of children and put them in the compactableHexes array
+            int compactableCount = 0;
+            int maxCompactableCount =
+                numRemainingHexes / 6;  // Somehow all pentagons; conservative
+            if (maxCompactableCount == 0) {
+                memcpy(compactedSetOffset, remainingHexes,
+                       numRemainingHexes * sizeof(remainingHexes[0]));
+                break;
+            }
+            H3Index* compactableHexes =
+                H3_MEMORY(calloc)(maxCompactableCount, sizeof(H3Index));
+            if (!compactableHexes) {
+                H3_MEMORY(free)(remainingHexes);
+                H3_MEMORY(free)(hashSetArray);
+                return COMPACT_ALLOC_FAILED;
+            }
+            for (int i = 0; i < numRemainingHexes; i++) {
+                if (hashSetArray[i] == 0) continue;
+                int count = H3_GET_RESERVED_BITS(hashSetArray[i]) + 1;
+                // Include the deleted direction for pentagons as implicitly "there"
+                if (H3_EXPORT(h3IsPentagon)(hashSetArray[i] &
+                                            H3_RESERVED_MASK_NEGATIVE)) {
+                    // We need this later on, no need to recalculate
+                    H3_SET_RESERVED_BITS(hashSetArray[i], count);
+                    // Increment count after setting the reserved bits,
+                    // since count is already incremented above, so it
+                    // will be the expected value for a complete hexagon.
+                    count++;
+                }
+                if (count == 7) {
+                    // Bingo! Full set!
+                    compactableHexes[compactableCount] =
+                        hashSetArray[i] & H3_RESERVED_MASK_NEGATIVE;
+                    compactableCount++;
+                }
+            }
+            // Uncompactable hexes are immediately copied into the
+            // output compactedSetOffset
+            int uncompactableCount = 0;
+            for (int i = 0; i < numRemainingHexes; i++) {
+                H3Index currIndex = remainingHexes[i];
+                if (currIndex != H3_NULL) {
+                    H3Index parent = H3_EXPORT(h3ToParent)(currIndex, parentRes);
+                    // Modulus hash the parent into the temp array
+                    // to determine if this index was included in
+                    // the compactableHexes array
+                    int loc = (int)(parent % numRemainingHexes);
+                    int loopCount = 0;
+                    bool isUncompactable = true;
+                    do {
+                        if (loopCount > numRemainingHexes) {  // LCOV_EXCL_BR_LINE
+                            // LCOV_EXCL_START
+                            // This case should not be possible because at most one
+                            // index is placed into hashSetArray per input hexagon.
+                            H3_MEMORY(free)(compactableHexes);
+                            H3_MEMORY(free)(remainingHexes);
+                            H3_MEMORY(free)(hashSetArray);
+                            return COMPACT_LOOP_EXCEEDED;
+                            // LCOV_EXCL_STOP
+                        }
+                        H3Index tempIndex =
+                            hashSetArray[loc] & H3_RESERVED_MASK_NEGATIVE;
+                        if (tempIndex == parent) {
+                            int count = H3_GET_RESERVED_BITS(hashSetArray[loc]) + 1;
+                            if (count == 7) {
+                                isUncompactable = false;
+                            }
+                            break;
+                        } else {
+                            loc = (loc + 1) % numRemainingHexes;
+                        }
+                        loopCount++;
+                    } while (hashSetArray[loc] != parent);
+                    if (isUncompactable) {
+                        compactedSetOffset[uncompactableCount] = remainingHexes[i];
+                        uncompactableCount++;
+                    }
+                }
+            }
+            // Set up for the next loop
+            memset(hashSetArray, 0, numHexes * sizeof(H3Index));
+            compactedSetOffset += uncompactableCount;
+            memcpy(remainingHexes, compactableHexes,
+                   compactableCount * sizeof(H3Index));
+            numRemainingHexes = compactableCount;
+            H3_MEMORY(free)(compactableHexes);
+        }
+        H3_MEMORY(free)(remainingHexes);
+        H3_MEMORY(free)(hashSetArray);
+        return COMPACT_SUCCESS;
+        */
+        todo!()
+    }
+
+    /**
      * uncompact takes a compressed set of hexagons and expands back to the
      * original set of hexagons.
      * @param compactedSet Set of hexagons
@@ -583,13 +773,13 @@ impl H3Index {
 
         if !parentRes._isValidChildRes(&childRes) {
             return results;
-        } else if (parentRes == childRes) {
+        } else if parentRes == childRes {
             results.push(*self);
             return results;
         }
 
         let bufferSize = self.maxH3ToChildrenSize(childRes);
-        let bufferChildStep = (bufferSize / 7);
+        let bufferChildStep = bufferSize / 7;
         let isAPentagon = self.is_pentagon();
 
         for i in 0..7 {
@@ -629,6 +819,116 @@ impl H3Index {
         childH.set_index_digit(childRes, cellNumber);
 
         childH
+    }
+
+    /**
+     * uncompact takes a compressed set of hexagons and expands back to the
+     * original set of hexagons.
+     * @param compactedSet Set of hexagons
+     * @param numHexes The number of hexes in the input set
+     * @param h3Set Output array of decompressed hexagons (preallocated)
+     * @param maxHexes The size of the output array to bound check against
+     * @param res The hexagon resolution to decompress to
+     * @return An error code if output array is too small or any hexagon is smaller than the output resolution.
+     */
+    pub fn uncompact_x(compactedSet: Vec<H3Index>, res: Resolution) -> Result<Vec<H3Index>, i32> {
+        let mut results = Vec::new();
+
+        for h in compactedSet {
+            if h == H3Index::H3_NULL {
+                continue;
+            }
+
+            let currentRes = h.get_resolution();
+            if !currentRes._isValidChildRes(&res) {
+                // Nonsensical. Abort.
+                return Err(-2);
+            }
+
+            if currentRes == res {
+                // Just copy and move along
+                results.push(h);
+            } else {
+                // Bigger hexagon to reduce in size
+                todo!()
+                /*
+                let numHexesToGen = H3_EXPORT(maxH3ToChildrenSize)(compactedSet[i], res);
+                if (outOffset + numHexesToGen > maxHexes) {
+                    // We're about to go too far, abort!
+                    return Err(-1);
+                }
+                H3_EXPORT(h3ToChildren)(compactedSet[i], res, h3Set + outOffset);
+                outOffset += numHexesToGen;
+                */
+            }
+        }
+
+        Ok(results)
+    }
+
+    /**
+     * Find all icosahedron faces intersected by a given H2 index, represented
+     * as integers from -1-19. The array is sparse; since 0 is a valid value,
+     * invalid array values are represented as -2. It is the responsibility of
+     * the caller to filter out invalid values.
+     *
+     * @param h2 The H3 index
+     * @param out Output array. Must be of size maxFaceCount(h2).
+     */
+    pub fn h3GetFaces(&self) -> HashSet<i32> {
+        let mut res = self.get_resolution();
+        let isPentagon = self.is_pentagon();
+
+        // We can't use the vertex-based approach here for class II pentagons,
+        // because all their vertices are on the icosahedron edges. Their
+        // direct child pentagons cross the same faces, so use those instead.
+        if isPentagon && !res.isResClassIII() {
+            // Note that this would not work for res 14, but this is only run on
+            // Class II pentagons, it should never be invoked for a res 14 index.
+            let child_pentagon = self.makeDirectChild(0);
+            let out = child_pentagon.h3GetFaces();
+            return out;
+        }
+
+        let mut out = HashSet::new();
+
+        // convert to FaceIJK
+        let mut fijk = self._h3ToFaceIjk();
+
+        // Get all vertices as FaceIJK addresses. For simplicity, always
+        // initialize the array with 5 verts, ignoring the last one for pentagons
+        if isPentagon {
+            for vert in fijk._faceIjkPentToVerts(&mut res).iter_mut() {
+                // Adjust overage, determining whether this vertex is on another face
+                vert._adjustPentVertOverage(res);
+
+                // Save the face to the output array
+                out.insert(vert.face);
+            }
+        } else {
+            for vert in fijk._faceIjkToVerts(&mut res).iter_mut() {
+                // Adjust overage, determining whether this vertex is on another face
+                vert._adjustOverageClassII(res, false, true);
+
+                // Save the face to the output array
+                out.insert(vert.face);
+            }
+        }
+
+        out
+    }
+
+    /**
+     * _hexRadiusKm returns the radius of a given hexagon in Km
+     *
+     * @param h3Index the index of the hexagon
+     * @return the radius of the hexagon in Km
+     */
+    pub(crate) fn _hexRadiusKm(&self) -> f64 {
+        // There is probably a cheaper way to determine the radius of a hexagon, but this way is conceptually simple
+        let h3Center: GeoCoord = self.h3ToGeo();
+        let h3Boundary: GeoBoundary = self.h3ToGeoBoundary();
+        GeoCoord::pointDistKm(&h3Center, &h3Boundary.verts[0])
     }
 }
 
@@ -774,4 +1074,60 @@ mod test {
 
     const sf: GeoCoord = GeoCoord::new(0.659966917655, 2. * 3.14159 - 2.1364398519396);
     //let sfHex8 : H3Index = sf.geoToH3(8);
+
+    #[test]
+    fn h3IsValidAtResolution() {
+        for i in Resolution::RESOLUTIONS.iter() {
+            let geoCoord = GeoCoord::default();
+            let h3 = geoCoord.geoToH3(*i);
+
+            assert!(h3.is_valid(), "h3IsValid failed on resolution {:?}", i);
+        }
+    }
+
+    #[test]
+    fn h3IsValidBaseCell() {
+        for i in 0..BaseCell::NUM_BASE_CELLS {
+            let mut h = H3Index::H3_INIT;
+            h.set_mode(H3Mode::H3_HEXAGON_MODE);
+            h.set_base_cell(i.into());
+
+            assert!(h.is_valid(), "h3IsValid failed on base cell {}", i);
+
+            let recovered = h.get_base_cell().0;
+            assert_eq!(recovered, i as i32, "failed to recover base cell");
+        }
+    }
+
+    #[test]
+    fn h3IsValidBaseCellInvalid() {
+        let mut hWrongBaseCell = H3Index::H3_INIT;
+        hWrongBaseCell.set_mode(H3Mode::H3_HEXAGON_MODE);
+        hWrongBaseCell.set_base_cell(BaseCell::NUM_BASE_CELLS.into());
+        assert!(
+            !hWrongBaseCell.is_valid(),
+            "h3IsValid failed on invalid base cell"
+        );
+    }
+
+    #[test]
+    fn h3IsValidWithMode() {
+        const H3_MODES: [H3Mode; 4] = [
+            H3Mode::H3_HEXAGON_MODE,
+            H3Mode::H3_UNIEDGE_MODE,
+            H3Mode::H3_EDGE_MODE,
+            H3Mode::H3_VERTEX_MODE,
+        ];
+
+        for mode in H3_MODES.iter() {
+            let mut h = H3Index::H3_INIT;
+            h.set_mode(*mode);
+
+            if *mode == H3Mode::H3_HEXAGON_MODE {
+                assert!(h.is_valid(), "h3IsValid succeeds on valid mode");
+            } else {
+                assert!(!h.is_valid(), "h3IsValid failed on mode {:?}", mode);
+            }
+        }
+    }
 }

@@ -21,22 +21,9 @@ impl Vec3d {
     pub fn _pointSquareDist(&self, other: &Self) -> f64 {
         _square(self.x - other.x) + _square(self.y - other.y) + _square(self.z - other.z)
     }
-}
 
-/*
-/// Calculate the 3D coordinate on unit sphere from the latitude and longitude.
-///
-///@param geo The latitude and longitude of the point.
-///@param v The 3D coordinate of the point.
-///
-void _geoToVec3d(const GeoCoord* geo, Vec3d* v) {
-    double r = cos(geo->lat);
 
-    v->z = sin(geo->lat);
-    v->x = cos(geo->lon) * r;
-    v->y = sin(geo->lon) * r;
 }
-*/
 
 #[cfg(test)]
 mod tests {

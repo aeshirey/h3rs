@@ -806,6 +806,8 @@ impl H3Index {
 
 #[cfg(test)]
 mod tests {
+    use crate::h3index::H3Mode;
+
     use super::*;
 
     #[test]
@@ -1226,9 +1228,35 @@ mod tests {
     fn iterateAllIndexesAtResPartial(res: Resolution, cb: fn(H3Index), baseCells: usize) {
         assert!(baseCells <= BaseCell::NUM_BASE_CELLS);
         for i in 0..baseCells {
-            iterateBaseCellIndexesAtRes(res, cb, i);
+            todo!()
+            //iterateBaseCellIndexesAtRes(res, cb, i);
         }
     }
+
+    /*
+     /// Call the callback for every index at the given resolution in a specific base cell
+    fn iterateBaseCellIndexesAtRes(res: Resolution, cb: fn(H3Index), baseCell: i32) {
+        let mut bc = H3Index::H3_INIT;
+        bc.set_mode(H3Mode::H3_HEXAGON_MODE);
+        bc.set_resolution(Resolution::R0);
+        bc.set_base_cell(baseCell.into());
+
+        let children = bc.uncompact
+        int childrenSz = H3_EXPORT(maxUncompactSize)(&bc, 1, res);
+        H3Index* children = calloc(childrenSz, sizeof(H3Index));
+        H3_EXPORT(uncompact)(&bc, 1, children, childrenSz, res);
+
+        for (int j = 0; j < childrenSz; j++) {
+            if (children[j] == H3_NULL) {
+                continue;
+            }
+
+            (*callback)(children[j]);
+        }
+
+        free(children);
+    }
+    */
 
     //#[test]
     //fn h3ToLocalIj_neighbors() {

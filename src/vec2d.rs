@@ -1,37 +1,9 @@
-use crate::{
-    constants,
-    coordijk::CoordIJK,
-    geocoord::{_geoAzDistanceRads, _posAngleRads},
-    vec3d::Vec3d,
-    GeoCoord, Resolution,
-};
+use crate::{GeoCoord, Resolution, constants::{self, M_SIN60}, coordijk::CoordIJK, faceCenterGeo, geocoord::{_geoAzDistanceRads, _posAngleRads}, vec3d::Vec3d};
 
-/** @brief icosahedron face centers in lat/lon radians */
-const faceCenterGeo: [GeoCoord; constants::NUM_ICOSA_FACES] = [
-    GeoCoord::new(0.803582649718989942, 1.248397419617396099), // face  0
-    GeoCoord::new(1.307747883455638156, 2.536945009877921159), // face  1
-    GeoCoord::new(1.054751253523952054, -1.347517358900396623), // face  2
-    GeoCoord::new(0.600191595538186799, -0.450603909469755746), // face  3
-    GeoCoord::new(0.491715428198773866, 0.401988202911306943), // face  4
-    GeoCoord::new(0.172745327415618701, 1.678146885280433686), // face  5
-    GeoCoord::new(0.605929321571350690, 2.953923329812411617), // face  6
-    GeoCoord::new(0.427370518328979641, -1.888876200336285401), // face  7
-    GeoCoord::new(-0.079066118549212831, -0.733429513380867741), // face  8
-    GeoCoord::new(-0.230961644455383637, 0.506495587332349035), // face  9
-    GeoCoord::new(0.079066118549212831, 2.408163140208925497), // face 10
-    GeoCoord::new(0.230961644455383637, -2.635097066257444203), // face 11
-    GeoCoord::new(-0.172745327415618701, -1.463445768309359553), // face 12
-    GeoCoord::new(-0.605929321571350690, -0.187669323777381622), // face 13
-    GeoCoord::new(-0.427370518328979641, 1.252716453253507838), // face 14
-    GeoCoord::new(-0.600191595538186799, 2.690988744120037492), // face 15
-    GeoCoord::new(-0.491715428198773866, -2.739604450678486295), // face 16
-    GeoCoord::new(-0.803582649718989942, -1.893195233972397139), // face 17
-    GeoCoord::new(-1.307747883455638156, -0.604647643711872080), // face 18
-    GeoCoord::new(-1.054751253523952054, 1.794075294689396615), // face 19
-];
+
 
 /** @brief icosahedron face centers in x/y/z on the unit sphere */
-const faceCenterPoint: [Vec3d; constants::NUM_ICOSA_FACES] = [
+pub(crate) const faceCenterPoint: [Vec3d; constants::NUM_ICOSA_FACES] = [
     Vec3d::new(0.2199307791404606, 0.6583691780274996, 0.7198475378926182), // face  0
     Vec3d::new(-0.2139234834501421, 0.1478171829550703, 0.9656017935214205), // face  1
     Vec3d::new(0.1092625278784797, -0.4811951572873210, 0.8697775121287253), // face  2
@@ -65,7 +37,7 @@ const faceCenterPoint: [Vec3d; constants::NUM_ICOSA_FACES] = [
 /** @brief icosahedron face ijk axes as azimuth in radians from face center to
  * vertex 0/1/2 respectively
  */
-const faceAxesAzRadsCII: [[f64; 3]; constants::NUM_ICOSA_FACES] = [
+pub(crate) const faceAxesAzRadsCII: [[f64; 3]; constants::NUM_ICOSA_FACES] = [
     [
         5.619958268523939882,
         3.525563166130744542,
@@ -366,6 +338,108 @@ impl Vec2d {
 
         // now find the point at (r,theta) from the face center
         _geoAzDistanceRads(&faceCenterGeo[face as usize], theta, r)
+    }
+
+    /**
+     * Determine the containing hex in ijk+ coordinates for a 2D cartesian
+     * coordinate vector (from DGGRID).
+     *
+     * @param v The 2D cartesian coordinate vector.
+     * @param h The ijk+ coordinates of the containing hex.
+     */
+    pub(crate) fn _hex2dToCoordIJK(&self) -> CoordIJK {
+        let mut i;
+        let mut j;
+
+        // quantize into the ij system and then normalize
+        let k = 0;
+
+        let a1: f64 = self.x.abs();
+        let a2: f64 = self.y.abs();
+
+        // first do a reverse conversion
+        let x2 = a2 / M_SIN60;
+        let x1 = a1 + x2 / 2.;
+
+        // check if we have the center of a hex
+        let m1 = x1 as i32;
+        let m2 = x2 as i32;
+
+        // otherwise round correctly
+        let r1 = x1 - m1 as f64;
+        let r2 = x2 - m2 as f64;
+
+        if r1 < 0.5 {
+            if r1 < 1.0 / 3.0 {
+                if r2 < (1.0 + r1) / 2.0 {
+                    i = m1;
+                    j = m2;
+                } else {
+                    i = m1;
+                    j = m2 + 1;
+                }
+            } else {
+                if r2 < (1.0 - r1) {
+                    j = m2;
+                } else {
+                    j = m2 + 1;
+                }
+
+                if (1.0 - r1) <= r2 && r2 < (2.0 * r1) {
+                    i = m1 + 1;
+                } else {
+                    i = m1;
+                }
+            }
+        } else {
+            if r1 < 2.0 / 3.0 {
+                if r2 < (1.0 - r1) {
+                    j = m2;
+                } else {
+                    j = m2 + 1;
+                }
+
+                if (2.0 * r1 - 1.0) < r2 && r2 < (1.0 - r1) {
+                    i = m1;
+                } else {
+                    i = m1 + 1;
+                }
+            } else {
+                if r2 < (r1 / 2.0) {
+                    i = m1 + 1;
+                    j = m2;
+                } else {
+                    i = m1 + 1;
+                    j = m2 + 1;
+                }
+            }
+        }
+
+        // now fold across the axes if necessary
+
+        if self.x < 0.0 {
+            if (j % 2) == 0
+            // even
+            {
+                let axisi = j / 2;
+                let diff = i - axisi;
+                i = i - 2 * diff;
+            } else {
+                let axisi = (j + 1) / 2;
+                let diff = i - axisi;
+                i = i - (2 * diff + 1);
+            }
+        }
+
+        if self.y < 0.0 {
+            i = i - (2 * j + 1) / 2;
+            j = -1 * j;
+        }
+
+        let mut h = CoordIJK::new(i, j, k);
+        h.normalize();
+
+        h
     }
 }
 
