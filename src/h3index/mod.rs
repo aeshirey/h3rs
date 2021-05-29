@@ -1076,6 +1076,30 @@ mod test {
     //let sfHex8 : H3Index = sf.geoToH3(8);
 
     #[test]
+    fn geoToH3ExtremeCoordinates() {
+        // Check that none of these cause crashes.
+        let g = GeoCoord::new(0., 1e45);
+        let _h3 = g.geoToH3(Resolution::R14);
+
+        let g2 = GeoCoord::new(1e46, 1e45);
+        let _h3 = g2.geoToH3(Resolution::R15);
+
+        let g4 = GeoCoord::new(2., -3e39);
+        let _h3 = g4.geoToH3(Resolution::R0);
+    }
+
+    #[test]
+    fn h3IsValidDigits() {
+        let geoCoord = GeoCoord::default();
+        let h3 = geoCoord.geoToH3(Resolution::R1);
+
+        // Set a bit for an unused digit to something else.
+        let h3 = h3.0 ^ 1;
+        let h3 = H3Index(h3);
+        assert!(!h3.is_valid(), "h3IsValid failed on invalid unused digits");
+    }
+
+    #[test]
     fn h3IsValidAtResolution() {
         for i in Resolution::RESOLUTIONS.iter() {
             let geoCoord = GeoCoord::default();
@@ -1129,5 +1153,59 @@ mod test {
                 assert!(!h.is_valid(), "h3IsValid failed on mode {:?}", mode);
             }
         }
+    }
+
+    #[test]
+    fn h3IsValidHighBit() {
+        let mut h = H3Index::H3_INIT;
+        h.set_mode(H3Mode::H3_HEXAGON_MODE);
+        h.set_high_bit(1);
+
+        assert!(!h.is_valid(), "h3IsValid failed on high bit");
+    }
+
+    #[test]
+    fn h3BadDigitInvalid() {
+        let mut h = H3Index::H3_INIT;
+
+        // By default the first index digit is out of range.
+        h.set_mode(H3Mode::H3_HEXAGON_MODE);
+        h.set_resolution(Resolution::R1);
+        assert!(!h.is_valid(), "h3IsValid failed on too large digit");
+    }
+
+    #[test]
+    fn h3DeletedSubsequenceInvalid() {
+        let h = H3Index::setH3Index(Resolution::R1, BaseCell::new(4), Direction::K_AXES_DIGIT);
+
+        // Create an index located in a deleted subsequence of a pentagon.
+        assert!(!h.is_valid(), "h3IsValid failed on deleted subsequence");
+    }
+
+    #[test]
+    fn setH3Index() {
+        let h = H3Index::setH3Index(Resolution::R5, BaseCell::new(12), Direction::K_AXES_DIGIT);
+
+        assert_eq!(h.get_resolution(), Resolution::R5, "resolution as expected");
+        assert_eq!(h.get_base_cell().0, 12, "base cell as expected");
+        assert_eq!(h.get_mode(), H3Mode::H3_HEXAGON_MODE, "mode as expected");
+
+        for i in 1..=5 {
+            assert_eq!(
+                h.get_index_digit(i.into()),
+                Direction::K_AXES_DIGIT,
+                "digit as expected"
+            );
+        }
+
+        for i in 6..=Resolution::MAX_H3_RES {
+            assert_eq!(
+                h.get_index_digit(i.into()),
+                Direction::INVALID_DIGIT,
+                "blanked digit as expected"
+            );
+        }
+
+        assert_eq!(h.0, 0x85184927fffffff, "index matches expected");
     }
 }
