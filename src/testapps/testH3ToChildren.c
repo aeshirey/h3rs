@@ -67,51 +67,7 @@ SUITE(h3ToChildren) {
         t_assert(numFound == expectedCount, "found all expected children");
     }
 
-    TEST(multipleResSteps) {
-        // Lots of children. Will just confirm number and uniqueness
-        const int expectedCount = 49;
-        const int paddedCount = 60;
 
-        H3Index* children = calloc(paddedCount, sizeof(H3Index));
-        H3_EXPORT(h3ToChildren)(sfHex8, 10, children);
-
-        verifyCountAndUniqueness(children, paddedCount, expectedCount);
-        free(children);
-    }
-
-    TEST(sameRes) {
-        const int expectedCount = 1;
-        const int paddedCount = 7;
-
-        H3Index* children = calloc(paddedCount, sizeof(H3Index));
-        H3_EXPORT(h3ToChildren)(sfHex8, 8, children);
-
-        verifyCountAndUniqueness(children, paddedCount, expectedCount);
-        free(children);
-    }
-
-    TEST(childResTooCoarse) {
-        const int expectedCount = 0;
-        const int paddedCount = 7;
-
-        H3Index* children = calloc(paddedCount, sizeof(H3Index));
-        H3_EXPORT(h3ToChildren)(sfHex8, 7, children);
-
-        verifyCountAndUniqueness(children, paddedCount, expectedCount);
-        free(children);
-    }
-
-    TEST(childResTooFine) {
-        const int expectedCount = 0;
-        const int paddedCount = 7;
-        H3Index sfHexMax = H3_EXPORT(geoToH3)(&sf, MAX_H3_RES);
-
-        H3Index* children = calloc(paddedCount, sizeof(H3Index));
-        H3_EXPORT(h3ToChildren)(sfHexMax, MAX_H3_RES + 1, children);
-
-        verifyCountAndUniqueness(children, paddedCount, expectedCount);
-        free(children);
-    }
 
     TEST(pentagonChildren) {
         H3Index pentagon;

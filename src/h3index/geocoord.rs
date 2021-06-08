@@ -45,17 +45,16 @@ impl H3Index {
     /**
      * Length of a unidirectional edge in radians.
      *
-     * @param   edge  H3 unidirectional edge
+     * @param edge  H3 unidirectional edge
      *
-     * @return        length in radians
+     * @return length in radians
      */
     pub fn exactEdgeLengthRads(&self) -> f64 {
         let gb: GeoBoundary = self.getH3UnidirectionalEdgeBoundary();
 
         let mut length = 0.0;
         for i in 0..gb.numVerts - 1 {
-            //length += H3_EXPORT(pointDistRads)(&gb.verts[i], &gb.verts[i + 1]);
-            todo!()
+            length += GeoCoord::pointDistRads(&gb.verts[i], &gb.verts[i + 1]);
         }
 
         length

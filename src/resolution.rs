@@ -296,6 +296,14 @@ impl std::ops::Add<i32> for Resolution {
     }
 }
 
+impl std::ops::Sub<i32> for Resolution {
+    type Output = Self;
+
+    fn sub(self, rhs: i32) -> Self::Output {
+        (i32::from(self) - rhs).into()
+    }
+}
+
 /*
 impl Ord for Resolution {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {

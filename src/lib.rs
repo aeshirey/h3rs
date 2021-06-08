@@ -1,4 +1,4 @@
-#![allow(dead_code, unused_imports, non_camel_case_types)]
+#![allow(dead_code, unused_imports, non_camel_case_types, non_snake_case)]
 
 mod bbox;
 use bbox::*;

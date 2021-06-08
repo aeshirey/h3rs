@@ -256,10 +256,10 @@ impl GeoCoord {
      */
     pub(crate) fn _geoToFaceIjk(&self, res: Resolution) -> FaceIJK {
         // first convert to hex2d
-        let (face, v) = self._geoToHex2d(res);
+        let (face, v) = self._geoToHex2d(res); // TODO?
 
         // then convert to ijk+
-        let coord = v._hex2dToCoordIJK();
+        let coord = v._hex2dToCoordIJK(); // TODO?
 
         FaceIJK {
             face: face as i32,
@@ -295,15 +295,24 @@ impl GeoCoord {
         let v3d = self._geoToVec3d();
 
         // determine the icosahedron face
-        //let mut face = 0;
-        //let sqd = faceCenterPoint[0]._pointSquareDist(&v3d);
+        let mut face = 0;
+        let mut sqd = faceCenterPoint[0]._pointSquareDist(&v3d);
 
-        let (face, _vec3d, sqd) = faceCenterPoint
-            .iter()
-            .enumerate()
-            .map(|(i, pt)| (i, pt, pt._pointSquareDist(&v3d)))
-            .min_by(|v1, v2| v1.2.partial_cmp(&v2.2).unwrap())
-            .unwrap();
+        /*
+               let (face, _vec3d, sqd) = faceCenterPoint
+                   .iter()
+                   .enumerate()
+                   .map(|(i, pt)| (i, pt, pt._pointSquareDist(&v3d)))
+                   .min_by(|v1, v2| v1.2.partial_cmp(&v2.2).unwrap())
+                   .unwrap();
+        */
+        for f in 1..NUM_ICOSA_FACES {
+            let sqdT = faceCenterPoint[f]._pointSquareDist(&v3d);
+            if sqdT < sqd {
+                face = f;
+                sqd = sqdT;
+            }
+        }
 
         // cos(r) = 1 - 2 * sin^2(r/2) = 1 - 2 * (sqd / 4) = 1 - sqd/2
         let mut r = (1. - sqd / 2.).acos();
@@ -359,8 +368,8 @@ impl GeoCoord {
             return H3Index::H3_NULL;
         }
 
-        let fijk = self._geoToFaceIjk(res);
-        fijk._faceIjkToH3(res)
+        let fijk = self._geoToFaceIjk(res); // TODO - something wrong here?
+        fijk._faceIjkToH3(res) // TODO - or something wrong here?
     }
 
     /**

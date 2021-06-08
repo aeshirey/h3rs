@@ -34,18 +34,6 @@ impl CoordIJK {
     }
 
     /**
-     * Returns whether or not two ijk coordinates contain exactly the same
-     * component values.
-     *
-     * @param c1 The first set of ijk coordinates.
-     * @param c2 The second set of ijk coordinates.
-     * @return 1 if the two addresses match, 0 if they do not.
-     */
-    pub fn _ijkMatches(c1: &Self, c2: &Self) -> bool {
-        todo!("Replace all invocations of _ijkMatches with ==")
-    }
-
-    /**
      * Normalizes ijk coordinates by setting the components to the smallest possible
      * values. Works in place.
      *

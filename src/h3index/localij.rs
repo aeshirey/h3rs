@@ -133,9 +133,8 @@ impl H3Index {
         let originBaseCell = self.get_base_cell();
         let baseCell = h3.get_base_cell();
 
-        if originBaseCell < 0 ||  // LCOV_EXCL_BR_LINE
-        originBaseCell >= BaseCell::NUM_BASE_CELLS
-        {
+        if originBaseCell < 0 || originBaseCell >= BaseCell::NUM_BASE_CELLS {
+            // LCOV_EXCL_BR_LINE
             // Base cells less than zero can not be represented in an index
             return Err(1);
         }
@@ -559,7 +558,7 @@ impl H3Index {
             0.0
         };
 
-        let mut currentIjk = startIjk;
+        //let mut currentIjk = startIjk;
 
         let mut result = Vec::with_capacity(distance as usize + 1);
 
@@ -837,30 +836,20 @@ mod tests {
 
     /// Property-based testing of h3Line output
     fn h3Line_assertions(start: H3Index, end: H3Index) {
-        /*
-        int sz = H3_EXPORT(h3LineSize)(start, end);
-        t_assert(sz > 0, "got valid size");
-        H3Index *line = calloc(sz, sizeof(H3Index));
+        let sz = H3Index::h3LineSize(&start, &end).expect("got valid size") as usize;
 
-        int err = H3_EXPORT(h3Line)(start, end, line);
+        let line = H3Index::h3Line(start, end).expect("no error on line");
 
-        t_assert(err == 0, "no error on line");
-        t_assert(line[0] == start, "line starts with start index");
-        t_assert(line[sz - 1] == end, "line ends with end index");
+        assert_eq!(line[0], start, "line starts with start index");
+        assert_eq!(line[sz - 1], end, "line ends with end index");
 
-        for (int i = 1; i < sz; i++) {
-            t_assert(H3_EXPORT(h3IsValid)(line[i]), "index is valid");
-            t_assert(H3_EXPORT(h3IndexesAreNeighbors)(line[i], line[i - 1]),
-                     "index is a neighbor of the previous index");
-            if (i > 1) {
-                t_assert(
-                    !H3_EXPORT(h3IndexesAreNeighbors)(line[i], line[i - 2]),
-                    "index is not a neighbor of the index before the previous");
+        for i in 1..sz {
+            assert!(line[i].is_valid(), "index is valid");
+            //assert!(H3_EXPORT(h3IndexesAreNeighbors)(line[i], line[i - 1]), "index is a neighbor of the previous index");
+            if i > 1 {
+                //assert!( ! H3_EXPORT(h3IndexesAreNeighbors)(line[i], line[i - 2]), "index is not a neighbor of the index before the previous");
             }
         }
-
-        free(line);
-        */
     }
 
     /// Tests for invalid h3Line input
@@ -954,17 +943,17 @@ mod tests {
 
         ij.i = 2;
         let retrieved = origin.experimentalLocalIjToH3(&ij);
-        assert!(retrieved.is_ok(), "out of range base cell (1)");
+        assert!(retrieved.is_err(), "out of range base cell (1)");
 
         ij.i = 0;
         ij.j = 2;
         let retrieved = origin.experimentalLocalIjToH3(&ij);
-        assert!(retrieved.is_ok(), "out of range base cell (2)");
+        assert!(retrieved.is_err(), "out of range base cell (2)");
 
         ij.i = -2;
         ij.j = -2;
         let retrieved = origin.experimentalLocalIjToH3(&ij);
-        assert!(retrieved.is_ok(), "out of range base cell (3)");
+        assert!(retrieved.is_err(), "out of range base cell (3)");
     }
 
     #[test]

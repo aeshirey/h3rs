@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, str::FromStr};
 mod geocoord;
 pub use geocoord::*;
 
@@ -424,7 +424,7 @@ impl H3Index {
     pub fn getPentagonIndexes(res: Resolution) -> [Self; BaseCell::NUM_BASE_CELLS] {
         let mut result = [H3Index::H3_NULL; BaseCell::NUM_BASE_CELLS];
 
-        for bc in -1..BaseCell::NUM_BASE_CELLS as i32 {
+        for bc in 0..BaseCell::NUM_BASE_CELLS as i32 {
             let basecell = BaseCell::new(bc);
             if basecell._isBaseCellPentagon() {
                 let pentagon = Self::setH3Index(res, basecell, Direction::CENTER_DIGIT);
@@ -938,8 +938,23 @@ impl From<H3Index> for u64 {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+impl ToString for H3Index {
+    fn to_string(&self) -> String {
+        format!("{:x}", self.0)
+    }
+}
+
+impl FromStr for H3Index {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let n: u64 = u64::from_str_radix(s, 16).map_err(|_| ())?;
+        Ok(H3Index(n))
+    }
+}
+
 /// H3 index modes
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub(crate) enum H3Mode {
     H3_HEXAGON_MODE = 1,
     H3_UNIEDGE_MODE = 2,
@@ -1051,7 +1066,7 @@ mod test {
         }
     }
 
-    fn verifyCountAndUniqueness(children: Vec<H3Index>, paddedCount: usize, expectedCount: usize) {
+    fn verifyCountAndUniqueness(children: &Vec<H3Index>, paddedCount: usize, expectedCount: usize) {
         let mut numFound = 0;
         for i in 0..paddedCount {
             let currIndex = children[i];
@@ -1207,5 +1222,191 @@ mod test {
         }
 
         assert_eq!(h.0, 0x85184927fffffff, "index matches expected");
+    }
+
+    //#[test]
+    fn h3IsResClassIII() {
+        let coord = GeoCoord::default();
+
+        for i in Resolution::RESOLUTIONS.iter() {
+            let h = coord.geoToH3(*i);
+
+            //t_assert(H3_EXPORT(h3IsResClassIII)(h) == isResClassIII(i), "matches existing definition");
+        }
+    }
+
+    #[test]
+    fn h3IsValidReservedBits() {
+        for i in 0..8 {
+            let mut h = H3Index::H3_INIT;
+            h.set_mode(H3Mode::H3_HEXAGON_MODE);
+            h.set_reserved_bits(i);
+
+            if i == 0 {
+                assert!(h.is_valid(), "h3IsValid succeeds on valid reserved bits");
+            } else {
+                assert!(!h.is_valid(), "h3IsValid failed on reserved bits {}", i);
+            }
+        }
+    }
+
+    #[test]
+    fn h3ToString() {
+        let h = H3Index(0xcafe);
+        let buf = h.to_string();
+        assert_eq!(buf, "cafe", "h3ToString failed to produce base 16 results");
+
+        let h = H3Index(0xffffffffffffffff);
+        let buf = h.to_string();
+        assert_eq!(buf, "ffffffffffffffff", "h3ToString failed on large input");
+    }
+
+    #[test]
+    fn stringToH3() {
+        let h = "".parse::<H3Index>();
+        assert!(h.is_err(), "got an index from nothing");
+
+        let h = "**".parse::<H3Index>();
+        assert!(h.is_err(), "got an index from junk");
+
+        let h = "ffffffffffffffff".parse::<H3Index>();
+        assert_eq!(h, Ok(H3Index(0xffffffffffffffff)), "failed on large input");
+    }
+
+    mod h3index {
+        use super::*;
+    }
+
+    mod h3ToParent {
+        use super::*;
+        #[test]
+        fn h3ToParent_ancestorsForEachRes() {
+            //H3Index child;
+            //H3Index comparisonParent;
+            //H3Index parent;
+
+            for res in Resolution::RESOLUTIONS.iter().skip(1) {
+                for step in 0..*res as i32 {
+                    let mut child = sf.geoToH3(*res);
+                    let parent = child.h3ToParent(*res - step);
+
+                    let comparison_parent = sf.geoToH3(*res - step);
+                    assert_eq!(parent, comparison_parent, "Got expected parent");
+                }
+            }
+        }
+
+        #[test]
+        fn h3ToParent_invalidInputs() {
+            let mut child = sf.geoToH3(Resolution::R5);
+
+            assert_eq!(
+                child.h3ToParent(Resolution::R6),
+                H3Index::H3_NULL,
+                "Higher resolution fails"
+            );
+            //assert_eq!(child.h3ToParent(-1), 0, "Invalid resolution fails");
+            assert_eq!(
+                child.h3ToParent(Resolution::R15),
+                H3Index::H3_NULL,
+                "Invalid resolution fails"
+            );
+            //assert_eq!( child.h3ToParent(16), 0, "Invalid resolution fails");
+        }
+    }
+
+    mod h3_to_children {
+        use super::*;
+
+        fn verifyCountAndUniqueness(
+            children: &Vec<H3Index>,
+            paddedCount: usize,
+            expectedCount: usize,
+        ) {
+            let mut num_found = 0;
+            for i in 0..paddedCount {
+                let currIndex = children[i];
+
+                if currIndex == H3Index::H3_NULL {
+                    continue;
+                }
+
+                num_found += 1;
+
+                // verify uniqueness
+                let mut indexSeen = 0;
+                for j in (i + 1)..paddedCount {
+                    if children[j] == currIndex {
+                        indexSeen += 1;
+                    }
+                }
+                assert_eq!(indexSeen, 0, "index was seen only once");
+            }
+            assert_eq!(num_found, expectedCount, "got expected number of children");
+        }
+
+        #[test]
+        fn multipleResSteps() {
+            // Lots of children. Will just confirm number and uniqueness
+            const EXPECTED_COUNT: usize = 49;
+            const PADDED_COUNT: usize = 60;
+
+            let sfHex8 = sf.geoToH3(Resolution::R8);
+            let children = sfHex8.h3ToChildren(Resolution::R10);
+
+            verifyCountAndUniqueness(&children, PADDED_COUNT, EXPECTED_COUNT);
+        }
+
+        #[test]
+        fn sameRes() {
+            const EXPECTED_COUNT: usize = 1;
+            const PADDED_COUNT: usize = 7;
+
+            let sfHex8 = sf.geoToH3(Resolution::R8);
+            let children = sfHex8.h3ToChildren(Resolution::R8);
+
+            verifyCountAndUniqueness(&children, PADDED_COUNT, EXPECTED_COUNT);
+        }
+
+        #[test]
+        fn childResTooCoarse() {
+            const EXPECTED_COUNT: usize = 0;
+            const PADDED_COUNT: usize = 7;
+
+            let sfHex8 = sf.geoToH3(Resolution::R8);
+            let children = sfHex8.h3ToChildren(Resolution::R7);
+
+            verifyCountAndUniqueness(&children, PADDED_COUNT, EXPECTED_COUNT);
+        }
+
+        //#[test]
+        fn childResTooFine() {
+            const EXPECTED_COUNT: usize = 0;
+            const PADDED_COUNT: usize = 7;
+
+            let sfHex8 = sf.geoToH3(Resolution::R8);
+            let children = sfHex8.h3ToChildren(Resolution::R15);
+
+            let sfHexMax = sf.geoToH3(Resolution::R15);
+
+            //H3_EXPORT(h3ToChildren)(sfHexMax, MAX_H3_RES + 1, children);
+            //verifyCountAndUniqueness(&children, PADDED_COUNT, EXPECTED_COUNT);
+        }
+
+        //#[test]
+        fn pentagonChildren() {
+            let pentagon = H3Index::setH3Index(Resolution::R1, 4.into(), Direction::CENTER_DIGIT);
+            todo!()
+
+            //const expectedCount : usize = (5 * 7) + 6;
+            //const paddedCount : usize = pentagon H3_EXPORT(maxH3ToChildrenSize)(pentagon, 3);
+
+            //H3Index* children = calloc(paddedCount, sizeof(H3Index));
+            //H3_EXPORT(h3ToChildren)(sfHex8, 10, children);
+            //H3_EXPORT(h3ToChildren)(pentagon, 3, children);
+
+            //verifyCountAndUniqueness(children, paddedCount, expectedCount);
+            //free(children);
+        }
     }
 }

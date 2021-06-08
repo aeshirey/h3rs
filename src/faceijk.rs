@@ -237,6 +237,7 @@ impl FaceIJK {
                 h = h._h3RotatePent60ccw();
             }
         } else {
+            //(0..numRots).for_each(|_| h = h._h3Rotate60ccw());
             for _ in 0..numRots {
                 h = h._h3Rotate60ccw();
             }
@@ -412,7 +413,10 @@ impl FaceIJK {
      *            necessary for the substrate grid resolution.
      * @param fijkVerts Output array for the vertices
      */
-    pub(crate) fn _faceIjkToVerts(&mut self, res: &mut Resolution) -> [FaceIJK; NUM_HEX_VERTS as usize] {
+    pub(crate) fn _faceIjkToVerts(
+        &mut self,
+        res: &mut Resolution,
+    ) -> [FaceIJK; NUM_HEX_VERTS as usize] {
         // the vertexes of an origin-centered cell in a Class II resolution on a
         // substrate grid with aperture sequence 33r. The aperture 3 gets us the
         // vertices, and the 3r gets us back to Class II.
@@ -547,10 +551,8 @@ impl FaceIJK {
      * @param res The H3 resolution of the cell.
      */
     pub(crate) fn _adjustPentVertOverage(&mut self, res: Resolution) -> Overage {
-        let mut pentLeading4 = false;
-
         loop {
-            let overage = self._adjustOverageClassII(res, pentLeading4, true);
+            let overage = self._adjustOverageClassII(res, false, true);
             if overage == Overage::NEW_FACE {
                 return overage;
             }
@@ -817,29 +819,65 @@ const faceNeighbors: [[FaceOrientIJK; 4]; NUM_ICOSA_FACES] = [
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     #[test]
     fn faceIjkToH3ExtremeCoordinates() {
-        /*
-            FaceIJK fijk0I = {0, {3, 0, 0}};
-            t_assert(_faceIjkToH3(&fijk0I, 0) == 0, "i out of bounds at res 0");
-            FaceIJK fijk0J = {1, {0, 4, 0}};
-            t_assert(_faceIjkToH3(&fijk0J, 0) == 0, "j out of bounds at res 0");
-            FaceIJK fijk0K = {2, {2, 0, 5}};
-            t_assert(_faceIjkToH3(&fijk0K, 0) == 0, "k out of bounds at res 0");
+        let fijk0I = FaceIJK::new(0, (3, 0, 0));
+        assert_eq!(
+            fijk0I._faceIjkToH3(Resolution::R0),
+            H3Index::H3_NULL,
+            "i out of bounds at res 0"
+        );
+        let fijk0J = FaceIJK::new(1, (0, 4, 0));
+        assert_eq!(
+            fijk0J._faceIjkToH3(Resolution::R0),
+            H3Index::H3_NULL,
+            "j out of bounds at res 0"
+        );
+        let fijk0K = FaceIJK::new(2, (2, 0, 5));
+        assert_eq!(
+            fijk0K._faceIjkToH3(Resolution::R0),
+            H3Index::H3_NULL,
+            "k out of bounds at res 0"
+        );
 
-            FaceIJK fijk1I = {3, {6, 0, 0}};
-            t_assert(_faceIjkToH3(&fijk1I, 1) == 0, "i out of bounds at res 1");
-            FaceIJK fijk1J = {4, {0, 7, 1}};
-            t_assert(_faceIjkToH3(&fijk1J, 1) == 0, "j out of bounds at res 1");
-            FaceIJK fijk1K = {5, {2, 0, 8}};
-            t_assert(_faceIjkToH3(&fijk1K, 1) == 0, "k out of bounds at res 1");
+        let fijk1I = FaceIJK::new(3, (6, 0, 0));
+        assert_eq!(
+            fijk1I._faceIjkToH3(Resolution::R1),
+            H3Index::H3_NULL,
+            "i out of bounds at res 1"
+        );
+        let fijk1J = FaceIJK::new(4, (0, 7, 1));
+        assert_eq!(
+            fijk1J._faceIjkToH3(Resolution::R1),
+            H3Index::H3_NULL,
+            "j out of bounds at res 1"
+        );
+        let fijk1K = FaceIJK::new(5, (2, 0, 8));
+        assert_eq!(
+            fijk1K._faceIjkToH3(Resolution::R1),
+            H3Index::H3_NULL,
+            "k out of bounds at res 1"
+        );
 
-            FaceIJK fijk2I = {6, {18, 0, 0}};
-            t_assert(_faceIjkToH3(&fijk2I, 2) == 0, "i out of bounds at res 2");
-            FaceIJK fijk2J = {7, {0, 19, 1}};
-            t_assert(_faceIjkToH3(&fijk2J, 2) == 0, "j out of bounds at res 2");
-            FaceIJK fijk2K = {8, {2, 0, 20}};
-            t_assert(_faceIjkToH3(&fijk2K, 2) == 0, "k out of bounds at res 2");
-        */
+        let fijk2I = FaceIJK::new(6, (18, 0, 0));
+        assert_eq!(
+            fijk2I._faceIjkToH3(Resolution::R2),
+            H3Index::H3_NULL,
+            "i out of bounds at res 2"
+        );
+        let fijk2J = FaceIJK::new(7, (0, 19, 1));
+        assert_eq!(
+            fijk2J._faceIjkToH3(Resolution::R2),
+            H3Index::H3_NULL,
+            "j out of bounds at res 2"
+        );
+        let fijk2K = FaceIJK::new(8, (2, 0, 20));
+        assert_eq!(
+            fijk2K._faceIjkToH3(Resolution::R2),
+            H3Index::H3_NULL,
+            "k out of bounds at res 2"
+        );
     }
 }
