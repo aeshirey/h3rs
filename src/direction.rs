@@ -22,6 +22,8 @@ pub enum Direction {
                    //NUM_DIGITS = INVALID_DIGIT
 }
 
+pub const DIRECTION_NUM_DIGITS: usize = 7;
+
 impl Direction {
     /// All valid directions for enumeration
     pub(crate) const VALID_DIRECTIONS: [Direction; 7] = [
@@ -136,6 +138,15 @@ macro_rules! from_dir {
 
 from_dir!(u64);
 from_dir!(usize);
+
+impl std::ops::Add<i32> for Direction {
+    type Output = Self;
+
+    fn add(self, rhs: i32) -> Self::Output {
+        let n = (self as i32 + rhs) as usize;
+        n.into()
+    }
+}
 
 impl std::ops::AddAssign<usize> for Direction {
     fn add_assign(&mut self, rhs: usize) {

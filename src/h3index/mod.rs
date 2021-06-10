@@ -14,6 +14,7 @@ mod algos;
 mod basecell;
 mod h3UniEdge;
 mod localij;
+mod vertex;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 /// The H3Index fits within a 64-bit unsigned integer

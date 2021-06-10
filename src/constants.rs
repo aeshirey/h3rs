@@ -43,4 +43,4 @@ pub const NUM_HEX_VERTS: i32 = 6;
 /// The number of vertices in a pentagon
 pub const NUM_PENT_VERTS: usize = 5;
 /// The number of pentagons per resolution *
-pub const NUM_PENTAGONS: i32 = 12;
+pub const NUM_PENTAGONS: usize = 12;

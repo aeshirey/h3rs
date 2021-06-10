@@ -23,14 +23,6 @@
 #include "h3Index.h"
 #include "faceijk.h"
 
-/** @struct PentagonDirectionFaces
- *  @brief  The faces in each axial direction of a given pentagon base cell
- */
-typedef struct {
-    int baseCell;               ///< base cell number
-    int faces[NUM_PENT_VERTS];  ///< face numbers for each axial direction,
-                                ///  in order, starting with J
-} PentagonDirectionFaces;
 
 /** Invalid vertex number */
 #define INVALID_VERTEX_NUM -1
